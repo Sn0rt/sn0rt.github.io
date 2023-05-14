@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>kubernetes I - learn & install - sn0rt's blog</title>
+
+  
+    <meta name="description" content="0x00 background因新项目与 kubernetes 本身相关，而我对 kubernetes 的复杂一无所知，所以需要探索它。这个 post 主要记录学习 k8s 梳理出来的 XCx 基本概念以及如何参与开发，部分图片来源于 [^slideshare], 大量资料来自 [^officialdoc], 有点补充”官网的文档不如 repo 里面来的全面”! 0x01 what’s kuber">
+<meta property="og:type" content="article">
+<meta property="og:title" content="kubernetes I - learn &amp; install">
+<meta property="og:url" content="http://sn0rt.github.io/2016/09/13/k8s-i/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="0x00 background因新项目与 kubernetes 本身相关，而我对 kubernetes 的复杂一无所知，所以需要探索它。这个 post 主要记录学习 k8s 梳理出来的 XCx 基本概念以及如何参与开发，部分图片来源于 [^slideshare], 大量资料来自 [^officialdoc], 有点补充”官网的文档不如 repo 里面来的全面”! 0x01 what’s kuber">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://sn0rt.github.io/pic/docker/architecture.svg">
+<meta property="og:image" content="http://sn0rt.github.io/pic/docker/k8s-master.png">
+<meta property="og:image" content="http://sn0rt.github.io/pic/docker/k8s-worker.png">
+<meta property="og:image" content="http://sn0rt.github.io/pic/docker/kubernetes_design.jpg">
+<meta property="og:image" content="http://sn0rt.github.io/pic/docker/k8s-singlenode-docker.png">
+<meta property="og:image" content="http://sn0rt.github.io/media/pic/docker/kube-ui.png">
+<meta property="og:image" content="http://sn0rt.github.io/pic/docker/k8s-vagrant-installed.png">
+<meta property="article:published_time" content="2016-09-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.780Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="docker">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://sn0rt.github.io/pic/docker/architecture.svg">
+  
+  
+  
+  <meta name="keywords" content="docker">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">kubernetes I - learn & install</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x01-what%E2%80%99s-kubernetes"><span class="toc-text">0x01 what’s kubernetes ?</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x02-why-kubernetes"><span class="toc-text">0x02 why kubernetes?</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x11-The-Kubernetes-Node"><span class="toc-text">0x11 The Kubernetes Node</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x12-The-Kubernetes-Control-Plane"><span class="toc-text">0x12 The Kubernetes Control Plane</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#services-of-master-node"><span class="toc-text">services of master node</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#worker"><span class="toc-text">worker</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#etcd"><span class="toc-text">etcd</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x21-by-docker"><span class="toc-text">0x21 by docker</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#master"><span class="toc-text">master</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#service-proxy"><span class="toc-text">service proxy</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#testing"><span class="toc-text">testing</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x22-by-vagrant-vagrant"><span class="toc-text">0x22 by vagrant[^vagrant]</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x41-unit-testing"><span class="toc-text">0x41 unit testing</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Unit-test-coverage"><span class="toc-text">Unit test coverage</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Benchmark-unit-tests"><span class="toc-text">Benchmark unit tests</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x42-Integration-tests"><span class="toc-text">0x42 Integration tests</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%89%E8%A3%85-etcd"><span class="toc-text">安装 etcd</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BF%90%E8%A1%8C%E9%9B%86%E6%88%90%E6%B5%8B%E8%AF%95"><span class="toc-text">运行集成测试</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x43-end-to-end-tests"><span class="toc-text">0x43 end-to-end tests</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%B8%E5%9E%8B%E7%94%A8%E6%B3%95"><span class="toc-text">典型用法</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#debug-with-gdb"><span class="toc-text">debug with gdb</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#debug-with-log"><span class="toc-text">debug with log</span></a></li></ol></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2016-09-12T16:00:00.000Z">2016-09-13</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>kubernetes I - learn & install</span></h1>
+<h1 id="0x00-background"><a href="#0x00-background" class="headerlink" title="0x00 background"></a>0x00 background</h1><p>因新项目与 kubernetes 本身相关，而我对 kubernetes 的复杂一无所知，所以需要探索它。<br>这个 post 主要记录学习 k8s 梳理出来的 XCx 基本概念以及如何参与开发，部分图片来源于 [^slideshare], 大量资料来自 [^officialdoc], 有点补充”官网的文档不如 repo 里面来的全面”!</p>
+<h2 id="0x01-what’s-kubernetes"><a href="#0x01-what’s-kubernetes" class="headerlink" title="0x01 what’s kubernetes ?"></a>0x01 what’s kubernetes ?</h2><p>Kubernetes(缩写 k8s) 是 Google 开源的容器集群管理系统，主要是 go 实现，其目的是提供应用部署，维护，扩展机制等功能，利用 Kubernetes 能方便地管理跨机器运行容器化的应用。<br>其主要功能如下：</p>
+<ul>
+<li>使用 Docker 对应用程序包装 (package), 实例化 (instantiate), 运行 (run).</li>
+<li>以集群的方式运行，管理跨机器的容器。</li>
+<li>解决 Docker 跨机器容器之间的通讯问题。</li>
+<li>Kubernetes 的自我修复机制使得容器集群总是运行在用户期望的状态。</li>
+</ul>
+<h2 id="0x02-why-kubernetes"><a href="#0x02-why-kubernetes" class="headerlink" title="0x02 why kubernetes?"></a>0x02 why kubernetes?</h2><p>kubernetes 是容器编排工具，目前这是最具竞争的领域之一，少数几个容器管理简单，但是调度管理以及监控大规模容器很具有挑战性，编排工具处理多种多样任务，如查找最优的位置或者服务器来运行容器，处理失败的任务，分享储存卷或者创建负载均衡与容器间通讯的覆盖网络等。<br>常见的容器编排项目如下：</p>
+<ul>
+<li>Kubernetes: 是 Googlet 团队发起并维护的，目前在功能特性方面是最先进的。</li>
+<li>Docker Swarm: 允许在 Docker 集群中调度容器，与 Docker 环境紧密集成。</li>
+<li>Mesosphere: 通用数据中心管理系统，也能管理容器，还可以与其它编排系统 (如 Kubernetes) 集成。</li>
+<li>CoreOS fleet: CoreOS 操作系统的一部分，管理在 CoreOS 集群中任何调度命令。</li>
+</ul>
+<h1 id="0x10-k8s-architecture-design"><a href="#0x10-k8s-architecture-design" class="headerlink" title="0x10 k8s architecture[^design]"></a>0x10 k8s architecture[^design]</h1><p>k8s 的架构设计：</p>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/pic/docker/architecture.svg" alt="架构图"></div><div class="image-meta"><span class="image-caption center">架构图</span></div></div>
+<p>由图可见 Kubernetes 首先是一套分布式系统，节点分为两类：一类是属于管理平面的主节点 &#x2F; 控制节点 (Master Node); 一类是属于运行平面的工作节点 (Worker Node); 复杂的工作交给控制节点去做了，工作节点负责提供稳定的操作接口和能力抽象。<br>没有能发现 Kubernetes 中对于控制平面的分布式实现，但是由于数据后端自身就是一套分布式的数据库 (etcd), 因此可以很容易扩展到分布式实现。</p>
+<h2 id="0x11-The-Kubernetes-Node"><a href="#0x11-The-Kubernetes-Node" class="headerlink" title="0x11 The Kubernetes Node"></a>0x11 The Kubernetes Node</h2><ul>
+<li>kubelet: 是工作节点执行操作的 agent, 负责具体的容器生命周期管理，根据从数据库中获取的信息来管理容器，并上报 pod 运行状态等;</li>
+<li>kube-proxy: 是一个简单的网络访问代理，同时也是一个 Load Balancer. 它负责将访问到某个服务的请求具体分配给工作节点上的 Pod(同一类标签).</li>
+</ul>
+<h2 id="0x12-The-Kubernetes-Control-Plane"><a href="#0x12-The-Kubernetes-Control-Plane" class="headerlink" title="0x12 The Kubernetes Control Plane"></a>0x12 The Kubernetes Control Plane</h2><h3 id="services-of-master-node"><a href="#services-of-master-node" class="headerlink" title="services of master node"></a>services of master node</h3><ul>
+<li>apiserver 是整个系统的对外接口，提供一套 RESTful 的 <a target="_blank" rel="noopener" href="https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/api.md">Kubernetes API</a>, 供客户端和其它组件调用;</li>
+<li>scheduler 负责对资源进行调度，分配某个 pod 到某个节点上是 pluggable 的，意味着很容易选择其它实现方式;</li>
+<li>controller-manager 负责管理控制器，包括 endpoint-controller(刷新服务和 pod 的关联信息) 和 replication-controller(维护某个 pod 的复制为配置的数值).</li>
+</ul>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/pic/docker/k8s-master.png"></div></div>
+
+<h3 id="worker"><a href="#worker" class="headerlink" title="worker"></a>worker</h3><ul>
+<li>kubelet 是工作节点执行操作的 agent, 负责具体的容器生命周期管理，根据从数据库中获取的信息来管理容器，并上报 pod 运行状态等;</li>
+<li>kube-proxy 是一个简单的网络访问代理，同时也是一个 Load Balancer. 它负责将访问到某个服务的请求具体分配给工作节点上的 Pod(同一类标签).</li>
+</ul>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/pic/docker/k8s-worker.png"></div></div>
+
+<h3 id="etcd"><a href="#etcd" class="headerlink" title="etcd"></a>etcd</h3><ul>
+<li>etcd 作为数据后端，又作为消息中间件，通过 etcd 来存储所有的主节点上的状态信息，很容易实现主节点的分布式扩展，组件可以自动的去侦测 etcd 中的数值变化来获得通知，并且获得更新后的数据来执行相应的操作。</li>
+</ul>
+<h1 id="0x20-quick-practice"><a href="#0x20-quick-practice" class="headerlink" title="0x20 quick practice"></a>0x20 quick practice</h1><p>前面简要说明架构设计，这里介绍一些 k8s 的几个概念与主要组件作用图示，在快速实践中会对其有个初步印象，更多概念性的东西参考 [^term].</p>
+<ul>
+<li>Cluster: 集群是指由 Kubernetes 使用一系列的物理机，虚拟机和其他基础资源来运行你的应用程序。</li>
+<li>Node: 一个节点是一个运行 Kubernetes 中的主机。</li>
+<li>Pod: 一个 Pod 对应于由若干容器组成的一个容器组，同个组内的容器共享一个存储卷 (volume).</li>
+<li>Pos-states: 包含所有容器状态集合，包括容器组状态类型，容器组生命周期，事件，重启策略，以及 replication controllers.</li>
+<li>Replication-Controllers: 主要负责指定数量的 pod 在同一时间一起运行。</li>
+<li>Services: 一个 Kubernetes 服务是容器组逻辑的高级抽象，同时也对外提供访问容器组的策略。</li>
+<li>Volumes: 一个卷就是一个目录，容器对其有访问权限。</li>
+<li>Labels: 标签是用来连接一组对象的，比如容器组。标签可以被用来组织和选择子对象。</li>
+<li>Namespace : Namespace 好比一个资源名字的前缀。它帮助不同的项目，团队或是客户可以共享 cluster, 防止命名冲突。</li>
+<li>selector: 是一个通过匹配 labels 来定义资源之间关系得表达式，例如为一个负载均衡的 service 指定所目标 Pod.</li>
+</ul>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/pic/docker/kubernetes_design.jpg"></div></div>
+
+<p>单节点从 docker 快速部署 k8s 逻辑示意图：</p>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/pic/docker/k8s-singlenode-docker.png"></div></div>
+
+<h2 id="0x21-by-docker"><a href="#0x21-by-docker" class="headerlink" title="0x21 by docker"></a>0x21 by docker</h2><p>利用 docker 可以快速上手 k8s(仅限于单机), 不过在 1.3 的分支里面这个文档已经被弄丢了。<br>在使用 docker 之前依赖先决条件 (kernel 支持 memory and swap accounting, 启用 cgroup 的 momory 控制器), 不过你默认安装较新的 linux 发行版一般都能满足。<br>手工拉取一个镜像<code>gcr.io/google_containers/hyperkube:v1.3.7</code>, 利用这个镜像创建容器时候会自己拉取其他镜像。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">sudo docker images</span></span><br><span class="line">REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">sudo docker pull gcr.io/google_containers/hyperkube:v1.3.7</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">sudo docker images</span></span><br><span class="line">REPOSITORY                           TAG                 IMAGE ID            CREATED             SIZE</span><br><span class="line">gcr.io/google_containers/hyperkube   v1.3.7              24db5b90d9c0        8 days ago          404.7 MB</span><br></pre></td></tr></table></figure>
+
+<h3 id="master"><a href="#master" class="headerlink" title="master"></a>master</h3><p>启动主节点。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">docker run \</span></span><br><span class="line"><span class="language-bash">    --volume=/:/rootfs:ro \</span></span><br><span class="line"><span class="language-bash">    --volume=/sys:/sys:ro \</span></span><br><span class="line"><span class="language-bash">    --volume=/dev:/dev \</span></span><br><span class="line"><span class="language-bash">    --volume=/var/lib/docker/:/var/lib/docker:ro \</span></span><br><span class="line"><span class="language-bash">    --volume=/var/lib/kubelet/:/var/lib/kubelet:rw \</span></span><br><span class="line"><span class="language-bash">    --volume=/var/run:/var/run:rw \</span></span><br><span class="line"><span class="language-bash">    --net=host \</span></span><br><span class="line"><span class="language-bash">    --pid=host \</span></span><br><span class="line"><span class="language-bash">    --privileged=<span class="literal">true</span> \</span></span><br><span class="line"><span class="language-bash">    -d \</span></span><br><span class="line"><span class="language-bash">    gcr.io/google_containers/hyperkube:v1.3.7 \</span></span><br><span class="line"><span class="language-bash">    /hyperkube kubelet --containerized \</span></span><br><span class="line"><span class="language-bash">    --hostname-override=<span class="string">&quot;127.0.0.1&quot;</span> \</span></span><br><span class="line"><span class="language-bash">    --address=<span class="string">&quot;0.0.0.0&quot;</span> \</span></span><br><span class="line"><span class="language-bash">    --api-servers=http://localhost:8080 \</span></span><br><span class="line"><span class="language-bash">    --config=/etc/kubernetes/manifests</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="service-proxy"><a href="#service-proxy" class="headerlink" title="service proxy"></a>service proxy</h3><p>在 tag 1.3.7 里面不需要手工去 etcd 了，在启动服务代理时候会自动帮启动。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">docker run -d --net=host \</span></span><br><span class="line"><span class="language-bash">  --privileged gcr.io/google_containers/hyperkube:v1.3.7 \</span></span><br><span class="line"><span class="language-bash">  /hyperkube proxy \</span></span><br><span class="line"><span class="language-bash">  --master=http://127.0.0.1:8080 \</span></span><br><span class="line"><span class="language-bash">  --v=2</span></span><br></pre></td></tr></table></figure>
+
+<p>启动完成主节点与服务代理过后，经过一段时间等待 (猜测时间长短取决于网速), 可以发现镜像依赖自己解决了。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">docker images</span></span><br><span class="line">REPOSITORY                                            TAG                 IMAGE ID            CREATED             SIZE</span><br><span class="line">gcr.io/google_containers/hyperkube-amd64              v1.3.7              24db5b90d9c0        8 days ago          404.7 MB</span><br><span class="line">gcr.io/google_containers/hyperkube                    v1.3.7              24db5b90d9c0        8 days ago          404.7 MB</span><br><span class="line">gcr.io/google_containers/kubernetes-dashboard-amd64   v1.1.1              f739d2414b14        6 weeks ago         55.83 MB</span><br><span class="line">gcr.io/google_containers/exechealthz-amd64            1.1                 c3a89c92ef5b        7 weeks ago         8.332 MB</span><br><span class="line">gcr.io/google_containers/kubedns-amd64                1.5                 3afb7dbce540        12 weeks ago        50.82 MB</span><br><span class="line">gcr.io/google-containers/kube-addon-manager-amd64     v4                  fb28c478466a        3 months ago        240.4 MB</span><br><span class="line">gcr.io/google_containers/kube-dnsmasq-amd64           1.3                 9a15e39d0db8        3 months ago        5.126 MB</span><br><span class="line">gcr.io/google_containers/pause-amd64                  3.0                 99e59f495ffa        4 months ago        746.9 kB</span><br><span class="line">gcr.io/google_containers/etcd-amd64                   2.2.5               72bd8a257d7a        5 months ago        30.45 MB</span><br></pre></td></tr></table></figure>
+
+<h3 id="testing"><a href="#testing" class="headerlink" title="testing"></a>testing</h3><p>在其中开始一个 kube-ui 部署。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">sudo dnf install kubernetes-client -y <span class="comment"># 安装命令行工具</span></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl cluster-info</span></span><br><span class="line">Kubernetes master is running at http://localhost:8080</span><br><span class="line">KubeDNS is running at http://localhost:8080/api/v1/proxy/namespaces/kube-system/services/kube-dns</span><br><span class="line">kubernetes-dashboard is running at http://localhost:8080/api/v1/proxy/namespaces/kube-system/services/kubernetes-dashboard</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl get node</span></span><br><span class="line">NAME        STATUS    AGE</span><br><span class="line">127.0.0.1   Ready     2m</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">sudo docker pull gcr.io/google_containers/kube-ui:v5 <span class="comment"># 把镜像拉回来, 避免下一条指令的漫长等待</span></span></span><br><span class="line">Trying to pull repository gcr.io/google_containers/kube-ui ... </span><br><span class="line">v5: Pulling from gcr.io/google_containers/kube-ui</span><br><span class="line">a3ed95caeb02: Pull complete </span><br><span class="line">71c3140c0e84: Pull complete </span><br><span class="line">Digest: sha256:2165d142900fefb3605533e649de5f0276e82697dc548b5a60e1a455b1cf20ff</span><br><span class="line">Status: Downloaded newer image for gcr.io/google_containers/kube-ui:v5</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl -s http://localhost:8080 run kube-ui --image=gcr.io/google_containers/kube-ui:v5 --port=80</span></span><br><span class="line">deployment &quot;kube-ui&quot; created</span><br></pre></td></tr></table></figure>
+
+<p>访问 <a target="_blank" rel="noopener" href="http://master_node_ip:8080/ui">http://master_node_ip:8080&#x2F;ui</a>.</p>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/media/pic/docker/kube-ui.png"></div></div>
+
+<p>这时候你初步接触完成了你准备把环境还原 (保留镜像).</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="keyword">for</span> ((i=<span class="number">0</span>; i&lt;<span class="number">2</span>; i++)); <span class="keyword">do</span> docker <span class="built_in">rm</span> -f `docker ps -qa`; <span class="keyword">done</span></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="keyword">for</span> i <span class="keyword">in</span> $(mount | grep kube | <span class="built_in">cut</span> -d<span class="string">&#x27; &#x27;</span>  -f 3-3 | <span class="built_in">tr</span> <span class="string">&#x27;\n&#x27;</span> <span class="string">&#x27; &#x27;</span>); <span class="keyword">do</span> umount <span class="variable">$i</span>; <span class="keyword">done</span> &amp;&amp; <span class="built_in">rm</span> -rf /var/lib/kubelet/</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="0x22-by-vagrant-vagrant"><a href="#0x22-by-vagrant-vagrant" class="headerlink" title="0x22 by vagrant[^vagrant]"></a>0x22 by vagrant[^vagrant]</h2><p>这个方法 k8s 开发者常用的部署方法之一 – 在本地创建基于虚拟机的集群。<br>源码的安装个人喜欢<code>go get github.com/kubernetes/kubernetes</code>方式拉代码回来。<br>关于二进制部署安利 NFS 方法，nfs 对比默认的 rsync, 使用 nfs 建立集群速度快，节约磁盘空间 (我遇到磁盘 100%).</p>
+<p>如果你 (比如我手贱) 操作失误误删<code>/var/lib/libvirt</code>, 需要下面的指令来重新创建 default-pool.</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">virsh pool-define /dev/stdin &lt;&lt;<span class="string">EOF</span></span></span><br><span class="line">&lt;pool type=&#x27;dir&#x27;&gt;</span><br><span class="line">  &lt;name&gt;default&lt;/name&gt;</span><br><span class="line">  &lt;target&gt;</span><br><span class="line">    &lt;path&gt;/var/lib/libvirt/images&lt;/path&gt;</span><br><span class="line">  &lt;/target&gt;</span><br><span class="line">&lt;/pool&gt;</span><br><span class="line">EOF</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="string">virsh pool-start default</span></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="string">virsh pool-autostart default</span></span></span><br></pre></td></tr></table></figure>
+
+<p>通过项目自己带的脚本部署的脚本大体轮廓是下面这样，至于为什么调用那么多<code>rm -rf</code>是因为我是处女座喜欢每一次的 master 节点都是 1,node 是 2 依次排列下去。<br>可以通过<code>dnf install vagrant-libvirt redhat-lsb-cxx redhat-rpm-config-41-2 -y &amp;&amp; vagrant plugin install vagrant-proxyconf</code>安装 vagrant 和一个代理插件。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/bash</span></span><br><span class="line"></span><br><span class="line">export KUBERNETES_PROVIDER=vagrant</span><br><span class="line">export KUBERNETES_VAGRANT_USE_NFS=true</span><br><span class="line">export VAGRANT_HTTP_PROXY=http:/username:password@10.0.58.88:8080</span><br><span class="line">export VAGRANT_HTTPS_PROXY=http://username:password@10.0.58.88:8080</span><br><span class="line">iptables -X</span><br><span class="line">iptables -F</span><br><span class="line">iptables -Z</span><br><span class="line"></span><br><span class="line">install() &#123;</span><br><span class="line">    rpm -qa | grep vagrant-libvirt</span><br><span class="line">    if [ $? != 0 ]; then</span><br><span class="line">        dnf install vagrant-libvirt -y</span><br><span class="line">    fi</span><br><span class="line">    vagrant plugin install vagrant-proxyconf # 让 vagrant 支持的代理的插件</span><br><span class="line">    pushd $GOPATH/src/github.com/kubernetes/kubernetes</span><br><span class="line">    ./cluster/kube-up.sh</span><br><span class="line">    popd</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">remove() &#123;</span><br><span class="line">    sudo virsh destroy kubernetes_master</span><br><span class="line">    sudo virsh destroy kubernetes_node-1</span><br><span class="line">    sudo virsh undefine kubernetes_master</span><br><span class="line">    sudo virsh undefine kubernetes_node-1</span><br><span class="line">    sudo rm -rf /var/lib/libvirt/images/kubernetes_*</span><br><span class="line">    sudo rm -rf /var/lib/libvirt/qemu/</span><br><span class="line">    sudo rm -rf /var/lib/libvirt/dnsmasq/</span><br><span class="line">    sudo systemctl restart libvirtd.service</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$</span><span class="language-bash">1</span></span><br></pre></td></tr></table></figure>
+
+<p>在使用项目在自带脚本去建立集群时想在虚拟机节点里面预配置东西 (如:dnf 代理，环境变量) 可以切到<code>/var/lib/libvirt/images</code>, 到这里看见镜像模板，节点都是基于这个镜像做差异生成的，可以<code>qemu-system-x86_64 kube-fedora23_vagrant_box_image_0.img</code>启动它，手工修改配置后关机。<br>(如果在 nfs 挂载时候 hang 住了，多数可能是防火墙问题记得清理一下).</p>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/pic/docker/k8s-vagrant-installed.png"></div></div>
+
+<p>虽然初始化两个节点起来成功了，但是 k8s 集群并没有起来，看上面图片显示需要自己 make 一个 release 出来，在开发机器上进入 repo 的目录<code>sudo make quick-release</code>, 过后重新跑以上脚本，然后大体上看到下面这个就算开发环境部署起来了，这时候 repo 下面有个 vagrant 生成的目录里面记录这节点一些信息，只有在当前目录<code>vagrant ssh master</code>才能有效。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line">This can take some time based on your network, disk, and cpu speed.</span><br><span class="line">It is possible for an error to occur during Salt provision of cluster and this could loop forever.</span><br><span class="line">Validating master</span><br><span class="line">Validating node-1</span><br><span class="line">..............................................</span><br><span class="line">Waiting for each node to be registered with cloud provider</span><br><span class="line">Flag --api-version has been deprecated, flag is no longer respected and will be deleted in the next release</span><br><span class="line">Validating we can run kubectl commands.</span><br><span class="line">Connection to 192.168.121.223 closed.</span><br><span class="line"></span><br><span class="line">Kubernetes cluster is running.</span><br><span class="line"></span><br><span class="line">The master is running at:</span><br><span class="line"></span><br><span class="line">  https://10.245.1.2</span><br><span class="line"></span><br><span class="line">Administer and visualize its resources using Cockpit:</span><br><span class="line"></span><br><span class="line">  https://10.245.1.2:9090</span><br><span class="line"></span><br><span class="line">For more information on Cockpit, visit http://cockpit-project.org</span><br><span class="line"></span><br><span class="line">The user name and password to use is located in /root/.kube/config</span><br><span class="line"></span><br><span class="line">... calling validate-cluster</span><br><span class="line">Found 1 node(s).</span><br><span class="line">NAME                STATUS    AGE</span><br><span class="line">kubernetes-node-1   Ready     6m</span><br><span class="line">Cluster not working yet.</span><br><span class="line">Validate output:</span><br><span class="line">NAME                 STATUS    MESSAGE              ERROR</span><br><span class="line">scheduler            Healthy   ok                   </span><br><span class="line">controller-manager   Healthy   ok                   </span><br><span class="line">etcd-1               Healthy   &#123;&quot;health&quot;: &quot;true&quot;&#125;   </span><br><span class="line">etcd-0               Healthy   &#123;&quot;health&quot;: &quot;true&quot;&#125;   </span><br><span class="line">Cluster validation succeeded</span><br><span class="line">Done, listing cluster services:</span><br><span class="line"></span><br><span class="line">Kubernetes master is running at https://10.245.1.2</span><br><span class="line">Heapster is running at https://10.245.1.2/api/v1/proxy/namespaces/kube-system/services/heapster</span><br><span class="line">KubeDNS is running at https://10.245.1.2/api/v1/proxy/namespaces/kube-system/services/kube-dns</span><br><span class="line">kubernetes-dashboard is running at https://10.245.1.2/api/v1/proxy/namespaces/kube-system/services/kubernetes-dashboard</span><br><span class="line">Grafana is running at https://10.245.1.2/api/v1/proxy/namespaces/kube-system/services/monitoring-grafana</span><br><span class="line">InfluxDB is running at https://10.245.1.2/api/v1/proxy/namespaces/kube-system/services/monitoring-influxdb</span><br><span class="line"></span><br><span class="line">To further debug and diagnose cluster problems, use &#x27;kubectl cluster-info dump&#x27;.</span><br></pre></td></tr></table></figure>
+
+<p><code>kube-push</code>脚本的工作实在是太慢了，因为用<code>kube-up</code>自动创建集群前已经声明使用 NFS 做共享了，在节点的<code>/vagrant</code>可以看见开发机上面的 repo 目录。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost kubernetes]# free -m</span><br><span class="line">              total        used        free      shared  buff/cache   available</span><br><span class="line">Mem:          31966        3763        6175           4       22027       27757</span><br><span class="line">Swap:         15999           0       15999</span><br><span class="line"></span><br><span class="line">[root@localhost kubernetes]# lscpu </span><br><span class="line">Architecture:          x86_64</span><br><span class="line">CPU op-mode(s):        32-bit, 64-bit</span><br><span class="line">Byte Order:            Little Endian</span><br><span class="line">CPU(s):                8</span><br><span class="line">On-line CPU(s) list:   0-7</span><br><span class="line">Thread(s) per core:    2</span><br><span class="line">Core(s) per socket:    4</span><br><span class="line">Socket(s):             1</span><br><span class="line">NUMA node(s):          1</span><br><span class="line">Vendor ID:             GenuineIntel</span><br><span class="line">CPU family:            6</span><br><span class="line">Model:                 58</span><br><span class="line">Model name:            Intel(R) Core(TM) i7-3770 CPU @ 3.40GHz</span><br><span class="line">Stepping:              9</span><br><span class="line">CPU MHz:               1603.046</span><br><span class="line">CPU max MHz:           3900.0000</span><br><span class="line">CPU min MHz:           1600.0000</span><br><span class="line">BogoMIPS:              6783.90</span><br><span class="line">Virtualization:        VT-x</span><br><span class="line">L1d cache:             32K</span><br><span class="line">L1i cache:             32K</span><br><span class="line">L2 cache:              256K</span><br><span class="line">L3 cache:              8192K</span><br><span class="line">NUMA node0 CPU(s):     0-7</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">[root@localhost kubernetes]# time ./cluster/kube-push.sh</span><br><span class="line">...</span><br><span class="line">real    52m8.300s</span><br><span class="line">user    0m6.753s</span><br><span class="line">sys     0m0.856s</span><br></pre></td></tr></table></figure>
+
+<h1 id="0x30-the-network-of-k8s"><a href="#0x30-the-network-of-k8s" class="headerlink" title="0x30 the network of k8s"></a>0x30 the network of k8s</h1><p>k8s 采用扁平化的网络模型，每个 pod 都有一个全局唯一的 ip,pod 之间可以跨主机通信，相比于 Docker 原生的 NAT 方式来说，这样使得容器在网络层面更像虚拟机或者物理机，复杂度整体降低，更加容易实现服务发现，迁移，负载均衡等功能。为了实现这个目标 k8s 网络完成的工作如下：</p>
+<ul>
+<li>紧耦合的容器之间通信，通过 pod 和 localhost 访问解决。</li>
+<li>pod 之间通信，建立通信子网，比如隧道，路由，Flannel,Open vSwitch, Weave.</li>
+<li>pod 和 service, 以及外部系统和 Service 的通信，引入 Service 解决。</li>
+</ul>
+<p>Kubernetes 的网络会给每个 Pod 分配一个 IP 地址，不需要在 Pod 之间建立链接，也基本不需要去处理容器和主机之间的端口映射。<br>注意：pod 重建后，IP 会被重新分配，所以内网通信不要依赖 Pod IP; 通过 Service 环境变量或者 DNS 解决。</p>
+<h1 id="0x40-testing-in-k8s"><a href="#0x40-testing-in-k8s" class="headerlink" title="0x40 testing in k8s"></a>0x40 testing in k8s</h1><p>在发 pr 前你需要确认你的修改至少通过了单元测试与集成测试，如果要想被合并还要通过端到端的测试也是必须的。<br>测试的代码组织是利用 golang 的 testing.</p>
+<h2 id="0x41-unit-testing"><a href="#0x41-unit-testing" class="headerlink" title="0x41 unit testing"></a>0x41 unit testing</h2><p>你可以在单元测试期间使用<code>KUBE_GOFLAGS</code>变量来设置 go flags.<br>运行全部的单元测试。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd kubernetes</span><br><span class="line">make test  # Run all unit tests.</span><br></pre></td></tr></table></figure>
+
+<p>运行单个包或者多个的单元测试。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">make test WHAT=pkg/api                # run tests for pkg/api</span><br><span class="line">make test WHAT=&quot;pkg/api pkg/kubelet&quot;  # run tests for pkg/api and pkg/kubelet</span><br></pre></td></tr></table></figure>
+
+<p>对包里面具体参数的单元测试。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Runs TestValidatePod <span class="keyword">in</span> pkg/api/validation with the verbose flag <span class="built_in">set</span></span></span><br><span class="line">make test WHAT=pkg/api/validation KUBE_GOFLAGS=&quot;-v&quot; KUBE_TEST_ARGS=&#x27;-run ^TestValidatePod$&#x27;</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Runs tests that match the regex ValidatePod|ValidateConfigMap <span class="keyword">in</span> pkg/api/validation</span></span><br><span class="line">make test WHAT=pkg/api/validation KUBE_GOFLAGS=&quot;-v&quot; KUBE_TEST_ARGS=&quot;-run ValidatePod\|ValidateConfigMap$&quot;</span><br></pre></td></tr></table></figure>
+
+<p>反复运行单元测试</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># Have 2 workers run all tests 5 times each (10 total iterations).</span><br><span class="line">make test PARALLEL=2 ITERATION=5</span><br></pre></td></tr></table></figure>
+
+<h3 id="Unit-test-coverage"><a href="#Unit-test-coverage" class="headerlink" title="Unit test coverage"></a>Unit test coverage</h3><p>获取测试覆盖率，以下命令会生成一个 html 文档，当然也可以对一个 package 做这样的操作。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">make test KUBE_COVER=y</span><br><span class="line">make test WHAT=pkg/kubectl KUBE_COVER=y</span><br></pre></td></tr></table></figure>
+
+<h3 id="Benchmark-unit-tests"><a href="#Benchmark-unit-tests" class="headerlink" title="Benchmark unit tests"></a>Benchmark unit tests</h3><p>典型的 benchmark 指令如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">go test ./pkg/apiserver -benchmem -run=XXX -bench=BenchmarkWatch</span><br></pre></td></tr></table></figure>
+<p>其中：</p>
+<ul>
+<li>-run&#x3D;XXX 是一个表达式过滤出 test case 来运行。</li>
+<li>-bench&#x3D;BenchmarkWatch 将会运行 BenchmarkWatch 中的测试，参考<code>grep -nr BenchmarkWatch </code>.</li>
+<li>-benchmem 启用内存分配状态</li>
+</ul>
+<h2 id="0x42-Integration-tests"><a href="#0x42-Integration-tests" class="headerlink" title="0x42 Integration tests"></a>0x42 Integration tests</h2><ul>
+<li><p>集成测试仅改访问本地的资源</p>
+<ul>
+<li>最普遍的 etcd 或者服务都应该在本地。</li>
+</ul>
+</li>
+<li><p>所有重大的特性都依赖集成测试</p>
+<ul>
+<li>包括 kubectl 这个命令行工具。</li>
+</ul>
+</li>
+<li><p>首选的测试多场景的或输入的方法是 <a target="_blank" rel="noopener" href="https://github.com/golang/go/wiki/TableDrivenTests">TableDrivenTests</a></p>
+<ul>
+<li>Example: <a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/master/test/integration/auth/auth_test.go">TestNamespaceAuthorization</a></li>
+</ul>
+</li>
+<li><p>每一个测试都应创建自己的 master,http server 和 config.</p>
+<ul>
+<li>Example: <a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/master/test/integration/pods/pods_test.go">TestPodUpdateActiveDeadlineSeconds</a></li>
+</ul>
+</li>
+</ul>
+<h3 id="安装-etcd"><a href="#安装-etcd" class="headerlink" title="安装 etcd"></a>安装 etcd</h3><p>k8s 的集成测试需要你的<code>PATH</code>里面有 etcd.</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Install etcd and add to PATH</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Option a) install inside kubernetes root</span></span><br><span class="line">hack/install-etcd.sh  # Installs in ./third_party/etcd</span><br><span class="line">echo export PATH=&quot;$PATH:$(pwd)/third_party/etcd&quot; &gt;&gt; ~/.profile  # Add to PATH</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Option b) install manually</span></span><br><span class="line">grep -E &quot;image.*etcd&quot; cluster/saltbase/etcd/etcd.manifest  # Find version</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Install that version using yum/apt-get/etc</span></span><br><span class="line">echo export PATH=&quot;$PATH:&lt;LOCATION&gt;&quot; &gt;&gt; ~/.profile  # Add to PATH</span><br></pre></td></tr></table></figure>
+<p>许多测试会在内部开始一个 etcd 服务，存储测试数据在操作系统的临时文件目录，如果你看见是因为没有足够磁盘或者一个 volume 不可预知的写延迟导致的<code>test failures</code>, 可以用<code>TEST_ETCD_DIR</code>环境变量来覆盖掉默认的写位置。</p>
+<h3 id="运行集成测试"><a href="#运行集成测试" class="headerlink" title="运行集成测试"></a>运行集成测试</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make test-integration  # Run all integration tests.</span><br></pre></td></tr></table></figure>
+
+<p>这个脚本会运行<code>test/integration</code>中的测试脚本。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make test-integration KUBE_GOFLAGS=&quot;-v&quot; KUBE_TEST_ARGS=&quot;-run ^TestPodUpdateActiveDeadlineSeconds$&quot;</span><br></pre></td></tr></table></figure>
+<p>可以利用<code>KUBE_TEST_ARGS</code>变量与 hack &#x2F;test-integration.sh 脚本来运行具体的集成测试，上面的是例子。<br>不过<code>KUBE_TEST_ARGS</code>变量被设置过后，那么 test case 将只会在 v1 版本的 api 上跑且<code>watch cache</code>case 将会被跳过。</p>
+<h2 id="0x43-end-to-end-tests"><a href="#0x43-end-to-end-tests" class="headerlink" title="0x43 end-to-end tests"></a>0x43 end-to-end tests</h2><p>k8s 的端到端测试提供了一个测试系统中端到端行为的机制，也是确认用户操作是否符合开发者的规范的最后一个信号，尽管单元测试与集成测试提供了不错的信号。现实是像 Kubernetes 分布式系统的情况并不少见问题是 – 微小的变化可能会通过所有单元测试和集成测试，但在系统层面导致了不可预见的变化，端到端的测试弥补了单元测试与集成测试在这方面的不足，它的目标是确认基于 k8s 代码的一致与可靠的行为，并在用户接触前捕获到难以测试的 bug.</p>
+<p>在 k8s 的端到端的测试构建基于 <a target="_blank" rel="noopener" href="http://onsi.github.io/ginkgo/">Ginkgo</a> 与 <a target="_blank" rel="noopener" href="http://onsi.github.io/gomega/">Gomega</a>, 它们是 (Behavior-Driven Development (BDD) )[^BDD] 测试框架，在沉浸进测试代码前建议先阅读文档。</p>
+<h3 id="典型用法"><a href="#典型用法" class="headerlink" title="典型用法"></a>典型用法</h3><p>先把环境准备一下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">export KUBERNETES_PROVIDER=vagrant</span><br><span class="line">export VAGRANT_DEFAULT_PROVIDER=libvirt</span><br><span class="line">go run hack/e2e.go -v --build --up --test --down</span><br></pre></td></tr></table></figure>
+
+<p>运行下面任一指令之一：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Build binaries <span class="keyword">for</span> testing</span></span><br><span class="line">go run hack/e2e.go -v --build</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Create a fresh cluster.  Deletes a cluster first, <span class="keyword">if</span> it exists</span></span><br><span class="line">go run hack/e2e.go -v --up</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Run all tests</span></span><br><span class="line">go run hack/e2e.go -v --test</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Run tests matching the regex <span class="string">&quot;\[Feature:Performance\]&quot;</span></span></span><br><span class="line">go run hack/e2e.go -v --test --test_args=&quot;--ginkgo.focus=\[Feature:Performance\]&quot;</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Conversely, exclude tests that match the regex <span class="string">&quot;Pods.*env&quot;</span></span></span><br><span class="line">go run hack/e2e.go -v --test --test_args=&quot;--ginkgo.skip=Pods.*env&quot;</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Run tests <span class="keyword">in</span> parallel, skip any that must be run serially</span></span><br><span class="line">GINKGO_PARALLEL=y go run hack/e2e.go --v --test --test_args=&quot;--ginkgo.skip=\[Serial\]&quot;</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Flags can be combined, and their actions will take place <span class="keyword">in</span> this order:</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">--build, --up, --<span class="built_in">test</span>, --down</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash"></span></span><br><span class="line"><span class="language-bash"><span class="comment"># You can also specify an alternative provider, such as &#x27;aws&#x27;</span></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash"></span></span><br><span class="line"><span class="language-bash"><span class="comment"># e.g.:</span></span></span><br><span class="line">KUBERNETES_PROVIDER=aws go run hack/e2e.go -v --build --up --test --down</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-ctl can be used to quickly call kubectl against your e2e cluster. Useful <span class="keyword">for</span></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">cleaning up after a failed <span class="built_in">test</span> or viewing logs. Use -v to avoid suppressing</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">kubectl output.</span></span><br><span class="line">go run hack/e2e.go -v -ctl=&#x27;get events&#x27;</span><br><span class="line">go run hack/e2e.go -v -ctl=&#x27;delete pod foobar&#x27;</span><br></pre></td></tr></table></figure>
+
+<p>强力清理：在运行期间可以<code>C+c</code>可以正确的关闭，但是如果出现什么错误时候可以还有虚拟机在运行要被强制清除就使用下面命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">go run hack/e2e.go -v --down</span><br></pre></td></tr></table></figure>
+
+<h1 id="0x50-debug-with-development"><a href="#0x50-debug-with-development" class="headerlink" title="0x50 debug with development"></a>0x50 debug with development</h1><p>根据社区提供的文档 debug 的方式应该是<code>log</code>与我之前经验是一致的，gdb 对 go 支持太弱了尤其是大型项目中。</p>
+<h2 id="debug-with-gdb"><a href="#debug-with-gdb" class="headerlink" title="debug with gdb"></a>debug with gdb</h2><p>gdb 支持 python 写的插件，够使用这个特点让 gdb 支持其 runtime 的 trace.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">define goruntime</span><br><span class="line">        source /usr/lib/golang/src/runtime/runtime-gdb.py</span><br><span class="line">end</span><br></pre></td></tr></table></figure>
+<p>但是实践用起来有点糙，单点全是汇编指令，一把线程，手工调试简直了，不过操作还是还是 gdb 的习惯。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost kubernetes]# make WHAT=cmd/kubectl/</span><br><span class="line">can&#x27;t load package: package github.com/kubernetes/kubernetes: no buildable Go source files in /root/workspace/go/src/github.com/kubernetes/kubernetes</span><br><span class="line">+++ [0929 04:28:33] Generating bindata:</span><br><span class="line">    /root/workspace/go/src/github.com/kubernetes/kubernetes/test/e2e/framework/gobindata_util.go</span><br><span class="line">+++ [0929 04:28:33] Building the toolchain targets:</span><br><span class="line">    k8s.io/kubernetes/hack/cmd/teststale</span><br><span class="line">+++ [0929 04:28:34] Building go targets for linux/amd64:</span><br><span class="line">    cmd/kubectl/</span><br><span class="line">[root@localhost kubernetes]# ./_output/bin/kubectl version</span><br><span class="line">Client Version: version.Info&#123;Major:&quot;1&quot;, Minor:&quot;5+&quot;, GitVersion:&quot;v1.5.0-alpha.0.1361+aa9880fe246a33-dirty&quot;, GitCommit:&quot;aa9880fe246a33356c89567d5ed5b11f22661540&quot;, GitTreeState:&quot;dirty&quot;, BuildDate:&quot;2016-09-29T06:56:41Z&quot;, GoVersion:&quot;go1.6.3&quot;, Compiler:&quot;gc&quot;, Platform:&quot;linux/amd64&quot;&#125;</span><br><span class="line">Unable to connect to the server: Service Unavailable</span><br><span class="line">[root@localhost kubernetes]# gdb ./_output/bin/kubectl -q</span><br><span class="line">(gdb) b kubectl.go:35</span><br><span class="line">Breakpoint 1 at 0x46a2a6: file /root/workspace/go/src/github.com/kubernetes/kubernetes/_output/local/go/src/k8s.io/kubernetes/cmd/kubectl/app/kubectl.go, line 35.</span><br><span class="line">(gdb) r</span><br><span class="line">Starting program: /root/workspace/go/src/github.com/kubernetes/kubernetes/_output/local/bin/linux/amd64/kubectl </span><br><span class="line">Missing separate debuginfos, use: dnf debuginfo-install glibc-2.23.1-10.fc24.x86_64</span><br><span class="line">[Thread debugging using libthread_db enabled]</span><br><span class="line">Using host libthread_db library &quot;/lib64/libthread_db.so.1&quot;.</span><br><span class="line">[New Thread 0x7ffff77fa700 (LWP 4062)]</span><br><span class="line">[New Thread 0x7ffff6ff9700 (LWP 4063)]</span><br><span class="line">[New Thread 0x7ffff67f8700 (LWP 4064)]</span><br><span class="line">[New Thread 0x7ffff5ff7700 (LWP 4065)]</span><br><span class="line">[New Thread 0x7ffff57f6700 (LWP 4066)]</span><br><span class="line">[New Thread 0x7ffff4c83700 (LWP 4067)]</span><br><span class="line">[New Thread 0x7fffe7fff700 (LWP 4068)]</span><br><span class="line">[New Thread 0x7fffe77fe700 (LWP 4069)]</span><br><span class="line">[New Thread 0x7fffe6ffd700 (LWP 4071)]</span><br><span class="line">[New Thread 0x7fffe67fc700 (LWP 4074)]</span><br><span class="line">[New Thread 0x7fffe5ffb700 (LWP 4075)]</span><br><span class="line">[New Thread 0x7fffe57fa700 (LWP 4076)]</span><br><span class="line"></span><br><span class="line">Thread 1 &quot;kubectl&quot; hit Breakpoint 1, k8s.io/kubernetes/cmd/kubectl/app.Run (~r0=...)</span><br><span class="line">    at /root/workspace/go/src/github.com/kubernetes/kubernetes/_output/local/go/src/k8s.io/kubernetes/cmd/kubectl/app/kubectl.go:35</span><br><span class="line">35              defer logs.FlushLogs()</span><br><span class="line">(gdb) list </span><br><span class="line">30      WARNING: this logic is duplicated, with minor changes, in cmd/hyperkube/kubectl.go</span><br><span class="line">31      Any salient changes here will need to be manually reflected in that file.</span><br><span class="line">32      */</span><br><span class="line">33      func Run() error &#123;</span><br><span class="line">34              logs.InitLogs()</span><br><span class="line">35              defer logs.FlushLogs()</span><br><span class="line">36</span><br><span class="line">37              cmd := cmd.NewKubectlCommand(cmdutil.NewFactory(nil), os.Stdin, os.Stdout, os.Stderr)</span><br><span class="line">38              return cmd.Execute()</span><br><span class="line">39      &#125;</span><br><span class="line">(gdb) bt</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">0  k8s.io/kubernetes/cmd/kubectl/app.Run (~r0=...)</span></span><br><span class="line">    at /root/workspace/go/src/github.com/kubernetes/kubernetes/_output/local/go/src/k8s.io/kubernetes/cmd/kubectl/app/kubectl.go:35</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">1  0x00000000004019d8 <span class="keyword">in</span> main.main ()</span></span><br><span class="line">    at /root/workspace/go/src/github.com/kubernetes/kubernetes/_output/local/go/src/k8s.io/kubernetes/cmd/kubectl/kubectl.go:26</span><br><span class="line">(gdb) info goroutines </span><br><span class="line">* 1 running  runtime.systemstack_switch</span><br><span class="line">* 17 syscall  runtime.goexit</span><br><span class="line">  2 waiting  runtime.gopark</span><br><span class="line">  18 waiting  runtime.gopark</span><br><span class="line">  19 waiting  runtime.gopark</span><br><span class="line">  24 waiting  runtime.gopark</span><br><span class="line">* 34 syscall  runtime.notetsleepg</span><br><span class="line">  25 waiting  runtime.gopark</span><br><span class="line">  26 waiting  runtime.gopark</span><br><span class="line">  27 waiting  runtime.gopark</span><br><span class="line">  28 waiting  runtime.gopark</span><br><span class="line">  29 waiting  runtime.gopark</span><br><span class="line">* 30 running  runtime.systemstack_switch</span><br><span class="line">  31 waiting  runtime.gopark</span><br><span class="line">  32 waiting  runtime.gopark</span><br><span class="line">* 4 syscall  runtime.notetsleepg</span><br><span class="line">  13 waiting  runtime.gopark</span><br><span class="line">(gdb) goroutine 2 bt</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">0  runtime.gopark (unlockf=&#123;void (runtime.g *, void *, bool *)&#125; 0xc820028758, lock=0x39fb5e0 &lt;runtime.forcegc&gt;, reason=<span class="string">&quot;force gc (idle)&quot;</span>,</span> </span><br><span class="line">    traceEv=20 &#x27;\024&#x27;, traceskip=1) at /usr/lib/golang/src/runtime/proc.go:263</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">1  0x000000000042eca4 <span class="keyword">in</span> runtime.goparkunlock (lock=0x39fb5e0 &lt;runtime.forcegc&gt;, reason=<span class="string">&quot;force gc (idle)&quot;</span>, traceEv=20 <span class="string">&#x27;\024&#x27;</span>, traceskip=1)</span></span><br><span class="line">    at /usr/lib/golang/src/runtime/proc.go:268</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">2  0x000000000042e9e8 <span class="keyword">in</span> runtime.forcegchelper () at /usr/lib/golang/src/runtime/proc.go:229</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">3  0x000000000045ea51 <span class="keyword">in</span> runtime.goexit () at /usr/lib/golang/src/runtime/asm_amd64.s:1998</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">4  0x0000000000000000 <span class="keyword">in</span> ?? ()</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="debug-with-log"><a href="#debug-with-log" class="headerlink" title="debug with log"></a>debug with log</h2><p>社区 debug 是使用<code>glog</code>包靠打印 log 来 debug, 其实这样是 go 编程排错非常好的实践.go 是面向并发编程的，用 gdb 这样的工具去调试大量的线程是不人道的。</p>
+<p>重点是 -v:</p>
+<blockquote>
+<p>As per the comments, the practical default level is V(2). Developers and QE environments may wish to run at V(3) or V(4). If you wish to change the loglevel, you can pass in <code>-v=X</code> where X is the desired maximum level to log.</p>
+</blockquote>
+<p>这是开发对 glog 的 conventions.</p>
+<blockquote>
+</blockquote>
+<ul>
+<li>glog.Errorf() - Always an error</li>
+<li>glog.Warningf() - Something unexpected, but probably not an error</li>
+<li>glog.Infof() has multiple levels:<ul>
+<li>glog.V(0) - Generally useful for this to ALWAYS be visible to an operator<ul>
+<li>Programmer errors</li>
+<li>Logging extra info about a panic</li>
+<li>CLI argument handling</li>
+</ul>
+</li>
+<li>glog.V(1) - A reasonable default log level if you don’t want verbosity.<ul>
+<li>Information about config (listening on X, watching Y)</li>
+<li>Errors that repeat frequently that relate to conditions that can be corrected (pod detected as unhealthy)</li>
+</ul>
+</li>
+<li>glog.V(2) - Useful steady state information about the service and important log messages that may correlate to significant changes in the system.  This is the recommended default log level for most systems.<ul>
+<li>Logging HTTP requests and their exit code</li>
+<li>System state changing (killing pod)</li>
+<li>Controller state change events (starting pods)</li>
+<li>Scheduler log messages</li>
+</ul>
+</li>
+<li>glog.V(3) - Extended information about changes<ul>
+<li>More info about system state changes</li>
+</ul>
+</li>
+<li>glog.V(4) - Debug level verbosity (for now)<ul>
+<li>Logging in particularly thorny parts of code where you may want to come back later and check it</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>[^officialdoc]: <a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/tree/master/docs">official doc</a><br>[^slideshare]: <a target="_blank" rel="noopener" href="http://www.slideshare.net/imesh/an-introduction-to-kubernetes">slideshare</a><br>[^design]: <a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/tree/master/docs/design">k8s design</a><br>[^term]: <a target="_blank" rel="noopener" href="http://www.infoq.com/cn/articles/Kubernetes-system-architecture-introduction">k8s term</a><br>[^vagrant]: <a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/master/docs/devel/local-cluster/vagrant.md">docs&#x2F;devel&#x2F;local-cluster&#x2F;vagrant</a><br>[^networking]: <a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/master/docs/design/networking.md">docs&#x2F;design&#x2F;networking</a><br>[^debug]: <a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/master/docs/devel/logging.md">docs&#x2F;devel&#x2F;logging</a><br>[^hangon]: <a target="_blank" rel="noopener" href="http://www.dasblinkenlichten.com/kubernetes-101-networking/">network hangon</a><br>[^devel_guide]: <a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/tree/master/docs/devel">docs&#x2F;devel</a><br>[^BDD]: <a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E8%A1%8C%E4%B8%BA%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91">行为驱动开发</a></p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2016/11/01/git/">git usage</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2016/09/13/k8s-ii/">kubernetes II - network policy</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

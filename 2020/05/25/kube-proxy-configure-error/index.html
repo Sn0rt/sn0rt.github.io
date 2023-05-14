@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>kube-proxy 配置不当导致 service 异常 - sn0rt's blog</title>
+
+  
+    <meta name="description" content="之前调研 nlb 后端获取真实 ip 的特性，发现当 kube-proxy 报错如下的时候就会发生生成的 iptables 规则不符合预期，即丢弃当前 service node port 的流量。 1-A KUBE-XLB-HCMTY43AHEJZZDHI -m comment --comment &quot;2048-game&#x2F;service-2048: has no local endpoin">
+<meta property="og:type" content="article">
+<meta property="og:title" content="kube-proxy 配置不当导致 service 异常">
+<meta property="og:url" content="http://sn0rt.github.io/2020/05/25/kube-proxy-configure-error/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="之前调研 nlb 后端获取真实 ip 的特性，发现当 kube-proxy 报错如下的时候就会发生生成的 iptables 规则不符合预期，即丢弃当前 service node port 的流量。 1-A KUBE-XLB-HCMTY43AHEJZZDHI -m comment --comment &quot;2048-game&#x2F;service-2048: has no local endpoin">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-05-24T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.767Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="k8s">
+<meta name="twitter:card" content="summary">
+  
+  
+  
+  <meta name="keywords" content="k8s">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">kube-proxy 配置不当导致 service 异常</span></div><div class="widget-body fs14"><div class="doc-tree active"></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2020-05-24T16:00:00.000Z">2020-05-25</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>kube-proxy 配置不当导致 service 异常</span></h1>
+<p>之前调研 nlb 后端获取真实 ip 的特性，发现当 kube-proxy 报错如下的时候就会发生生成的 iptables 规则不符合预期，即丢弃当前 service node port 的流量。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-A KUBE-XLB-HCMTY43AHEJZZDHI -m comment --comment <span class="string">&quot;2048-game/service-2048: has no local endpoints&quot;</span> -j KUBE-MARK-DROP</span><br></pre></td></tr></table></figure>
+
+<p>实际情况是当前节点上运行着 pod</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl --kubeconfig kubeconfig -n 2048-game get pod -o wide</span><br><span class="line"></span><br><span class="line">NAME                               READY   STATUS    RESTARTS   AGE    IP               NODE                             NOMINATED NODE</span><br><span class="line">2048-deployment-7bddb7dc45-c2dk6   1/1     Running   0          109m   10.188.166.183   ip-10-188-166-140.ec2.internal   &lt;none&gt;</span><br><span class="line">2048-deployment-7bddb7dc45-nc88f   1/1     Running   0          109m   10.188.166.232   ip-10-188-166-140.ec2.internal   &lt;none&gt;</span><br></pre></td></tr></table></figure>
+
+<p>而 kubelet 的健康检查却说没有</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># curl http<span class="punctuation">:</span><span class="comment">//10.188.166.140:32198</span></span><br><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">	<span class="attr">&quot;service&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">		<span class="attr">&quot;namespace&quot;</span><span class="punctuation">:</span> <span class="string">&quot;2048-game&quot;</span><span class="punctuation">,</span></span><br><span class="line">		<span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;service-2048&quot;</span></span><br><span class="line">	<span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">	<span class="attr">&quot;localEndpoints&quot;</span><span class="punctuation">:</span> <span class="number">0</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="错误信息收集"><a href="#错误信息收集" class="headerlink" title="错误信息收集"></a>错误信息收集</h1><p>检查 kube-proxy 日志发现是 kube-proxy 解析 ip 地址有报错信息</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">W0525 07:13:03.916890       1 server.go:604] Failed to retrieve node info: nodes &quot;ip-10-188-166-140&quot; not found</span><br><span class="line">I0525 07:13:03.916921       1 server_others.go:148] Using iptables Proxier.</span><br><span class="line">W0525 07:13:03.917047       1 proxier.go:312] invalid nodeIP, initializing kube-proxy with 127.0.0.1 as nodeIP</span><br></pre></td></tr></table></figure>
+
+<p>在 kube-proxy 的逻辑中，这个 ip 地址需要和 endpoint 对象中的 nodeName 做里面的地址匹配</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">....</span></span><br><span class="line"><span class="attr">subsets:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">addresses:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">ip:</span> <span class="number">10.188</span><span class="number">.166</span><span class="number">.183</span></span><br><span class="line">    <span class="attr">nodeName:</span> <span class="string">ip-10-188-166-140.ec2.internal</span></span><br><span class="line">    <span class="attr">targetRef:</span></span><br><span class="line">      <span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line">      <span class="attr">name:</span> <span class="number">2048</span><span class="string">-deployment-7bddb7dc45-c2dk6</span></span><br><span class="line">      <span class="attr">namespace:</span> <span class="number">2048</span><span class="string">-game</span></span><br><span class="line">      <span class="attr">resourceVersion:</span> <span class="string">&quot;1695104&quot;</span></span><br><span class="line">      <span class="attr">uid:</span> <span class="string">e52b247a-9e51-11ea-b101-02d6ecb85825</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">ip:</span> <span class="number">10.188</span><span class="number">.166</span><span class="number">.232</span></span><br><span class="line">    <span class="attr">nodeName:</span> <span class="string">ip-10-188-166-140.ec2.internal</span></span><br><span class="line">   <span class="string">...</span></span><br></pre></td></tr></table></figure>
+
+<p>看下 kube-proxy 的启动关键参数</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line">I0525 07:13:03.848460       1 flags.go:33] FLAG: --bind-address=&quot;0.0.0.0&quot;</span><br><span class="line">...</span><br><span class="line">I0525 07:13:03.848697       1 flags.go:33] FLAG: --hostname-override=&quot;ip-10-188-166-140.ec2.internal&quot;</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="代码逻辑分析"><a href="#代码逻辑分析" class="headerlink" title="代码逻辑分析"></a>代码逻辑分析</h1><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewProxier</span><span class="params">(ipt utiliptables.Interface,</span></span></span><br><span class="line"><span class="params"><span class="function">	sysctl utilsysctl.Interface,</span></span></span><br><span class="line"><span class="params"><span class="function">	exec utilexec.Interface,</span></span></span><br><span class="line"><span class="params"><span class="function">	syncPeriod time.Duration,</span></span></span><br><span class="line"><span class="params"><span class="function">	minSyncPeriod time.Duration,</span></span></span><br><span class="line"><span class="params"><span class="function">	masqueradeAll <span class="type">bool</span>,</span></span></span><br><span class="line"><span class="params"><span class="function">	masqueradeBit <span class="type">int</span>,</span></span></span><br><span class="line"><span class="params"><span class="function">	clusterCIDR <span class="type">string</span>,</span></span></span><br><span class="line"><span class="params"><span class="function">	hostname <span class="type">string</span>,</span></span></span><br><span class="line"><span class="params"><span class="function">	nodeIP net.IP,</span></span></span><br><span class="line"><span class="params"><span class="function">	recorder record.EventRecorder,</span></span></span><br><span class="line"><span class="params"><span class="function">	healthzServer healthcheck.HealthzUpdater,</span></span></span><br><span class="line"><span class="params"><span class="function">	nodePortAddresses []<span class="type">string</span>,</span></span></span><br><span class="line"><span class="params"><span class="function">)</span></span> (*Proxier, <span class="type">error</span>) &#123;</span><br><span class="line">...</span><br><span class="line">	<span class="keyword">if</span> nodeIP == <span class="literal">nil</span> &#123;</span><br><span class="line">		glog.Warningf(<span class="string">&quot;invalid nodeIP, initializing kube-proxy with 127.0.0.1 as nodeIP&quot;</span>) <span class="comment">// 错误信息</span></span><br><span class="line">		nodeIP = net.ParseIP(<span class="string">&quot;127.0.0.1&quot;</span>)</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">nodeIP := net.ParseIP(config.BindAddress) <span class="comment">// 这里通过日志看到的输入 0.0.0.0</span></span><br><span class="line"><span class="keyword">if</span> nodeIP.IsUnspecified() &#123; <span class="comment">// 这里逻辑应该是命中了，为 true</span></span><br><span class="line">	nodeIP = getNodeIP(client, hostname)</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> proxyMode == proxyModeIPTables &#123;</span><br><span class="line">	glog.V(<span class="number">0</span>).Info(<span class="string">&quot;Using iptables Proxier.&quot;</span>)</span><br><span class="line">	<span class="keyword">if</span> config.IPTables.MasqueradeBit == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// MasqueradeBit must be specified or defaulted.</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">&quot;unable to read IPTables MasqueradeBit from config&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// TODO this has side effects that should only happen when Run() is invoked.</span></span><br><span class="line">	proxierIPTables, err := iptables.NewProxier(</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getNodeIP</span><span class="params">(client clientset.Interface, hostname <span class="type">string</span>)</span></span> net.IP &#123;</span><br><span class="line">	<span class="keyword">var</span> nodeIP net.IP</span><br><span class="line">	node, err := client.CoreV1().Nodes().Get(hostname, metav1.GetOptions&#123;&#125;)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		glog.Warningf(<span class="string">&quot;Failed to retrieve node info: %v&quot;</span>, err) <span class="comment">// 这个错误信息也命中，值为 ip-10-188-166-140</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	nodeIP, err = utilnode.GetNodeHostIP(node)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		glog.Warningf(<span class="string">&quot;Failed to retrieve node IP: %v&quot;</span>, err)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> nodeIP</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个错误信息就很奇怪，明明前面已经启动了 <code>--hostname-override=&quot;ip-10-188-166-140.ec2.internal&quot;</code>，为啥还是去获取的主机名称是<code>ip-10-188-166-140</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Create event recorderc</span></span><br><span class="line">hostname, err := utilnode.GetHostname(config.HostnameOverride)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>看到了变量产生的地方，这个函数<code>utilnode.GetHostname()</code>经过单元测试<code>utilnode.GetHostname(ip-10-188-166-140.ec2.internal)</code>返回值是<code>ip-10-188-166-140.ec2.internal</code>，也是符合预期的。</p>
+<p>那就顺藤排查<code>config.HostnameOverride</code>变量，发现是如下的命令行参数渲染上来的</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fs.StringVar(&amp;o.config.HostnameOverride, <span class="string">&quot;hostname-override&quot;</span>, o.config.HostnameOverride, <span class="string">&quot;If non-empty, will use this string as identification instead of the actual hostname.&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>有点迷，不能跳着看。</p>
+<p>继续看<code>config.HostnameOverride</code>这个变量的结构体<code>config</code>生成。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newProxyServer</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">	config *proxyconfigapi.KubeProxyConfiguration,</span></span></span><br><span class="line"><span class="params"><span class="function">	cleanupAndExit <span class="type">bool</span>,</span></span></span><br><span class="line"><span class="params"><span class="function">	cleanupIPVS <span class="type">bool</span>,</span></span></span><br><span class="line"><span class="params"><span class="function">	scheme *runtime.Scheme,</span></span></span><br><span class="line"><span class="params"><span class="function">	master <span class="type">string</span>)</span></span> (*ProxyServer, <span class="type">error</span>) &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> config == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">&quot;config is required&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">... 移除不相关代码</span><br><span class="line">	<span class="comment">// Create event recorderc</span></span><br><span class="line">	hostname, err := utilnode.GetHostname(config.HostnameOverride)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<p>走读如上代码发现是发现<code>config</code>对象其实是参数传入的，并且没有特别的修改。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewProxyServer returns a new ProxyServer.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewProxyServer</span><span class="params">(o *Options)</span></span> (*ProxyServer, <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="keyword">return</span> newProxyServer(o.config, o.CleanupAndExit, o.CleanupIPVS, o.scheme, o.master)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用 <code>NewProxyServer()</code>函数的是<code>Run()</code>中被调用，走读了一下没有发现异常。继续看一下<code>Run()</code>函数被调用的地方</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(o *Options)</span></span> Run() <span class="type">error</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(o.WriteConfigTo) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> o.writeConfigFile()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	proxyServer, err := NewProxyServer(o)</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Run()</code> 是<code>NewOptions()</code>返回对象的方法，</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewProxyCommand creates a *cobra.Command object with default parameters</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewProxyCommand</span><span class="params">()</span></span> *cobra.Command &#123;</span><br><span class="line">	opts := NewOptions()</span><br><span class="line"></span><br><span class="line">	cmd := &amp;cobra.Command&#123;</span><br><span class="line">		...</span><br><span class="line">		Run: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="type">string</span>)</span></span> &#123;</span><br><span class="line">			verflag.PrintAndExitIfRequested()</span><br><span class="line">			utilflag.PrintFlags(cmd.Flags())</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> err := initForOS(opts.WindowsService); err != <span class="literal">nil</span> &#123;</span><br><span class="line">				glog.Fatalf(<span class="string">&quot;failed OS init: %v&quot;</span>, err)</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> err := opts.Complete(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">				glog.Fatalf(<span class="string">&quot;failed complete: %v&quot;</span>, err)</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> err := opts.Validate(args); err != <span class="literal">nil</span> &#123;</span><br><span class="line">				glog.Fatalf(<span class="string">&quot;failed validate: %v&quot;</span>, err)</span><br><span class="line">			&#125;</span><br><span class="line">			glog.Fatal(opts.Run())</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> err <span class="type">error</span></span><br><span class="line">	opts.config, err = opts.ApplyDefaults(opts.config)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		glog.Fatalf(<span class="string">&quot;unable to create flag defaults: %v&quot;</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	opts.AddFlags(cmd.Flags())</span><br><span class="line"></span><br><span class="line">	cmd.MarkFlagFilename(<span class="string">&quot;config&quot;</span>, <span class="string">&quot;yaml&quot;</span>, <span class="string">&quot;yml&quot;</span>, <span class="string">&quot;json&quot;</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> cmd</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>看上面代码知道<code>NewProxyCommand</code>返回的是<code>*cobra.Command</code>对象，这个框架中实际执行的就是<code>Run</code>字段的实现。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Complete completes all the required options.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(o *Options)</span></span> Complete() <span class="type">error</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(o.ConfigFile) == <span class="number">0</span> &amp;&amp; <span class="built_in">len</span>(o.WriteConfigTo) == <span class="number">0</span> &#123;</span><br><span class="line">		glog.Warning(<span class="string">&quot;WARNING: all flags other than --config, --write-config-to, and --cleanup are deprecated. Please begin using a config file ASAP.&quot;</span>)</span><br><span class="line">		o.applyDeprecatedHealthzPortToConfig()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Load the config file here in Complete, so that Validate validates the fully-resolved config.</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(o.ConfigFile) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> c, err := o.loadConfigFromFile(o.ConfigFile); err != <span class="literal">nil</span> &#123; <span class="comment">// 这里覆盖了</span></span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			o.config = c</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	err := utilfeature.DefaultFeatureGate.SetFromMap(o.config.FeatureGates)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>看了上面代码心凉了，也就是说如果我指定了配置文件那么命令行设置的<code>flag</code>也就不生效了。</p>
+<h1 id="验证结论"><a href="#验证结论" class="headerlink" title="验证结论"></a>验证结论</h1><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">/usr/local/bin/kube-proxy --hostname-override=ip-10-188-166-140.ec2.internal --v=8</span><br><span class="line">...</span><br><span class="line">I0525 10:19:12.711084    1543 flags.go:33] FLAG: --hostname-override=&quot;ip-10-188-166-140.ec2.internal&quot;</span><br><span class="line">...</span><br><span class="line">W0525 10:19:12.711412    1543 server.go:194] WARNING: all flags other than --config, --write-config-to, and --cleanup are deprecated. Please begin using a config file ASAP.</span><br><span class="line">I0525 10:19:12.711447    1543 feature_gate.go:206] feature gates: &amp;&#123;map[]&#125;</span><br><span class="line">I0525 10:19:12.713822    1543 iptables.go:611] couldn&#x27;t get iptables-restore version; assuming it doesn&#x27;t support --wait</span><br><span class="line">I0525 10:19:12.721048    1543 server.go:412] Neither kubeconfig file nor master URL was specified. Falling back to in-cluster config.</span><br><span class="line">W0525 10:19:12.722352    1543 server_others.go:295] Flag proxy-mode=&quot;&quot; unknown, assuming iptables proxy</span><br><span class="line">I0525 10:19:12.723544    1543 round_trippers.go:383] GET https://192.168.0.1:443/api/v1/nodes/ip-10-188-166-140.ec2.internal</span><br></pre></td></tr></table></figure>
+
+<p>符合代码分析，凡事指定<code>config</code>就以这个配置文件的内容为准，没有就以命令行的<code>flag</code>为准。</p>
+<p>后面又看了一下<code>kubelet</code>的配置参数，发现在 <code>kubelet</code>设计中如果<code>falg</code>和 配置文件中同时指定，命令行参数设定值具有更高的优先级。</p>
+<p>看上去是个上游<code>bug</code>，在当前最新版本有没有这样的问题有待确认。</p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2020/06/02/how-kubelet-to-use-cni/">kubelet 是如何配合 CNI 删除容器网络</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2020/05/20/service-traffic-local/">service externalTrafficPolicy 探究</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>wireless tools - sn0rt's blog</title>
+
+  
+    <meta name="description" content="0x00 net-wireless&#x2F;aircrack-ng airbase-ng: 中间人攻击，伪造 ap 并且将无线的流量转发到有线网络 aircrack-ng: 主要用于 wep 以及 wpa-psk 的恢复，依赖于 dump 的数据包，此工具就可以自动测试是否可以破解 airdecap-ng: 用来解开加密状态的数据包 airdecloak-ng: 用于分析无线数据报文时过滤出指定">
+<meta property="og:type" content="article">
+<meta property="og:title" content="wireless tools">
+<meta property="og:url" content="http://sn0rt.github.io/2014/07/12/wireless_tools/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="0x00 net-wireless&#x2F;aircrack-ng airbase-ng: 中间人攻击，伪造 ap 并且将无线的流量转发到有线网络 aircrack-ng: 主要用于 wep 以及 wpa-psk 的恢复，依赖于 dump 的数据包，此工具就可以自动测试是否可以破解 airdecap-ng: 用来解开加密状态的数据包 airdecloak-ng: 用于分析无线数据报文时过滤出指定">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2014-07-11T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.751Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="security">
+<meta name="twitter:card" content="summary">
+  
+  
+  
+  <meta name="keywords" content="security">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">wireless tools</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x00-net-wireless-x2F-aircrack-ng"><span class="toc-text">0x00 net-wireless&#x2F;aircrack-ng</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x01-start-interface-monitor-mode"><span class="toc-text">0x01 start interface monitor mode</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x02-capture-the-wireless-frames"><span class="toc-text">0x02 capture the wireless frames</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x03-generate-request"><span class="toc-text">0x03 generate request</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x04-crack-the-password"><span class="toc-text">0x04 crack the password</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#0x05-aux-tools"><span class="toc-text">0x05 aux tools</span></a></li></ol></li></ol></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2014-07-11T16:00:00.000Z">2014-07-12</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>wireless tools</span></h1>
+<h2 id="0x00-net-wireless-x2F-aircrack-ng"><a href="#0x00-net-wireless-x2F-aircrack-ng" class="headerlink" title="0x00 net-wireless&#x2F;aircrack-ng"></a>0x00 net-wireless&#x2F;aircrack-ng</h2><ul>
+<li>airbase-ng: 中间人攻击，伪造 ap 并且将无线的流量转发到有线网络</li>
+<li>aircrack-ng: 主要用于 wep 以及 wpa-psk 的恢复，依赖于 dump 的数据包，此工具就可以自动测试是否可以破解</li>
+<li>airdecap-ng: 用来解开加密状态的数据包</li>
+<li>airdecloak-ng: 用于分析无线数据报文时过滤出指定无线网络数据	</li>
+<li>airdriver-ng: 用户查看工具包支持的芯片</li>
+<li>airdrop-ng: 基于策略的无线 Deauth 的工具</li>
+<li>aireplay-ng: 在进行 wep 和 wap-psk 的密码恢复时候，可以根据需要创建特殊的无线数据包报文	</li>
+<li>airgraph-ng	</li>
+<li>airmon-ng: 网卡监控模式</li>
+<li>airodump-ng: 抓取空中传播的数据包	</li>
+<li>airolib-ng: 进行 wpa 彩虹表攻击时使用，用于建立特定的数据库文件	</li>
+<li>airserv-ng: 可以将无线网卡连接到特定端口，为攻击时灵活调用准备	</li>
+<li>airtun-ng:</li>
+<li>besside-ng</li>
+<li>easside-ng: 用户 wep 的自动破解</li>
+<li>packetforge-ng: 主要用于构造特殊的数据包，用于无客户端的破解</li>
+<li>tkiptun-ng: 主要针对 wpa tkip 中启用 qos 的网络的注入</li>
+<li>wesside-ng</li>
+</ul>
+<p>文档链接 <a href="%5Bwiki%5D(https://www.aircrack-ng.org/doku.php)">^wiki</a></p>
+<h2 id="0x01-start-interface-monitor-mode"><a href="#0x01-start-interface-monitor-mode" class="headerlink" title="0x01 start interface monitor mode"></a>0x01 start interface monitor mode</h2><p>参数说明：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">root@kail:~/wireless# airmon-ng start waln0</span><br></pre></td></tr></table></figure>
+
+<h2 id="0x02-capture-the-wireless-frames"><a href="#0x02-capture-the-wireless-frames" class="headerlink" title="0x02 capture the wireless frames"></a>0x02 capture the wireless frames</h2><p>参数说明：-w 后面是写入文件，–ivs 酌情使用，-c 后面是信道</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">root@kali:~/wireless# airodump-ng -w hg -c 6 mon0</span><br></pre></td></tr></table></figure>
+<h2 id="0x03-generate-request"><a href="#0x03-generate-request" class="headerlink" title="0x03 generate request"></a>0x03 generate request</h2><p>wep 的 Request 注入攻击加快有效的数据包生成，参数说明：<br>-3 (–arpreplay) 就是攻击编号，-b 后面是 ap 的 MAC，-h 后面是 Client 的 MAC</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">root@kali:~/wireless# aireplay-ng -3 -b 9C:21:6A:7E:2C:EC -h 64:5A:04:33:75:18 mon0</span><br></pre></td></tr></table></figure>
+
+<p>wap 的 Deauth 攻击获取 wpa 的握手报文：<br>参数说明：-0 (–deauth) 就是攻击编号，后面是数据包数量，-a 后面是 ap 的 MAC，-c 后面是 Client 的 MAC</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">root@kali:~/wireless# aireplay-ng -0 1 -a 9C:21:6A:7E:2C:EC -c 64:5A:04:33:75:18 mon0</span><br></pre></td></tr></table></figure>
+
+<h2 id="0x04-crack-the-password"><a href="#0x04-crack-the-password" class="headerlink" title="0x04 crack the password"></a>0x04 crack the password</h2><p>web 的破解，后面是.cap 或者 ivs 文件</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">root@kali:~/wireless# aircrack-ng hg-01.cap</span><br></pre></td></tr></table></figure>
+
+<p>对于 wpa 的破解，-w 后面是字典文件</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">root@kali:~/wireless# aircrack-ng -w /usr/share/dictionary/words hg-01.cap</span><br></pre></td></tr></table></figure>
+<h3 id="0x05-aux-tools"><a href="#0x05-aux-tools" class="headerlink" title="0x05 aux tools"></a>0x05 aux tools</h3><p>.cap 提取.ivs 文件：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">root@kali:~/wireless# ivstools --convert hg-05.cap hg-05.ivs</span><br></pre></td></tr></table></figure>
+
+<p>把.ivs 文件合成一个：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">root@kali:~/wireless# ivstools  --merge hg-01.ivs hg-02.ivs hg-05.ivs hg.ivs</span><br></pre></td></tr></table></figure>
+<p>解密无线数据帧，参数说明：-l 不移除 802.11 头部</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">root@kali:~/wireless# airdecap-ng -l -e ESSID -p password hg-01.cap</span><br></pre></td></tr></table></figure>
+
+<p>热点伪造</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">root@kali:~/wireless# airbase-ng -c 6 -A -Z 2 mon0</span><br></pre></td></tr></table></figure>
+<p>无线跳板的工具</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash"> airserv-ng</span>    </span><br><span class="line">Airserv-ng 1.2 beta3 - (C) 2007, 2008, 2009 Andrea Bittau</span><br><span class="line">http://www.aircrack-ng.org</span><br><span class="line"></span><br><span class="line">Usage: airserv-ng &lt;options&gt;</span><br><span class="line"></span><br><span class="line">Options:</span><br><span class="line"></span><br><span class="line">	 -h			: This help screen</span><br><span class="line">	 -p	 &lt;port&gt; : TCP port to listen on (default:666)</span><br><span class="line">	 -d &lt;iface&gt; : Wifi interface to use</span><br><span class="line">	 -c	 &lt;chan&gt; : Channel to use</span><br><span class="line">	 -v &lt;level&gt; : Debug level (1 to 3; default: 1)</span><br></pre></td></tr></table></figure>
+<p>基于策略的无线 Deauth，下面策略的语法</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">deny rules</span></span><br><span class="line">d/0a:00:27:00:00:03|dc:0e:a1:f4:3f:01</span><br><span class="line">Deny	AP				Client</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">------------------</span></span><br><span class="line">a/any|any</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">wireless airdrop-ng -i mon0 -t hg-01.csv -r rule</span></span><br></pre></td></tr></table></figure>
+
+<p>对抓取的数据包内容进行过滤（其实可以在 dump 时候用参数指定）</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">wireless  airdecloak-ng --bssid 0a:00:27:00:00:03 --filters signal -i hg-01.cap</span></span><br></pre></td></tr></table></figure>
+
+<p>wps 扫描工具 <a target="_blank" rel="noopener" href="http://www.sourcesec.com/Lab/wps_tools.tar.gz">这里</a> 下载，wpscan.py(扫描开启的无线路由器),wpspy.py(检测 wps 的状态).<br>fix: 如果运行出现：Caught exception sniffing packets: global name ‘sniff’ is not defined 解决方案，修改一下 python 构造包的倒入，我下面的方法是简化的，但是意思一样</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> sys <span class="keyword">import</span> argv, stderr, exit</span><br><span class="line"><span class="keyword">from</span> getopt <span class="keyword">import</span> GetoptError, getopt <span class="keyword">as</span> GetOpt</span><br><span class="line"><span class="keyword">from</span> scapy.<span class="built_in">all</span> <span class="keyword">import</span> *</span><br></pre></td></tr></table></figure>
+
+<p>无线 dos 工具:mdk</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">b	- Beacon Flood Mode</span><br><span class="line">	  Sends beacon frames to show fake APs at clients.</span><br><span class="line">	  This can sometimes crash network scanners and even drivers!</span><br><span class="line">a	- Authentication DoS mode</span><br><span class="line">	  Sends authentication frames to all APs found in range.</span><br><span class="line">	  Too much clients freeze or reset some APs.</span><br><span class="line">p	- Basic probing and ESSID Bruteforce mode</span><br><span class="line">	  Probes AP and check for answer, useful for checking if SSID has</span><br><span class="line">	  been correctly decloaked or if AP is in your adaptors sending range</span><br><span class="line">	  SSID Bruteforcing is also possible with this test mode.</span><br><span class="line">d	- Deauthentication / Disassociation Amok Mode</span><br><span class="line">	  Kicks everybody found from AP</span><br><span class="line">m	- Michael shutdown exploitation (TKIP)</span><br><span class="line">	  Cancels all traffic continuously</span><br><span class="line">x	- 802.1X tests</span><br><span class="line">w	- WIDS/WIPS Confusion</span><br><span class="line">	  Confuse/Abuse Intrusion Detection and Prevention Systems</span><br><span class="line">f	- MAC filter bruteforce mode</span><br><span class="line">	  This test uses a list of known client MAC Adresses and tries to</span><br><span class="line">	  authenticate them to the given AP while dynamically changing</span><br><span class="line">	  its response timeout for best performance. It currently works only</span><br><span class="line">	  on APs who deny an open authentication request properly</span><br><span class="line">g	- WPA Downgrade test</span><br><span class="line">	  deauthenticates Stations and APs sending WPA encrypted packets.</span><br><span class="line">	  With this test you can check if the sysadmin will try setting his</span><br><span class="line">	  network to WEP or disable encryption.</span><br></pre></td></tr></table></figure>
+
+<p>无线欺骗 net-wireless&#x2F;airpwn, 通过无线数据包匹配的地方修改替换掉，并且伪装为 AP 发送数据</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="built_in">cat</span> /usr/share/airpwn/conf/js_html</span> </span><br><span class="line">begin js_html</span><br><span class="line">match ^(GET|POST)</span><br><span class="line">ignore ^GET [^ ?]+\.(jpg|jpeg|gif|png|tif|tiff)</span><br><span class="line">response /usr/share/airpwn/content/js_html</span><br></pre></td></tr></table></figure>
+
+<p>语法类似</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">airpwn -c /usr/share/airpwn/conf/greet_html -i mon0 -d mac80211 -vvv -F</span></span><br></pre></td></tr></table></figure>
+
+<p>针对 open 的，-k 参数后面可以加 wep 的密码，wap 没有看到参数。</p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2014/08/19/a-curious-mind/">a curious mind</a></div><div class="item" id="next"></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

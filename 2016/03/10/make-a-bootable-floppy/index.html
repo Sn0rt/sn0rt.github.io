@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>From a bootable floppy to booting - sn0rt's blog</title>
+
+  
+    <meta name="description" content="0x00 foreword制作可启动软盘是为了弄明白 hurlex 项目里面那个软盘其制作过程 [^ubwiki], 后来想到启动是一个完成的过程便对这个笔记进行拓展，也就有了后面的软硬件启动过程。 0x01 install grub 0.97网上 wiki 太老，都是 base grub 1 的，所以使用 grub 0.97 节约时间，我系统是 fedora23 安装 grub 存在版本冲突，所">
+<meta property="og:type" content="article">
+<meta property="og:title" content="From a bootable floppy to booting">
+<meta property="og:url" content="http://sn0rt.github.io/2016/03/10/make-a-bootable-floppy/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="0x00 foreword制作可启动软盘是为了弄明白 hurlex 项目里面那个软盘其制作过程 [^ubwiki], 后来想到启动是一个完成的过程便对这个笔记进行拓展，也就有了后面的软硬件启动过程。 0x01 install grub 0.97网上 wiki 太老，都是 base grub 1 的，所以使用 grub 0.97 节约时间，我系统是 fedora23 安装 grub 存在版本冲突，所">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://sn0rt.github.io/pic/grub/grub_install_test.png">
+<meta property="article:published_time" content="2016-03-09T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.756Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://sn0rt.github.io/pic/grub/grub_install_test.png">
+  
+  
+  
+  <meta name="keywords" content="linux">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">From a bootable floppy to booting</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#reference"><span class="toc-text">reference:</span></a></li></ol></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2016-03-09T16:00:00.000Z">2016-03-10</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>From a bootable floppy to booting</span></h1>
+<h1 id="0x00-foreword"><a href="#0x00-foreword" class="headerlink" title="0x00 foreword"></a>0x00 foreword</h1><p>制作可启动软盘是为了弄明白 hurlex 项目里面那个软盘其制作过程 [^ubwiki], 后来想到启动是一个完成的过程便对这个笔记进行拓展，也就有了后面的软硬件启动过程。</p>
+<h1 id="0x01-install-grub-0-97"><a href="#0x01-install-grub-0-97" class="headerlink" title="0x01 install grub 0.97"></a>0x01 install grub 0.97</h1><p>网上 wiki 太老，都是 base grub 1 的，所以使用 grub 0.97 节约时间，我系统是 fedora23 安装 grub 存在版本冲突，所以暂时卸载了 grub2. 具体的 rpm 可以在 [^download] 下载。</p>
+<h1 id="0x02-starting"><a href="#0x02-starting" class="headerlink" title="0x02 starting"></a>0x02 starting</h1><p>制作一个 1.44M 软盘，然后格式化成 ext2, 复制必要的文件，注意其中包含 menu.lst,grub.conf.<br>上面两个文件可能在新安装 grub 0 的时候是没有。你需要自己 touch 一个同名文件，否则在交互模式的 setup (fd0) 的 install 阶段会出现严重错误导致指令失败。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">dd if=/dev/zero of=floppy.img count=1 bs=1440k</span><br><span class="line">mke2fs floppy.img</span><br><span class="line">mount floppy.img /mount/point</span><br><span class="line">mkdir -p /mount/point/boot/grub</span><br><span class="line">cd /boot/grub</span><br><span class="line">cp stage1 stage2 menu.lst grub.conf /mount/point/boot/grub</span><br></pre></td></tr></table></figure>
+<p>进入 grub 0.97 的交互模式：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">device (fd0) floppy.img</span><br><span class="line">root (fd0)</span><br><span class="line">setup (fd0)</span><br><span class="line">quit</span><br></pre></td></tr></table></figure>
+
+<h1 id="0x03-testing"><a href="#0x03-testing" class="headerlink" title="0x03 testing"></a>0x03 testing</h1><p>安装 qemu 模拟器。</p>
+<pre><code>qemu-system-i386 floppy.img
+</code></pre>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/pic/grub/grub_install_test.png" alt="test-in-qemu"></div><div class="image-meta"><span class="image-caption center">test-in-qemu</span></div></div>
+<p>现在记得要把 grub0 卸载，安装回 grub2.</p>
+<h1 id="0x04-hardware-booting-ulk"><a href="#0x04-hardware-booting-ulk" class="headerlink" title="0x04 hardware booting[^ulk]"></a>0x04 hardware booting[^ulk]</h1><ol>
+<li><p>系统刚加电时候这个电脑的电路状态处于一片混沌 (不可预知). 北桥控制芯片向 cpu 引脚产生一个 RESET 的逻辑值，带电压稳定时候控制芯片撤销 reset 信号，就把处理器设置成特殊的值，并执行在 0xfffffff0 处的指令，从这里开始 cpu 就进入了”取指令 (IF)- 指令执行 (ID)- 循环”, 所以我要做的就说在各个阶段为 cpu 提供相关的数据。<br>这个地址一般被映射到固定的 ROM 中，ROM 中存放着程序集在 x86 中通常被称为 BIOS, 因为 BIOS 里面包含几个中断驱动的低级过程，所有操作系统在启动时候都依赖这些过程对计算机进行设备初始化。</p>
+</li>
+<li><p>紧接着是 POST 过程，BIOS 对计算机各个部件进行初始化，这个阶段会显示一些信息，列如 bios 的版本，不过如今的计算机使用高级配置和开机界面 (ACPI) 标准，在 ACPI 兼容的 bios 中启动代码会简历几个表来描述当期系统的硬件设备。这些表的格式独立于设备生成商，而且可由操作系统读取以获得如何调用这些设备的信息。</p>
+</li>
+<li><p>初始化硬件设备，这个阶段在现代基于 PCI 的体系结构中相当重要，他保证了所有的硬件设备操作不会引起 IRQ 与 I&#x2F;O 端口的冲突，完成本阶段可以显示一个本系统中所有 PCI 设备的列表。</p>
+</li>
+<li><p>根据 BIOS 配置来搜索外部存储设备的第一个扇区来启动一个操作系统。</p>
+</li>
+<li><p>只要找到一个有效设备 (第一个扇区最后两个字节是 0x55,0xaa), 将其第一个扇区的内容拷贝到物理地址 0x00007c00 的开始位置，然后 ip 指向这里。</p>
+</li>
+</ol>
+<h1 id="0x05-bootloader-stage"><a href="#0x05-bootloader-stage" class="headerlink" title="0x05 bootloader stage"></a>0x05 bootloader stage</h1><p>复制第一个扇区到指定内存地址，然后从那开始执行，惯例做法是在第一个扇区放上一个加载操作系统的程序等待被复制执行。<br>早期的 linux 2.4 之前第一个扇区往往就是放着一个 bootloader, 以此在第一个扇区拷贝一个内核镜像就可以使软盘可启动。<br>grub 就是这样一个加载操作系统的程序。下面这个指令就是 grub 交互模式中构造第一个扇区的指令的命令，讲 stage1 写入分区头部。</p>
+<pre><code>setup (fd0)
+</code></pre>
+<p>不同于现在，因为现在的内核规模变大第一个扇区放不下，所有交由专门的 bootloader 负载加载内核。</p>
+<p>硬盘的第一个扇区是主引导记录 (MBR), 这个扇区包含一个小程序 (446bytes) 和一个分区表 (64bytes), 这个小程序用来装载被启动的操作系统所在分区的第一个扇区，下面 mbr 内存布局可以看见 0xaa55(小端字节序).</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="built_in">dd</span> <span class="keyword">if</span>=floopy.img of=temp bs=1 count=512</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">hexdump -x temp</span></span><br><span class="line">00001b0 0000 0000 0000 0000 0000 0000 0000 1224</span><br><span class="line">00001c0 090f be00 7dbd c031 13cd 8a46 800c 00f9</span><br><span class="line">00001d0 0f75 dabe e87d ffcf 9deb 6c46 706f 7970</span><br><span class="line">00001e0 bb00 7000 01b8 b502 b600 cd00 7213 b6d7</span><br><span class="line">00001f0 b501 e94f fee6 0000 0000 0000 0000 aa55</span><br></pre></td></tr></table></figure>
+
+<p>不同于 lilo,grub 可以从文件系统 ext2 和 ext3 中加载 Linux, 它是通过两个阶段的引导加载程序转换成三个阶段的引导加载程序来实现的。<br>阶段 1(MBR) 引导一个阶段 1.5 的引导加载器，可以理解包含 linux 内核映像的特殊文件系统，当 stage1_5 被加载过后，stage2 就可以被接着加载了。</p>
+<p>当阶段 2 加载之后，GRUB 就可以在请求时显示可用内核列表 (在 &#x2F;etc&#x2F;grub.conf 中定义，还有几个符号链接), 我们可以在那定制 grub 来控制启动。<br>stage2 被加载到内存后，就可以对文件系统进行查询了，并将默认的 initrd 加载到内存中，stage2 的引导加载程序就可以调用内核映像了。</p>
+<h1 id="0x06-os-booting-linuxboot"><a href="#0x06-os-booting-linuxboot" class="headerlink" title="0x06 os booting[^linuxboot]"></a>0x06 os booting[^linuxboot]</h1><p>当内核映像被加载到内存中，并且阶段 2 的引导加载程序释放控制权之后，内核阶段就开始。内核映像并不是一个可执行的内核，而是一个压缩过的内核映像。通常它是一个 zImage(压缩映像，小于 512KB 或一个 bzImage(较大的压缩映像，大于 512KB), 它是提前使用 zlib 进行压缩过的。在这个内核映像前面是一个例程，它实现少量硬件设置，并对内核映像中包含的内核进行解压，然后将其放入高端内存中，如果有初始 RAM 磁盘映像，就会将它移动到内存中，并标明以后使用。然后该例程会调用内核，并开始启动内核引导的过程。</p>
+<p>当 bzImage(用于 i386 映像) 被调用时，我们从.&#x2F;arch&#x2F;i386&#x2F;boot&#x2F;head.S 的 start 汇编例程开始执行。这个例程会执行一些基本的硬件设置，并调用<code>./arch/i386/boot/compressed/head.S</code>中的 startup_32 例程。此例程会设置一个基本的环境 (堆栈等), 并清除 Block Started by Symbol(BSS). 然后调用一个叫做 decompress_kernel 的 C 函数 (在.&#x2F;arch&#x2F;i386&#x2F;boot&#x2F;compressed&#x2F;misc.c 中) 来解压内核。当内核被解压到内存中之后，就可以调用它了。这是另外一个 startup_32 函数，但是这个函数在.&#x2F;arch&#x2F;i386&#x2F;kernel&#x2F;head.S 中。</p>
+<p>在这个新的 startup_32 函数 (也称为清除程序或进程 0) 中，会对页表进行初始化，并启用内存分页功能。然后会为任何可选的浮点单元 (FPU) 检测 CPU 的类型，并将其存储起来供以后使用。然后调用 start_kernel 函数 (在 init&#x2F;main.c 中), 它会将您带入与体系结构无关的 Linux 内核部分。实际上，这就是 Linux 内核的 main 函数。</p>
+<p>通过调用 start_kernel, 会调用一系列初始化函数来设置中断，执行进一步的内存配置，并加载初始 RAM 磁盘。最后，要调用 kernel_thread(在 arch&#x2F;i386&#x2F;kernel&#x2F;process.c 中) 来启动 init 函数，这是第一个用户空间进程 (user-space process). 最后，启动空任务，现在调度器就可以接管控制权了 (在调用 cpu_idle 之后). 通过启用中断，抢占式的调度器就可以周期性地接管控制权，从而提供多任务处理能力。</p>
+<p>在内核引导过程中，初始 RAM 磁盘 (initrd) 是由阶段 2 引导加载程序加载到内存中的，它会被复制到 RAM 中并挂载到系统上。这个 initrd 会作为 RAM 中的临时根文件系统使用，并允许内核在没有挂载任何物理磁盘的情况下完整地实现引导。由于与外围设备进行交互所需要的模块可能是 initrd 的一部分，因此内核可以非常小，但是仍然需要支持大量可能的硬件配置。在内核引导之后，就可以正式装备根文件系统了 (通过 pivot_root)：此时会将 initrd 根文件系统卸载掉，并挂载真正的根文件系统。</p>
+<p>initrd 函数让我们可以创建一个小型的 Linux 内核，包括作为可加载模块编译的驱动程序。这些模块为内核提供了访问磁盘和磁盘上的文件系统的方法，并为其他硬件提供了驱动程序。由于根文件系统是磁盘上的一个文件系统，因此 initrd 函数会提供一种启动方法来获得对磁盘的访问，并挂载真正的根文件系统。</p>
+<h1 id="0x07-user-interface"><a href="#0x07-user-interface" class="headerlink" title="0x07 user interface"></a>0x07 user interface</h1><p>当内核被引导并进行初始化之后，内核就可以启动自己的第一个用户空间应用程序了。这是第一个调用的使用标准 C 库编译的程序。<br>在桌面 Linux 系统上，第一个启动的程序通常是 &#x2F;sbin&#x2F;init, 不过这是可选择的 (&#x2F;etc&#x2F;inittab).</p>
+<h3 id="reference"><a href="#reference" class="headerlink" title="reference:"></a>reference:</h3><p>[^ubwiki]: <a target="_blank" rel="noopener" href="https://help.ubuntu.com/community/GrubHowto/BootFloppy">ubuntu wiki</a><br>[^ulk]: <a target="_blank" rel="noopener" href="https://book.douban.com/subject/1767120/">深入理解 Linux 操作系统</a><br>[^linuxboot]: <a target="_blank" rel="noopener" href="http://www.ibm.com/developerworks/cn/linux/l-linuxboot/index.html">Linux 引导过程内幕</a><br>[^download]: <a href="ftp://ftp.pbone.net/mirror/archive.fedoraproject.org/fedora/linux/releases/17/Everything/x86_64/os/Packages/g/grub-0.97-93.fc17.x86_64.rpm">download</a></p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2016/03/11/configure-emacs/">emacs tips</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2015/09/14/gsm-sinffer/">gsm sniffer</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

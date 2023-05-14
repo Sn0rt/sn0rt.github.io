@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>netlink protocol I - sn0rt's blog</title>
+
+  
+    <meta name="description" content="0x00 Introduction0x01 what is netlink?netlink 是一种用户进程和内核，或者进程之间的沟通机制，不能用于跨主机的沟通 ^manual. 0x02 the advantage of netlink?多数的 Linux 内核态程序都需要和用户空间的进程交换数据，但是传统的 Unix 的 IPC (各类管道、消息队列、内存共享、信号量) 机制不能为进程与内核通讯">
+<meta property="og:type" content="article">
+<meta property="og:title" content="netlink protocol I">
+<meta property="og:url" content="http://sn0rt.github.io/2016/07/21/netlink-i/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="0x00 Introduction0x01 what is netlink?netlink 是一种用户进程和内核，或者进程之间的沟通机制，不能用于跨主机的沟通 ^manual. 0x02 the advantage of netlink?多数的 Linux 内核态程序都需要和用户空间的进程交换数据，但是传统的 Unix 的 IPC (各类管道、消息队列、内存共享、信号量) 机制不能为进程与内核通讯">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2016-07-20T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.758Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary">
+  
+  
+  
+  <meta name="keywords" content="linux">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">netlink protocol I</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x01-what-is-netlink"><span class="toc-text">0x01 what is netlink?</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x02-the-advantage-of-netlink"><span class="toc-text">0x02 the advantage of netlink?</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x03-netlink-feature"><span class="toc-text">0x03 netlink feature</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x04-the-architecture-of-netlink-lwn"><span class="toc-text">0x04 the architecture of netlink[^lwn]</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x11-netlink-protocol"><span class="toc-text">0x11 netlink protocol</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x12-the-address-of-socket"><span class="toc-text">0x12 the address of socket</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x13-message-format"><span class="toc-text">0x13 message format</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x14-netlink-messages-header"><span class="toc-text">0x14 netlink messages header</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x15-netlink-messages-payload"><span class="toc-text">0x15 netlink messages payload</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x21-in-userspace"><span class="toc-text">0x21 in userspace</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x22-kernelspace"><span class="toc-text">0x22 kernelspace</span></a></li></ol></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2016-07-20T16:00:00.000Z">2016-07-21</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>netlink protocol I</span></h1>
+<h1 id="0x00-Introduction"><a href="#0x00-Introduction" class="headerlink" title="0x00 Introduction"></a>0x00 Introduction</h1><h2 id="0x01-what-is-netlink"><a href="#0x01-what-is-netlink" class="headerlink" title="0x01 what is netlink?"></a>0x01 what is netlink?</h2><p>netlink 是一种用户进程和内核，或者进程之间的沟通机制，不能用于跨主机的沟通 <a href="%5Bhttp://linux.die.net/man/7/netlink%5D(http://linux.die.net/man/7/netlink)">^manual</a>.</p>
+<h2 id="0x02-the-advantage-of-netlink"><a href="#0x02-the-advantage-of-netlink" class="headerlink" title="0x02 the advantage of netlink?"></a>0x02 the advantage of netlink?</h2><p>多数的 Linux 内核态程序都需要和用户空间的进程交换数据，但是传统的 Unix 的 IPC (各类管道、消息队列、内存共享、信号量) 机制不能为进程与内核通讯提供足够的支持 [^ibm1].<br>不过 Linux 提供了很多与内核沟通的方法如内核启动参数、模块参数与 sysfs、sysctl、系统调用、netlink、procfs、seq_file、debugfs 和 relayfs[^ibm2].</p>
+<table>
+<thead>
+<tr>
+<th>沟通方法</th>
+<th>应用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>内核启动参数</td>
+<td>内核开发者可以通过这种方式来向内核传输数据，从而控制内核启动行为。</td>
+</tr>
+<tr>
+<td>模块参数，sysfs</td>
+<td>当内核部分子系统编译成模块，则可以通过命令行在插入模块时传递参数，或在运行时，通过 sysfs 来设置或读取模块数据。</td>
+</tr>
+<tr>
+<td>sysctl</td>
+<td>其被应用来设置与获取运行时内核的配置参数，通过这种方式，用户应用可以在内核运行的任何时刻来改变内核的配置参数，也可以在任何时候获得内核的配置参数。</td>
+</tr>
+<tr>
+<td>系统调用</td>
+<td>是内核提供给应用程序的接口，应用对底层硬件的操作大部分都是通过调用系统调用来完成的。</td>
+</tr>
+<tr>
+<td>netlink</td>
+<td>是一种在内核与用户应用间进行双向数据传输的非常好的方式。</td>
+</tr>
+<tr>
+<td>procfs</td>
+<td>是较老的用户态与内核态的数据交换方式，内核很多数据通过这种方式提供给用户，内核很多参数也是通过这种方式来用户方便设置，但其有一个缺陷，若输出内容大于 1 个内存页，需要多次读。</td>
+</tr>
+<tr>
+<td>debugfs</td>
+<td>只有在需要的时候使用，它在需要时通过在一个虚拟文件系统中创建一个或多个文件来向用户空间应用提供调试信息。</td>
+</tr>
+<tr>
+<td>relayfs</td>
+<td>是一个快速的转发（relay）数据的文件系统，它以其功能而得名。它为那些需要从内核空间转发大量数据到用户空间的工具和应用提供了快速有效的转发机制。</td>
+</tr>
+</tbody></table>
+<p>Netlink 相对于系统调用，ioctl 以及 &#x2F;proc 文件系统而言具有以下优点：</p>
+<ul>
+<li>为了使用 netlink, 用户仅需要在 include&#x2F;linux&#x2F;netlink.h 中增加一个新类型的 netlink 协议定义即可，如 #define NETLINK_MYTEST 17 然后，内核和用户态应用就可以立即通过 socket API 使用该 netlink 协议类型进行数据交换。但系统调用需要增加新的系统调用，ioctl 则需要增加设备或文件，那需要不少代码，proc 文件系统则需要在 &#x2F;proc 下添加新的文件或目录，那将使本来就混乱的 &#x2F;proc 更加混乱。</li>
+<li>netlink 是一种异步通信机制，在内核与用户态应用之间传递的消息保存在 socket 缓存队列中，发送消息只是把消息保存在接收者的 socket 的接收队列，而不需要等待接收者收到消息，但系统调用与 ioctl 则是同步通信机制，如果传递的数据太长，将影响调度粒度。</li>
+<li>使用 netlink 的内核部分可以采用模块的方式实现，使用 netlink 的应用部分和内核部分没有编译时依赖，但系统调用就有依赖，而且新的系统调用的实现必须静态地连接到内核中，它无法在模块中实现，使用新系统调用的应用在编译时需要依赖内核。</li>
+<li>netlink 支持多播，内核模块或应用可以把消息多播给一个 netlink 组，属于该 neilink 组的任何内核模块或应用都能接收到该消息，内核事件向用户态的通知机制就使用了这一特性，任何对内核事件感兴趣的应用都能收到该子系统发送的内核事件，在后面的文章中将介绍这一机制的使用。</li>
+<li>内核可以使用 netlink 首先发起会话，但系统调用和 ioctl 只能由用户应用发起调用。</li>
+<li>netlink 使用标准的 socket API, 因此很容易使用，但系统调用和 ioctl 则需要专门的培训才能使用。</li>
+</ul>
+<h2 id="0x03-netlink-feature"><a href="#0x03-netlink-feature" class="headerlink" title="0x03 netlink feature"></a>0x03 netlink feature</h2><p>netlink 只是框架提供基本的和内核沟通的功能，具体要做的事情由基于 netlink 的子协议做。<br>而内核中已经存在基于 netlink 的具体协议有<code>Linux/include/uapi/linux/netlink.h</code>:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_ROUTE		0	<span class="comment">/* Routing/device hook				*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_UNUSED		1	<span class="comment">/* Unused number				*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_USERSOCK	2	<span class="comment">/* Reserved for user mode socket protocols	*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_FIREWALL	3	<span class="comment">/* Unused number, formerly ip_queue		*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_SOCK_DIAG	4	<span class="comment">/* socket monitoring				*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_NFLOG		5	<span class="comment">/* netfilter/iptables ULOG */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_XFRM		6	<span class="comment">/* ipsec */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_SELINUX		7	<span class="comment">/* SELinux event notifications */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_ISCSI		8	<span class="comment">/* Open-iSCSI */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_AUDIT		9	<span class="comment">/* auditing */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_FIB_LOOKUP	10	</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_CONNECTOR	11</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_NETFILTER	12	<span class="comment">/* netfilter subsystem */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_IP6_FW		13</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_DNRTMSG		14	<span class="comment">/* DECnet routing messages */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_KOBJECT_UEVENT	15	<span class="comment">/* Kernel messages to userspace */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_GENERIC		16</span></span><br><span class="line"><span class="comment">/* leave room for NETLINK_DM (DM Events) */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_SCSITRANSPORT	18	<span class="comment">/* SCSI Transports */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_ECRYPTFS	19</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_RDMA		20</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_CRYPTO		21	<span class="comment">/* Crypto layer */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NETLINK_INET_DIAG	NETLINK_SOCK_DIAG</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="0x04-the-architecture-of-netlink-lwn"><a href="#0x04-the-architecture-of-netlink-lwn" class="headerlink" title="0x04 the architecture of netlink[^lwn]"></a>0x04 the architecture of netlink[^lwn]</h2><pre><code>
+     +---------------------+      +---------------------+
+      | (3) application "A" |      | (3) application "B" |
+      +------|--------------+      +--------------|------+
+             |                                    |
+             \                                    /
+              \                                  /
+               |                                |
+       +-------|--------------------------------|-------+
+       |        :                               :       |   user-space
+  =====+        :   (5)  Kernel socket API      :       +================
+       |        :                               :       |   kernel-space
+       +--------|-------------------------------|-------+
+                |                               |
+          +-----|-------------------------------|----+
+          |        (1)  Netlink subsystem            |
+          +---------------------|--------------------+
+                                |
+          +---------------------|--------------------+
+          |       (2) Generic Netlink bus            |
+          +--|--------------------------|-------|----+
+             |                          |       |
+     +-------|---------+                |       |
+     |  (4) Controller |               /         \
+     +-----------------+              /           \
+                                      |           |
+                   +------------------|--+     +--|------------------+
+                   | (3) kernel user "X" |     | (3) kernel user "Y" |
+                   +---------------------+     +---------------------+
+</code></pre>
+
+<h1 id="0x10-date-struct"><a href="#0x10-date-struct" class="headerlink" title="0x10 date struct"></a>0x10 date struct</h1><h2 id="0x11-netlink-protocol"><a href="#0x11-netlink-protocol" class="headerlink" title="0x11 netlink protocol"></a>0x11 netlink protocol</h2><p>在 linux 内核中每个协议都需要注册一个<code>net_proto_family</code>实例，该函数包含一个函数指针，在创建属于该协议族的 <code>socket</code> 的时候被调用，netlink 的这个函数指针是 <code>netlink_create</code>, 该函数分配一个<code>struct sock</code>的实例，通过<code> socket-&gt;sk</code> 关联到<code> socket</code>, 不过这个函数不仅为<code>struct sock</code>分配了空间，也为<code>netlink_sock</code>分配了空间。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">netlink_sock</span> &#123;</span></span><br><span class="line">	<span class="comment">/* struct sock has to be the first member of netlink_sock */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sock</span>		<span class="title">sk</span>;</span></span><br><span class="line">	u32			portid;</span><br><span class="line">	u32			dst_portid;</span><br><span class="line">	u32			dst_group;</span><br><span class="line">	u32			flags;</span><br><span class="line">	u32			subscriptions;</span><br><span class="line">	...</span><br><span class="line">	<span class="type">wait_queue_head_t</span>	wait;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">netlink_callback</span>	*<span class="title">cb</span>;</span></span><br><span class="line">	...</span><br><span class="line">	<span class="type">void</span>			(*netlink_rcv)(<span class="keyword">struct</span> sk_buff *skb);</span><br><span class="line">	<span class="type">void</span>			(*netlink_bind)(<span class="type">int</span> group);</span><br><span class="line">	...</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>省略了一部分代码，保留了主题。<br>可以看见<code>sock</code>实例直接嵌入<code>netlink_sock</code>中，给出的一个<code>netlink</code>套接字的<code>struct sock</code>实例，与之相关联，特定于<code>netlink</code>的<code>netlink_socket</code>实例，可以使用<code>nlk_sk</code>获得。链接两端的端口 ID 分别保存在<code>portid</code>和<code>dst_portid</code>中。<code>netlink_rcv</code>是在<code>socket</code>接受到数据时候调用。</p>
+<h2 id="0x12-the-address-of-socket"><a href="#0x12-the-address-of-socket" class="headerlink" title="0x12 the address of socket"></a>0x12 the address of socket</h2><p>类似于其余网络协议，每个<code>netlink</code>套接字也需要分配一个地址，下列<code>struct sockaddr</code>的变体表示<code>netlink</code>地址：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_nl</span> &#123;</span></span><br><span class="line">	<span class="type">__kernel_sa_family_t</span>	nl_family;	<span class="comment">/* AF_NETLINK	*/</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">short</span>	nl_pad;		<span class="comment">/* zero		*/</span></span><br><span class="line">	__u32		nl_pid;		<span class="comment">/* port ID	*/</span></span><br><span class="line">	__u32		nl_groups;	<span class="comment">/* multicast groups mask */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>为区分具体的子协议内核使用了 nl_family 字段，&lt;netlink.h&gt;指定了不同的几种族，就是上面具体作用部分列出来的。nl_pad 是对其补全总是 0. nl_pid 为发送消息的进程 pid, 若是希望内核处理或者多播消息则置 0, 否则为处理消息的线程组 id. 字段 nl_groups 用于指定播组，bind 函数用于把调用进程加入到该字段指定的播组，若是为 0 表示不加入任何播组。<br>若是一个进程的多个线程使用 netlink socket 的情况，进程的字段的 nl_pid 可以设置为其他值。因此字段<code>nl_pid</code>实际上未必是进程 ID, 它只是用于区分不同的接收者或发送者的一个标识，用户可以根据自己需要设置该字段。</p>
+<h2 id="0x13-message-format"><a href="#0x13-message-format" class="headerlink" title="0x13 message format"></a>0x13 message format</h2><pre><code>
+Message Format:
+<--- nlmsg_total_size(payload) --->
+<-- nlmsg_msg_size(payload) ->
++----------|- - -|-------------|----|----------
+| nlmsghdr | Pad |   Payload   |Pad | nlmsghdr
++----------|- - -|-------------|----|----------
+nlmsg_data(nlh)---^                 ^
+nlmsg_next(nlh)-----------------------+
+</--></---></code></pre>
+<p>一个基本的消息单元有两个部分组成：头部与 payload, 且这个 message 对齐到<code>NLMSG_ALIGNTO</code>, 一般是<code>#define NLMSG_ALIGNTO	4U</code>.</p>
+<h2 id="0x14-netlink-messages-header"><a href="#0x14-netlink-messages-header" class="headerlink" title="0x14 netlink messages header"></a>0x14 netlink messages header</h2><p>不同于 BSD 套接字，头信息中的标识和目的地都是自动生成，Netlink 消息头（结构体 nlmsghdr）必须由发送方准备好，就像 socket 工作在 SOCK_RAW 模式下 一样。尽管 SOCK_DGRAM 被用于创建它。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">nlmsghdr</span> &#123;</span></span><br><span class="line">	    __u32		nlmsg_len;	<span class="comment">/* Length of message including header */</span></span><br><span class="line">	    __u16		nlmsg_type;	<span class="comment">/* Message content */</span></span><br><span class="line">        __u16		nlmsg_flags;	<span class="comment">/* Additional flags */</span></span><br><span class="line">	    __u32		nlmsg_seq;	<span class="comment">/* Sequence number */</span></span><br><span class="line">	    __u32		nlmsg_pid;	<span class="comment">/* Sending process port ID */</span></span><br><span class="line">    &#125;;</span><br></pre></td></tr></table></figure>
+<p><code>nlmsg_type</code>是基于<code>netlink</code>的协议的私有的，<code>netlink</code>协议不去检查子协议。<br><code>nlmsg_flags</code>的类型都定义在<code>netlink.h</code>里面了，一般情况下只要关注：如果消息包含一个请求，要求执行特定的操作 (而不是传输一些状态信息), 那么<code>NLM_F_REQUEST</code>将被置位，而<code>NLM_F_ACK</code>要求在接受上述消息并成功返回处理请求之后发送一个<code>ack</code>.</p>
+<p>标准的 flages, 其余的并没有列出了来<code>linux/include/uapi/linux/netlink.h</code>.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> NLM_F_REQUEST		1	<span class="comment">/* It is request message. 	*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NLM_F_MULTI		2	<span class="comment">/* Multipart message, terminated by NLMSG_DONE */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NLM_F_ACK		4	<span class="comment">/* Reply with ack, with zero or error code */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NLM_F_ECHO		8	<span class="comment">/* Echo this request 		*/</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NLM_F_DUMP_INTR		16	<span class="comment">/* Dump was inconsistent due to sequence change */</span></span></span><br></pre></td></tr></table></figure>
+<h2 id="0x15-netlink-messages-payload"><a href="#0x15-netlink-messages-payload" class="headerlink" title="0x15 netlink messages payload"></a>0x15 netlink messages payload</h2><p>按照 rfc 里面的定义的服务模型，payload 部分就是基于 netlink 的子协议的数据，各个具体的子协议不同。</p>
+<h1 id="0x20-How-to-use-netlink"><a href="#0x20-How-to-use-netlink" class="headerlink" title="0x20 How to use netlink?"></a>0x20 How to use netlink?</h1><h2 id="0x21-in-userspace"><a href="#0x21-in-userspace" class="headerlink" title="0x21 in userspace"></a>0x21 in userspace</h2><p>在用户态应用使用标准的 socket 与内核通讯，标准的 socket API 的函数，socket(), bind(), sendmsg(), recvmsg() 和 close() 很容易地应用到 netlink socket。<br>为了创建一个 netlink socket，用户需要使用如下参数调用 socket():</p>
+<pre><code>socket(AF_NETLINK, SOCK_RAW, netlink_type)
+</code></pre>
+<p>用户态更多的应用场景是使用<code>libnl</code>库 <a target="_blank" rel="noopener" href="https://www.infradead.org/~tgr/libnl/">这里</a>.</p>
+<h2 id="0x22-kernelspace"><a href="#0x22-kernelspace" class="headerlink" title="0x22 kernelspace"></a>0x22 kernelspace</h2><p>netlink 的内核实现在<code>net/netlink/af_netlink.c</code>中，内核模块要想使用 netlink, 也必须包含头文件<code>linux/netlink.h</code>. 内核使用 netlink 需要专门的 API, 这完全不同于用户态应用对 netlink 的使用。<br>如果用户需要增加新的 netlink 协议类型，必须通过修改<code>linux/netlink.h</code>来实现，当然，目前的 netlink 实现已经包含了一个通用的协议类型 NETLINK_GENERIC 以方便用户使用，用户可以直接使用它而不必增加新的协议类型。</p>
+<p>[^ibm1]: <a target="_blank" rel="noopener" href="https://www.ibm.com/developerworks/cn/linux/l-netlink/">Linux 系统内核空间与用户空间通信的实现与分析</a><br>[^ibm2]: <a target="_blank" rel="noopener" href="https://www.ibm.com/developerworks/cn/linux/l-kerns-usrs/">在 Linux 下用户空间与内核空间数据交换的方式</a><br>[^lwn]: <a target="_blank" rel="noopener" href="http://lwn.net/Articles/208755/">LWN</a></p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2016/07/24/iptables/">iptables usage</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2016/07/21/netlink-route/">netlink route</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

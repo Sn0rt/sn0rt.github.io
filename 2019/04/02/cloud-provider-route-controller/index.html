@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>cloud provider route controller - sn0rt's blog</title>
+
+  
+    <meta name="description" content="​	当 pod 的 CIDR 和所属的 node 不属于同一个 cidr 上时候，在部分云上就会有 pod 和 node 网络互通的问题，而 route controller 就是被设计用来创建路由解决这个问题的方案。 ​	如果计划让 k8s 启动的 pod 从指定的 cidr 中分配 ip 常见的方式是通过指定 KCM 的启动参数cluster-cidr来指定 POD CIDR，service">
+<meta property="og:type" content="article">
+<meta property="og:title" content="cloud provider route controller">
+<meta property="og:url" content="http://sn0rt.github.io/2019/04/02/cloud-provider-route-controller/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="​	当 pod 的 CIDR 和所属的 node 不属于同一个 cidr 上时候，在部分云上就会有 pod 和 node 网络互通的问题，而 route controller 就是被设计用来创建路由解决这个问题的方案。 ​	如果计划让 k8s 启动的 pod 从指定的 cidr 中分配 ip 常见的方式是通过指定 KCM 的启动参数cluster-cidr来指定 POD CIDR，service">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://sn0rt.github.io/media/pic/tke-global-router.png">
+<meta property="article:published_time" content="2019-04-01T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.761Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="k8s">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://sn0rt.github.io/media/pic/tke-global-router.png">
+  
+  
+  
+  <meta name="keywords" content="k8s">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+
+<widget class="widget-wrapper recent"><div class="widget-header cap theme dis-select"><span class="name">Recent Update</span></div><div class="widget-body related-posts fs14"><a class="item title" href="/2021/05/11/blk-io-2/"><span class="title">blkio 源码分析</span></a><a class="item title" href="/2022/09/03/update-bios-by-redfish/"><span class="title">update BIOS attr by redfish</span></a><a class="item title" href="/2016/06/14/ptmalloc2/"><span class="title">ptmalloc2</span></a><a class="item title" href="/2016/07/25/cgroup-i/"><span class="title">cgroups I - usage</span></a><a class="item title" href="/2017/09/02/a-panice-of-watchdog/"><span class="title">a panic of watchdog hard lockup</span></a></div></widget>
+
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2019-04-01T16:00:00.000Z">2019-04-02</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>cloud provider route controller</span></h1>
+<p>​	当 pod 的 CIDR 和所属的 node 不属于同一个 cidr 上时候，在部分云上就会有 pod 和 node 网络互通的问题，而 route controller 就是被设计用来创建路由解决这个问题的方案。</p>
+<p>​	如果计划让 k8s 启动的 pod 从指定的 cidr 中分配 ip 常见的方式是通过指定 KCM 的启动参数<code>cluster-cidr</code>来指定 POD CIDR，service 也可以通过 KCM 的<code>service-cluster-ip-range</code>参数指定 CIDR。</p>
+<p>​	cloud provider 启动时候通过判断 AllocateNodeCIDRs 与 ConfigureCloudRoutes 的与逻辑来判断 k8s 的 pod 是否从指定的 cidr 中分配 IP，AllocateNodeCIDRs 字段的意义是<code> AllocateNodeCIDRs enables CIDRs for Pods to be allocated and, if ConfigureCloudRoutes is true, to be set on the cloud provider.</code>,ConfigureCloudRoutes 字段的意义是<code>configureCloudRoutes enables CIDRs allocated with allocateNodeCIDRs to be configured on the cloud provider.</code></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// startControllers starts the cloud specific controller loops.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">startControllers</span><span class="params">(c *cloudcontrollerconfig.CompletedConfig, stop &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, cloud cloudprovider.Interface)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">...</span><br><span class="line">	<span class="comment">// If CIDRs should be allocated for pods and set on the CloudProvider, then start the route controller</span></span><br><span class="line">	<span class="keyword">if</span> c.ComponentConfig.KubeCloudShared.AllocateNodeCIDRs &amp;&amp; c.ComponentConfig.KubeCloudShared.ConfigureCloudRoutes &#123;</span><br><span class="line">    <span class="comment">// 这里判断是否实现了 cloud provider route 相关接口</span></span><br><span class="line">		<span class="keyword">if</span> routes, ok := cloud.Routes(); !ok &#123;</span><br><span class="line">			glog.Warning(<span class="string">&quot;configure-cloud-routes is set, but cloud provider does not support routes. Will not configure cloud provider routes.&quot;</span>)</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="keyword">var</span> clusterCIDR *net.IPNet</span><br><span class="line">			<span class="keyword">if</span> <span class="built_in">len</span>(strings.TrimSpace(c.ComponentConfig.KubeCloudShared.ClusterCIDR)) != <span class="number">0</span> &#123;</span><br><span class="line">				_, clusterCIDR, err = net.ParseCIDR(c.ComponentConfig.KubeCloudShared.ClusterCIDR)</span><br><span class="line">				<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">					glog.Warningf(<span class="string">&quot;Unsuccessful parsing of cluster CIDR %v: %v&quot;</span>, c.ComponentConfig.KubeCloudShared.ClusterCIDR, err)</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			routeController := routecontroller.New(routes, client(<span class="string">&quot;route-controller&quot;</span>), c.SharedInformers.Core().V1().Nodes(), c.ComponentConfig.KubeCloudShared.ClusterName, clusterCIDR)</span><br><span class="line">			<span class="keyword">go</span> routeController.Run(stop, c.ComponentConfig.KubeCloudShared.RouteReconciliationPeriod.Duration)</span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​	这个 Run 函数保持着 cloud provider 运行 controller 的一贯风格，并没有什么特别要注意的地方。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(rc *RouteController)</span></span> Run(stopCh &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, syncPeriod time.Duration) &#123;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">   <span class="comment">// <span class="doctag">TODO:</span> If we do just the full Resync every 5 minutes (default value)</span></span><br><span class="line">   <span class="comment">// that means that we may wait up to 5 minutes before even starting</span></span><br><span class="line">   <span class="comment">// creating a route for it. This is bad.</span></span><br><span class="line">   <span class="comment">// We should have a watch on node and if we observe a new node (with CIDR?)</span></span><br><span class="line">   <span class="comment">// trigger reconciliation for that node.</span></span><br><span class="line">   <span class="keyword">go</span> wait.NonSlidingUntil(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">      <span class="keyword">if</span> err := rc.reconcileNodeRoutes(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">         glog.Errorf(<span class="string">&quot;Couldn&#x27;t reconcile node routes: %v&quot;</span>, err)</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;, syncPeriod, stopCh)</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​	这里地方的实现唯一值得说道的是<code>reconcile</code>的函数命名，在 k8s 的 controller 中讲现实世界变成声明式中的过程称为<code>reconcile</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(rc *RouteController)</span></span> reconcileNodeRoutes() <span class="type">error</span> &#123;</span><br><span class="line">   routeList, err := rc.routes.ListRoutes(context.TODO(), rc.clusterName)</span><br><span class="line">...</span><br><span class="line">   <span class="keyword">return</span> rc.reconcile(nodes, routeList)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​	这个是实际 reconcile 的过程，就是找到现实世界和期望世界差距，然后通过 cloud proivder route所提供的接口操作云上的route资源进行添加&#x2F;删除操作将其变成期望的模样。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(rc *RouteController)</span></span> reconcile(nodes []*v1.Node, routes []*cloudprovider.Route) <span class="type">error</span> &#123;</span><br><span class="line">   <span class="comment">// nodeCIDRs maps nodeName-&gt;nodeCIDR</span></span><br><span class="line">   nodeCIDRs := <span class="built_in">make</span>(<span class="keyword">map</span>[types.NodeName]<span class="type">string</span>)</span><br><span class="line">   <span class="comment">// routeMap maps routeTargetNode-&gt;route</span></span><br><span class="line">   routeMap := <span class="built_in">make</span>(<span class="keyword">map</span>[types.NodeName]*cloudprovider.Route)</span><br><span class="line">   <span class="keyword">for</span> _, route := <span class="keyword">range</span> routes &#123;</span><br><span class="line">      <span class="keyword">if</span> route.TargetNode != <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">         routeMap[route.TargetNode] = route</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   wg := sync.WaitGroup&#123;&#125;</span><br><span class="line">   rateLimiter := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, maxConcurrentRouteCreations)</span><br><span class="line"></span><br><span class="line">   <span class="keyword">for</span> _, node := <span class="keyword">range</span> nodes &#123;</span><br><span class="line">      <span class="comment">// Skip if the node hasn&#x27;t been assigned a CIDR yet.</span></span><br><span class="line">      <span class="keyword">if</span> node.Spec.PodCIDR == <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">         <span class="keyword">continue</span></span><br><span class="line">      &#125;</span><br><span class="line">      nodeName := types.NodeName(node.Name)</span><br><span class="line">      <span class="comment">// Check if we have a route for this node w/ the correct CIDR.</span></span><br><span class="line">      r := routeMap[nodeName]</span><br><span class="line">      <span class="keyword">if</span> r == <span class="literal">nil</span> || r.DestinationCIDR != node.Spec.PodCIDR &#123;</span><br><span class="line">         <span class="comment">// If not, create the route.</span></span><br><span class="line">         route := &amp;cloudprovider.Route&#123;</span><br><span class="line">            TargetNode:      nodeName,</span><br><span class="line">            DestinationCIDR: node.Spec.PodCIDR,</span><br><span class="line">         &#125;</span><br><span class="line">         nameHint := <span class="type">string</span>(node.UID)</span><br><span class="line">         wg.Add(<span class="number">1</span>)</span><br><span class="line">         <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(nodeName types.NodeName, nameHint <span class="type">string</span>, route *cloudprovider.Route)</span></span> &#123;</span><br><span class="line">            <span class="keyword">defer</span> wg.Done()</span><br><span class="line">            err := clientretry.RetryOnConflict(updateNetworkConditionBackoff, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> <span class="type">error</span> &#123;</span><br><span class="line">               startTime := time.Now()</span><br><span class="line">               <span class="comment">// Ensure that we don&#x27;t have more than maxConcurrentRouteCreations</span></span><br><span class="line">               <span class="comment">// CreateRoute calls in flight.</span></span><br><span class="line">               rateLimiter &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">               glog.Infof(<span class="string">&quot;Creating route for node %s %s with hint %s, throttled %v&quot;</span>, nodeName, route.DestinationCIDR, nameHint, time.Since(startTime))</span><br><span class="line">               err := rc.routes.CreateRoute(context.TODO(), rc.clusterName, nameHint, route)</span><br><span class="line">               &lt;-rateLimiter</span><br><span class="line"></span><br><span class="line">               rc.updateNetworkingCondition(nodeName, err == <span class="literal">nil</span>)</span><br><span class="line">               <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                  msg := fmt.Sprintf(<span class="string">&quot;Could not create route %s %s for node %s after %v: %v&quot;</span>, nameHint, route.DestinationCIDR, nodeName, time.Since(startTime), err)</span><br><span class="line">                  <span class="keyword">if</span> rc.recorder != <span class="literal">nil</span> &#123;</span><br><span class="line">                     rc.recorder.Eventf(</span><br><span class="line">                        &amp;v1.ObjectReference&#123;</span><br><span class="line">                           Kind:      <span class="string">&quot;Node&quot;</span>,</span><br><span class="line">                           Name:      <span class="type">string</span>(nodeName),</span><br><span class="line">                           UID:       types.UID(nodeName),</span><br><span class="line">                           Namespace: <span class="string">&quot;&quot;</span>,</span><br><span class="line">                        &#125;, v1.EventTypeWarning, <span class="string">&quot;FailedToCreateRoute&quot;</span>, msg)</span><br><span class="line">                  &#125;</span><br><span class="line">                  glog.V(<span class="number">4</span>).Infof(msg)</span><br><span class="line">                  <span class="keyword">return</span> err</span><br><span class="line">               &#125;</span><br><span class="line">               glog.Infof(<span class="string">&quot;Created route for node %s %s with hint %s after %v&quot;</span>, nodeName, route.DestinationCIDR, nameHint, time.Now().Sub(startTime))</span><br><span class="line">               <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">            &#125;)</span><br><span class="line">            <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">               glog.Errorf(<span class="string">&quot;Could not create route %s %s for node %s: %v&quot;</span>, nameHint, route.DestinationCIDR, nodeName, err)</span><br><span class="line">            &#125;</span><br><span class="line">         &#125;(nodeName, nameHint, route)</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">         <span class="comment">// Update condition only if it doesn&#x27;t reflect the current state.</span></span><br><span class="line">         _, condition := v1node.GetNodeCondition(&amp;node.Status, v1.NodeNetworkUnavailable)</span><br><span class="line">         <span class="keyword">if</span> condition == <span class="literal">nil</span> || condition.Status != v1.ConditionFalse &#123;</span><br><span class="line">            rc.updateNetworkingCondition(types.NodeName(node.Name), <span class="literal">true</span>)</span><br><span class="line">         &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      nodeCIDRs[nodeName] = node.Spec.PodCIDR</span><br><span class="line">   &#125;</span><br><span class="line">...</span><br><span class="line">   wg.Wait()</span><br><span class="line">   <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​	目前<a target="_blank" rel="noopener" href="https://yuerblog.cc/wp-content/uploads/%E8%85%BE%E8%AE%AF%E4%BA%91%E5%AE%B9%E5%99%A8%E6%9C%8D%E5%8A%A1TKE%E4%BA%A7%E5%93%81%E4%BB%8B%E7%BB%8D.pdf">腾讯云 TKE</a>的 global router 网络模式就是符合上述描述，在 global router 模式下 route controller 会在节点启动的时候去云上注册路由，下图中节点 172.0.0.1 上 kubelet 上报 ready 时候 route controller 会去 vpc 中注册 10.0.0.0&#x2F;24 的路由，并且 172.0.0.1 上的 pod 都是从 10.0.0.0&#x2F;24 的 cidr 分配 IP 的，这样就实现了和 vpc 的互通。</p>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/media/pic/tke-global-router.png" alt="image-20190423113516302"></div><div class="image-meta"><span class="image-caption center">image-20190423113516302</span></div></div>
+
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2019/10/20/cluster-api-v1alpha2-cluster/">cluster api v1alpha2 之 cluster</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2019/04/02/cloud-provider-node-controller/">cloud provider node controller</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

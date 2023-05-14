@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>analysis of kernel crash - sn0rt's blog</title>
+
+  
+    <meta name="description" content="基于回忆整理  0x00 beginning昨天早上我还在吃早餐，老大对我讲我们的服务器挂了，kernel 在临死前留下了一个 dump. 0x10 autopsy然后，尸检的活让我来！ 0x11 kernel version确认一下尸体信息，以及死因。 123456789101112      KERNEL: &#x2F;usr&#x2F;lib&#x2F;debug&#x2F;lib&#x2F;modules&#x2F;3.10.0-229.el7.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="analysis of kernel crash">
+<meta property="og:url" content="http://sn0rt.github.io/2016/08/04/kernel-panic/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="基于回忆整理  0x00 beginning昨天早上我还在吃早餐，老大对我讲我们的服务器挂了，kernel 在临死前留下了一个 dump. 0x10 autopsy然后，尸检的活让我来！ 0x11 kernel version确认一下尸体信息，以及死因。 123456789101112      KERNEL: &#x2F;usr&#x2F;lib&#x2F;debug&#x2F;lib&#x2F;modules&#x2F;3.10.0-229.el7.">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2016-08-03T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.780Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary">
+  
+  
+  
+  <meta name="keywords" content="linux">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">analysis of kernel crash</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x11-kernel-version"><span class="toc-text">0x11 kernel version</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x12-log"><span class="toc-text">0x12 log</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x13-backtrace"><span class="toc-text">0x13 backtrace</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x14-cause"><span class="toc-text">0x14 cause</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x21-background"><span class="toc-text">0x21 background</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x22-solution"><span class="toc-text">0x22 solution</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x23-The-question-of-temporary-solution"><span class="toc-text">0x23 The question of temporary solution</span></a></li></ol></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2016-08-03T16:00:00.000Z">2016-08-04</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>analysis of kernel crash</span></h1>
+<blockquote>
+<p>基于回忆整理</p>
+</blockquote>
+<h1 id="0x00-beginning"><a href="#0x00-beginning" class="headerlink" title="0x00 beginning"></a>0x00 beginning</h1><p>昨天早上我还在吃早餐，老大对我讲我们的服务器挂了，kernel 在临死前留下了一个 dump.</p>
+<h1 id="0x10-autopsy"><a href="#0x10-autopsy" class="headerlink" title="0x10 autopsy"></a>0x10 autopsy</h1><p>然后，尸检的活让我来！</p>
+<h2 id="0x11-kernel-version"><a href="#0x11-kernel-version" class="headerlink" title="0x11 kernel version"></a>0x11 kernel version</h2><p>确认一下尸体信息，以及死因。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">      KERNEL: /usr/lib/debug/lib/modules/3.10.0-229.el7.x86_64/vmlinux</span><br><span class="line">    DUMPFILE: vmcore  [PARTIAL DUMP]</span><br><span class="line">        CPUS: 24</span><br><span class="line">        DATE: Wed Aug  3 10:10:42 2016</span><br><span class="line">      UPTIME: 95 days, 17:54:10</span><br><span class="line">LOAD AVERAGE: 0.13, 0.13, 0.14</span><br><span class="line">       TASKS: 544</span><br><span class="line">     RELEASE: 3.10.0-229.el7.x86_64</span><br><span class="line">     VERSION: #1 SMP Fri Mar 6 11:36:42 UTC 2015</span><br><span class="line">     MACHINE: x86_64  (2394 Mhz)</span><br><span class="line">      MEMORY: 95.6 GB</span><br><span class="line">       PANIC: &quot;divide error: 0000 [#1] SMP &quot;</span><br></pre></td></tr></table></figure>
+
+<p>kernel 是 centos 的<code>3.10.0-229</code>, 除 0 导致了死亡。</p>
+<h2 id="0x12-log"><a href="#0x12-log" class="headerlink" title="0x12 log"></a>0x12 log</h2><p>知道了死于除 0, 利用 log 看一下凶手谁。</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="symbol">PID:</span> <span class="number">0</span>      TASK: ffff88183d27e660  <span class="meta">CPU</span>: <span class="number">19</span>  COMMAND: <span class="string">&quot;swapper/19&quot;</span></span><br><span class="line"> #<span class="number">0</span> [ffff88187fce3a90] machine_kexec <span class="meta">at</span> ffffffff8104c681</span><br><span class="line"> #<span class="number">1</span> [ffff88187fce3ae8] crash_kexec <span class="meta">at</span> ffffffff810e2222</span><br><span class="line"> #<span class="number">2</span> [ffff88187fce3bb8] oops_end <span class="meta">at</span> ffffffff8160d188</span><br><span class="line"> #<span class="number">3</span> [ffff88187fce3be0] die <span class="meta">at</span> ffffffff810173eb</span><br><span class="line"> #<span class="number">4</span> [ffff88187fce3c10] do_trap <span class="meta">at</span> ffffffff8160c860</span><br><span class="line"> #<span class="number">5</span> [ffff88187fce3c60] do_divide_error <span class="meta">at</span> ffffffff81013f7e</span><br><span class="line"> #<span class="number">6</span> [ffff88187fce3d10] divide_error <span class="meta">at</span> ffffffff816160ce</span><br><span class="line">    [exception <span class="built_in">RIP</span>: intel_pstate_timer_func+<span class="number">376</span>]</span><br><span class="line"><span class="symbol">    RIP:</span> ffffffff814a9d28  <span class="built_in">RSP</span>: ffff88187fce3dc8  RFLAGS: <span class="number">00010206</span></span><br><span class="line"><span class="symbol">    RAX:</span> <span class="number">0000000027100000</span>  <span class="built_in">RBX</span>: ffff880c3b059e00  <span class="built_in">RCX</span>: <span class="number">0000000000000000</span></span><br><span class="line"><span class="symbol">    RDX:</span> <span class="number">0000000000000000</span>  <span class="built_in">RSI</span>: <span class="number">0000000000000010</span>  <span class="built_in">RDI</span>: 000000002e5361f0</span><br><span class="line"><span class="symbol">    RBP:</span> ffff88187fce3e28   <span class="built_in">R8</span>: ffff88183ca08038   <span class="built_in">R9</span>: ffff88183ca08001</span><br><span class="line"><span class="symbol">    R10:</span> <span class="number">0000000000000002</span>  <span class="built_in">R11</span>: <span class="number">0000000000000005</span>  <span class="built_in">R12</span>: 000000000000513f</span><br><span class="line"><span class="symbol">    R13:</span> <span class="number">0000000000271000</span>  <span class="built_in">R14</span>: 000000000000513f  <span class="built_in">R15</span>: ffff880c3b059e00</span><br><span class="line"><span class="symbol">    ORIG_RAX:</span> ffffffffffffffff  <span class="built_in">CS</span>: <span class="number">0010</span>  <span class="built_in">SS</span>: <span class="number">0018</span></span><br><span class="line"> #<span class="number">7</span> [ffff88187fce3e30] call_timer_fn <span class="meta">at</span> ffffffff8107e046</span><br><span class="line"> #<span class="number">8</span> [ffff88187fce3e68] run_timer_softirq <span class="meta">at</span> ffffffff8107fecf</span><br><span class="line"> #<span class="number">9</span> [ffff88187fce3ee0] __do_softirq <span class="meta">at</span> ffffffff81077bf7</span><br><span class="line">#<span class="number">10</span> [ffff88187fce3f50] call_softirq <span class="meta">at</span> ffffffff8161635c</span><br><span class="line">#<span class="number">11</span> [ffff88187fce3f68] do_softirq <span class="meta">at</span> ffffffff81015de5</span><br><span class="line">#<span class="number">12</span> [ffff88187fce3f80] irq_exit <span class="meta">at</span> ffffffff81077f95</span><br><span class="line">#<span class="number">13</span> [ffff88187fce3f98] smp_apic_timer_interrupt <span class="meta">at</span> ffffffff81616fd5</span><br><span class="line">#<span class="number">14</span> [ffff88187fce3fb0] apic_timer_interrupt <span class="meta">at</span> ffffffff8161569d</span><br><span class="line">--- &lt;IRQ stack&gt; ---</span><br><span class="line">#<span class="number">15</span> [ffff880c3db4bde8] apic_timer_interrupt <span class="meta">at</span> ffffffff8161569d</span><br><span class="line">    [exception <span class="built_in">RIP</span>: native_safe_halt+<span class="number">6</span>]</span><br><span class="line"><span class="symbol">    RIP:</span> ffffffff81052dd6  <span class="built_in">RSP</span>: ffff880c3db4be90  RFLAGS: <span class="number">00000286</span></span><br><span class="line"><span class="symbol">    RAX:</span> 00000000ffffffed  <span class="built_in">RBX</span>: ffffffff8109b938  <span class="built_in">RCX</span>: <span class="number">0100000000000000</span></span><br><span class="line"><span class="symbol">    RDX:</span> <span class="number">0000000000000000</span>  <span class="built_in">RSI</span>: <span class="number">0000000000000000</span>  <span class="built_in">RDI</span>: <span class="number">0000000000000046</span></span><br><span class="line"><span class="symbol">    RBP:</span> ffff880c3db4be90   <span class="built_in">R8</span>: <span class="number">0000000000000000</span>   <span class="built_in">R9</span>: <span class="number">0000000000000000</span></span><br><span class="line"><span class="symbol">    R10:</span> <span class="number">0000000000000004</span>  <span class="built_in">R11</span>: <span class="number">0000000000000005</span>  <span class="built_in">R12</span>: 0000000085099e00</span><br><span class="line"><span class="symbol">    R13:</span> <span class="number">0000000000000013</span>  <span class="built_in">R14</span>: 00000002ed0ef7c8  <span class="built_in">R15</span>: 001d63c002b695c0</span><br><span class="line"><span class="symbol">    ORIG_RAX:</span> ffffffffffffff10  <span class="built_in">CS</span>: <span class="number">0010</span>  <span class="built_in">SS</span>: <span class="number">0018</span></span><br><span class="line">#<span class="number">16</span> [ffff880c3db4be98] default_idle <span class="meta">at</span> ffffffff8101c93f</span><br><span class="line">#<span class="number">17</span> [ffff880c3db4beb8] arch_cpu_idle <span class="meta">at</span> ffffffff8101d236</span><br><span class="line">#<span class="number">18</span> [ffff880c3db4bec8] cpu_startup_entry <span class="meta">at</span> ffffffff810c6955</span><br><span class="line">#<span class="number">19</span> [ffff880c3db4bf28] start_secondary <span class="meta">at</span> ffffffff810423ca</span><br></pre></td></tr></table></figure>
+
+<p>可以看见<code>intel_pstate_timer_func</code>函数直接导致了死亡，后面开始了<code>kdump</code>收尸。</p>
+<h2 id="0x13-backtrace"><a href="#0x13-backtrace" class="headerlink" title="0x13 backtrace"></a>0x13 backtrace</h2><p>既然能大体确认凶手了，下面尝试看一下犯罪现场，利用<code>bt</code>的<code>rip</code>值<code>ffffffff814a9d28</code>找一下代码。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">/usr/src/debug/kernel-3.10.0-229.el7/linux-3.10.0-229.el7.x86_64/drivers/cpufreq/intel_pstate.c: 47</span><br><span class="line">0xffffffff814a9d15 &lt;intel_pstate_timer_func+357&gt;:	movslq %r12d,%r14</span><br><span class="line">/usr/src/debug/kernel-3.10.0-229.el7/linux-3.10.0-229.el7.x86_64/drivers/cpufreq/intel_pstate.c: 52</span><br><span class="line">0xffffffff814a9d18 &lt;intel_pstate_timer_func+360&gt;:	movslq %r13d,%rax</span><br><span class="line">/usr/src/debug/kernel-3.10.0-229.el7/linux-3.10.0-229.el7.x86_64/drivers/cpufreq/intel_pstate.c: 605</span><br><span class="line">0xffffffff814a9d1b &lt;intel_pstate_timer_func+363&gt;:	shl    $0x8,%rdx</span><br><span class="line">/usr/src/debug/kernel-3.10.0-229.el7/linux-3.10.0-229.el7.x86_64/drivers/cpufreq/intel_pstate.c: 52</span><br><span class="line">0xffffffff814a9d1f &lt;intel_pstate_timer_func+367&gt;:	shl    $0x8,%rax</span><br><span class="line">/usr/src/debug/kernel-3.10.0-229.el7/linux-3.10.0-229.el7.x86_64/include/linux/math64.h: 29</span><br><span class="line">0xffffffff814a9d23 &lt;intel_pstate_timer_func+371&gt;:	movslq %edx,%rcx</span><br><span class="line">/usr/src/debug/kernel-3.10.0-229.el7/linux-3.10.0-229.el7.x86_64/include/linux/math64.h: 30</span><br><span class="line">0xffffffff814a9d26 &lt;intel_pstate_timer_func+374&gt;:	cqto   </span><br><span class="line">0xffffffff814a9d28 &lt;intel_pstate_timer_func+376&gt;:	idiv   %rcx</span><br></pre></td></tr></table></figure>
+<p>结合 backtrace 发现<code>rcx</code>是 0 且<code>0xffffffff814a9d28</code>处指令<code>idiv   %rcx</code>,kernel 发生了除 0 异常。<br>且还可以初步断定问题是：<code>drivers/cpufreq/intel_pstate.c</code>中的函数调用了<code>include/linux/math64.h</code>30 行的指令。</p>
+<h2 id="0x14-cause"><a href="#0x14-cause" class="headerlink" title="0x14 cause"></a>0x14 cause</h2><p>到底死亡背后的原因是什么？<br><code>3.10.0-229.el7</code>对应着源码包是<code>3.10.0-229.el7.src.rpm</code>, 并不能对应着<code>upstream</code>代码直接看，因为并不清楚 3.10 的哪个小版本。<br>其中对应着<code>intel_pstate_timer_func()</code>的实现，且还利用的 log 的堆栈找出来 inline 函数的调用次序。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">intel_pstate_timer_func</span><span class="params">(<span class="type">unsigned</span> <span class="type">long</span> __data)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cpudata</span> *<span class="title">cpu</span> =</span> (<span class="keyword">struct</span> cpudata *) __data;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sample</span> *<span class="title">sample</span>;</span></span><br><span class="line">	intel_pstate_sample(cpu);</span><br><span class="line">	sample = &amp;cpu-&gt;sample;</span><br><span class="line">	intel_pstate_adjust_busy_pstate(cpu);  <span class="comment">// 这里！看函数名猜测是判断 busy 状态</span></span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">void</span> <span class="title function_">intel_pstate_adjust_busy_pstate</span><span class="params">(<span class="keyword">struct</span> cpudata *cpu)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int32_t</span> busy_scaled;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> _<span class="title">pid</span> *<span class="title">pid</span>;</span></span><br><span class="line">	<span class="type">signed</span> <span class="type">int</span> ctl;</span><br><span class="line">	pid = &amp;cpu-&gt;pid;</span><br><span class="line">	busy_scaled = intel_pstate_get_scaled_busy(cpu); <span class="comment">// 获取相关状态</span></span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">int32_t</span> <span class="title function_">intel_pstate_get_scaled_busy</span><span class="params">(<span class="keyword">struct</span> cpudata *cpu)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int32_t</span> core_busy, max_pstate, current_pstate, sample_ratio;</span><br><span class="line">	u32 duration_us;</span><br><span class="line">	u32 sample_time;</span><br><span class="line">    ...</span><br><span class="line">	duration_us = (u32) ktime_us_delta(cpu-&gt;sample.time,</span><br><span class="line">					   cpu-&gt;last_sample_time);</span><br><span class="line">	<span class="keyword">if</span> (duration_us &gt; sample_time * <span class="number">3</span>) &#123;</span><br><span class="line">		sample_ratio = div_fp(int_tofp(sample_time), <span class="comment">// 死前一刀，int_tofp 始 duration_us 是 0.</span></span><br><span class="line">				      int_tofp(duration_us));</span><br><span class="line">		core_busy = mul_fp(core_busy, sample_ratio);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> core_busy;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个时候查看 struct cpudata 结构体的值（这个是每 cpu 变量可以 p cpu_info:17）:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cpudata</span> &#123;</span></span><br><span class="line">  cpu = <span class="number">113</span>,</span><br><span class="line">  timer = &#123;</span><br><span class="line">    entry = &#123;</span><br><span class="line">      next = <span class="number">0x0</span>,</span><br><span class="line">      prev = <span class="number">0xdead000000200200</span></span><br><span class="line">    &#125;,</span><br><span class="line">    expires = <span class="number">8357799745</span>,</span><br><span class="line">    base = <span class="number">0xffff883fe84ec001</span>,</span><br><span class="line">    function = <span class="number">0xffffffff814a9100</span> &lt;intel_pstate_timer_func&gt;,</span><br><span class="line">    data = <span class="number">18446612406765768960</span>,</span><br><span class="line">&lt;snip&gt;</span><br><span class="line">    i_gain = <span class="number">0</span>,</span><br><span class="line">    d_gain = <span class="number">0</span>,</span><br><span class="line">    deadband = <span class="number">0</span>,</span><br><span class="line">    last_err = <span class="number">22489</span></span><br><span class="line">  &#125;,</span><br><span class="line">  last_sample_time = &#123;</span><br><span class="line">    tv64 = <span class="number">4063132438017305</span></span><br><span class="line">  &#125;,</span><br><span class="line">  prev_aperf = <span class="number">287326796397463</span>,</span><br><span class="line">  prev_mperf = <span class="number">251427432090198</span>,</span><br><span class="line">  sample = &#123;</span><br><span class="line">    core_pct_busy = <span class="number">23081</span>,</span><br><span class="line">    aperf = <span class="number">2937407</span>,</span><br><span class="line">    mperf = <span class="number">3257884</span>,</span><br><span class="line">    freq = <span class="number">2524484</span>,</span><br><span class="line">    time = &#123;</span><br><span class="line">      tv64 = <span class="number">4063149215234118</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>结合<code>duration_us = (u32) ktime_us_delta(cpu-&gt;sample.time, cpu-&gt;last_sample_time)</code>与上下文，计算采样间隔是 131901387587754ns, 进行 (u32) 类型转换也溢出。<br>后面<code>int_tofp</code>实现为<code>#define int_tofp(X) ((int64_t)(X) &lt;&lt; 8)</code>, 所以<code>int_tofp(duration_us))</code>调用导致其变成<code>duration_us</code>变成 0. 又因为<code>div_fp</code>的调用，所以 crash 出现了。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">int32_t</span> <span class="title function_">div_fp</span><span class="params">(<span class="type">int32_t</span> x, <span class="type">int32_t</span> y)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> div_s64((<span class="type">int64_t</span>)x &lt;&lt; FRAC_BITS, y);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>出于完整性考虑，这里贴出了 inline 函数的调用次序 (基于源码阅读和 backtrace 凑出来的):</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * div_s64 - signed 64bit divide with 32bit divisor</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> div_s64</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> s64 <span class="title function_">div_s64</span><span class="params">(s64 dividend, s32 divisor)</span></span><br><span class="line">&#123;</span><br><span class="line">	s32 remainder;</span><br><span class="line">	<span class="keyword">return</span> div_s64_rem(dividend, divisor, &amp;remainder); <span class="comment">// 捅出了那一刀</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+
+<p>到这里基本就和 log 显示调用栈一致了，代码在 math.h 的 30 行。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * div_s64_rem - signed 64bit divide with 32bit divisor with remainder</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> s64 <span class="title function_">div_s64_rem</span><span class="params">(s64 dividend, s32 divisor, s32 *remainder)</span></span><br><span class="line">&#123;</span><br><span class="line">	*remainder = dividend % divisor;</span><br><span class="line">	<span class="keyword">return</span> dividend / divisor; <span class="comment">// 30 行，死亡！</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>google 一下，看见了曾经有人遇到了这个问题：</p>
+<blockquote>
+<p>The kernel may delay interrupts for a long time which can result in timers being delayed.  If this occurs the intel_pstate driver will crash with a divide by zero error</p>
+</blockquote>
+<h1 id="0x20-background-and-solution"><a href="#0x20-background-and-solution" class="headerlink" title="0x20 background and solution"></a>0x20 background and solution</h1><h2 id="0x21-background"><a href="#0x21-background" class="headerlink" title="0x21 background"></a>0x21 background</h2><p>这个驱动是 intel 为”SandyBridge+”微架构 CPU 提供的调整频率的控制接口 [^pstate].</p>
+<h2 id="0x22-solution"><a href="#0x22-solution" class="headerlink" title="0x22 solution"></a>0x22 solution</h2><p>通过 Google 找到这个 bug 已经存在 [^patch] 的，所以目前最好方案是升级内核，centos 升级到 3.10.0-229.20.1.el7.</p>
+<p>线上主机很多，提供一个临时的解决方案是：<strong>禁用 pstate</strong>[^wiki].</p>
+<blockquote>
+<p>pstate 的新的功率驱动程序将会在以下的驱动程序之前自动为现代的 Intel CPU 启用。该驱动会优先于其他的驱动程序，因为它是内置驱动，而不是作为一个模块来加载。该驱动自动作用于 Sandy Bridge 和 Ivy Bridge 这两个类型的 CPU。如果您在使用这个驱动的时候遇到问题，建议您在 Grub 的内核参数中对其禁用（即修改 <code>/etc/default/grub</code> 文件，在<code>GRUB_CMDLINE_LINUX_DEFAULT=</code> 后添加<code>intel_pstate=disable</code>）。</p>
+</blockquote>
+<h2 id="0x23-The-question-of-temporary-solution"><a href="#0x23-The-question-of-temporary-solution" class="headerlink" title="0x23 The question of temporary solution"></a>0x23 The question of temporary solution</h2><p>方案提出了还没有验证，老大帮我验证了。</p>
+<blockquote>
+<p>关闭了 P-State 后，内核层面失去了控制硬件 CPU 频率的接口，不再对 CPU 的频率进行控制。根据下图我们可以看到在我们禁用这个模块前，CPU 的频率受 P-State 的控制，同时 turbo 被打开，一直处于一个 2.6GHz 的水平。禁用后 CPU 频率不再受 P-State 控制，之前使用 P-State 打开的 turbo 也停止工作，最终频率稳定的工作在 CPU 的默认配置 2.4GHz。</p>
+</blockquote>
+<p>还有一些问题有待以后验证。<br>1: <code>apic_timer_interrupt</code>抛出去的异常。<br>2: 不完整的 patch 猜想，准备和作者沟通一下描述这个问题。</p>
+<p>关于问题 2, 作者已经给出了表述。</p>
+<blockquote>
+<blockquote>
+</blockquote>
+<p> and found last_sample_time &#x3D; { tv64 &#x3D; -131888820469800 }.</p>
+</blockquote>
+<p> This doesn’t make sense.  last_sample_time is a u64 field, so it can’t be negative.</p>
+<p>[^patch]: <a target="_blank" rel="noopener" href="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/drivers/cpufreq/intel_pstate.c?id=7180dddf7c32c49975c7e7babf2b60ed450cb760">[PATCH] cpufreq, Fix overflow in busy_scaled due to long delay</a><br>[^wiki]: <a target="_blank" rel="noopener" href="https://wiki.archlinux.org/index.php/CPU_frequency_scaling_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)#.E8.B0.83.E6.95.B4.E8.B0.83.E9.80.9F.E5.99.A8">archlinux wiki</a><br>[^pstate]: <a target="_blank" rel="noopener" href="https://www.kernel.org/doc/Documentation/cpu-freq/intel-pstate.txt">intel-pstate</a></p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2016/08/27/intern-in-shanghai/">internship in Shanghai</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2016/07/29/cgroup-ii-implementation-overview/">cgroups II - cgroup implementation overview</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

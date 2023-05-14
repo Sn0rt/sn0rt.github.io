@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>a panic of watchdog hard lockup - sn0rt's blog</title>
+
+  
+    <meta name="description" content="这个周一早上来工作被告知上周有 4 台物理 crash 了，需要诊断修复， 表象： 123456789101112131415161718192021222324252627282930313233343536373839404142434445 #0 [ffff88103fbc59f0] machine_kexec at ffffffff81059beb #1 [ffff88103fbc5a50">
+<meta property="og:type" content="article">
+<meta property="og:title" content="a panic of watchdog hard lockup">
+<meta property="og:url" content="http://sn0rt.github.io/2017/09/02/a-panice-of-watchdog/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="这个周一早上来工作被告知上周有 4 台物理 crash 了，需要诊断修复， 表象： 123456789101112131415161718192021222324252627282930313233343536373839404142434445 #0 [ffff88103fbc59f0] machine_kexec at ffffffff81059beb #1 [ffff88103fbc5a50">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2017-09-01T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.782Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary">
+  
+  
+  
+  <meta name="keywords" content="linux">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+
+<widget class="widget-wrapper recent"><div class="widget-header cap theme dis-select"><span class="name">Recent Update</span></div><div class="widget-body related-posts fs14"><a class="item title" href="/2021/05/11/blk-io-2/"><span class="title">blkio 源码分析</span></a><a class="item title" href="/2022/09/03/update-bios-by-redfish/"><span class="title">update BIOS attr by redfish</span></a><a class="item title" href="/2016/06/14/ptmalloc2/"><span class="title">ptmalloc2</span></a><a class="item title" href="/2016/07/25/cgroup-i/"><span class="title">cgroups I - usage</span></a><a class="item title" href="/2017/09/02/a-panice-of-watchdog/"><span class="title">a panic of watchdog hard lockup</span></a></div></widget>
+
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2017-09-01T16:00:00.000Z">2017-09-02</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>a panic of watchdog hard lockup</span></h1>
+<p>这个周一早上来工作被告知上周有 4 台物理 crash 了，需要诊断修复，</p>
+<p>表象：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"> #0 [ffff88103fbc59f0] machine_kexec at ffffffff81059beb</span><br><span class="line"> #1 [ffff88103fbc5a50] __crash_kexec at ffffffff81105822</span><br><span class="line"> #2 [ffff88103fbc5b20] panic at ffffffff81680541</span><br><span class="line"> #3 [ffff88103fbc5ba0] nmi_panic at ffffffff81085abf</span><br><span class="line"> #4 [ffff88103fbc5bb0] watchdog_overflow_callback at ffffffff8112f879</span><br><span class="line"> #5 [ffff88103fbc5bc8] __perf_event_overflow at ffffffff81174d2e</span><br><span class="line"> #6 [ffff88103fbc5c00] perf_event_overflow at ffffffff81175974</span><br><span class="line"> #7 [ffff88103fbc5c10] intel_pmu_handle_irq at ffffffff81009d88</span><br><span class="line"> #8 [ffff88103fbc5e38] perf_event_nmi_handler at ffffffff8168ed6b</span><br><span class="line"> #9 [ffff88103fbc5e58] nmi_handle at ffffffff816901b7</span><br><span class="line">#10 [ffff88103fbc5eb0] do_nmi at ffffffff816903c3</span><br><span class="line">#11 [ffff88103fbc5ef0] end_repeat_nmi at ffffffff8168f5d3</span><br><span class="line">    [exception RIP: update_curr+15]</span><br><span class="line">    RIP: ffffffff810ce3cf  RSP: ffff88103fbc3db8  RFLAGS: 00000002</span><br><span class="line">    RAX: 0000000000000001  RBX: ffff88092b2ed200  RCX: 0000000000000001</span><br><span class="line">    RDX: 0000000000000001  RSI: ffff88092b2ed200  RDI: ffff880f6afb8600</span><br><span class="line">    RBP: ffff88103fbc3dd0   R8: ffff88103d2b7500   R9: 0000000000000001</span><br><span class="line">    R10: 0000000000000000  R11: 0000000000000000  R12: ffff880f6afb8600</span><br><span class="line">    R13: 0000000000000001  R14: 0000000000000003  R15: ffff8813bf7f5548</span><br><span class="line">    ORIG_RAX: ffffffffffffffff  CS: 0010  SS: 0018</span><br><span class="line">--- &lt;NMI exception stack&gt; ---</span><br><span class="line">#12 [ffff88103fbc3db8] update_curr at ffffffff810ce3cf</span><br><span class="line">#13 [ffff88103fbc3dd8] enqueue_entity at ffffffff810d042d</span><br><span class="line">#14 [ffff88103fbc3e20] unthrottle_cfs_rq at ffffffff810d16f4</span><br><span class="line">#15 [ffff88103fbc3e58] distribute_cfs_runtime at ffffffff810d1932</span><br><span class="line">#16 [ffff88103fbc3ea0] sched_cfs_period_timer at ffffffff810d1acf</span><br><span class="line">#17 [ffff88103fbc3ed8] __hrtimer_run_queues at ffffffff810b4d72</span><br><span class="line">#18 [ffff88103fbc3f30] hrtimer_interrupt at ffffffff810b5310</span><br><span class="line">#19 [ffff88103fbc3f80] local_apic_timer_interrupt at ffffffff81051037</span><br><span class="line">#20 [ffff88103fbc3f98] smp_apic_timer_interrupt at ffffffff81699f0f</span><br><span class="line">#21 [ffff88103fbc3fb0] apic_timer_interrupt at ffffffff8169845d</span><br><span class="line">--- &lt;IRQ stack&gt; ---</span><br><span class="line">#22 [ffff8801699a3de8] apic_timer_interrupt at ffffffff8169845d</span><br><span class="line">    [exception RIP: native_safe_halt+6]</span><br><span class="line">    RIP: ffffffff81060fe6  RSP: ffff8801699a3e98  RFLAGS: 00000286</span><br><span class="line">    RAX: 00000000ffffffed  RBX: ffff88103fbcd080  RCX: 0100000000000000</span><br><span class="line">    RDX: 0000000000000000  RSI: 0000000000000000  RDI: 0000000000000046</span><br><span class="line">    RBP: ffff8801699a3e98   R8: 0000000000000000   R9: 0000000000000000</span><br><span class="line">    R10: 0000000000000000  R11: 0000000000000000  R12: 00099b9bb0645f00</span><br><span class="line">    R13: ffff88103fbcfde0  R14: f21bf8c4662d3c34  R15: 0000000000000082</span><br><span class="line">    ORIG_RAX: ffffffffffffff10  CS: 0010  SS: 0018</span><br><span class="line">#23 [ffff8801699a3ea0] default_idle at ffffffff810347ff</span><br><span class="line">#24 [ffff8801699a3ec0] arch_cpu_idle at ffffffff81035146</span><br><span class="line">#25 [ffff8801699a3ed0] cpu_startup_entry at ffffffff810e82f5</span><br><span class="line">#26 [ffff8801699a3f28] start_secondary at ffffffff8104f0da</span><br></pre></td></tr></table></figure>
+
+<p>影响范围：</p>
+<pre><code>确认的范围有 Linux 3.10.0-514.26.2.el7
+</code></pre>
+<p>解决方案：</p>
+<pre><code>等待上游合并 patch c06f04c70489b9deea3212af8375e2f0c2f0b184
+</code></pre>
+<p>原因<a href="%5Bfix-patch%5D(https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/commit/?id=c06f04c70489b9deea3212af8375e2f0c2f0b184)">^patch</a>：</p>
+<blockquote>
+<p>distribute_cfs_runtime() intentionally only hands out enough runtime to bring each cfs_rq to 1 ns of runtime, expecting the cfs_rqs to then take the runtime they need only once they actually get to run. However, if they get to run sufficiently quickly, the period timer is still in distribute_cfs_runtime() and no runtime is available, causing them to throttle. Then distribute has to handle them again, and this can go on until distribute has handed out all of the runtime 1ns at a time, which takes far too long.</p>
+</blockquote>
+<p>诊断过程：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; bt</span><br><span class="line">PID: 0      TASK: ffff880169986dd0  CPU: 7   COMMAND: &quot;swapper/7&quot;</span><br><span class="line"> #0 [ffff88103fbc59f0] machine_kexec at ffffffff81059beb</span><br><span class="line"> #1 [ffff88103fbc5a50] __crash_kexec at ffffffff81105822</span><br><span class="line"> #2 [ffff88103fbc5b20] panic at ffffffff81680541</span><br><span class="line"> #3 [ffff88103fbc5ba0] nmi_panic at ffffffff81085abf</span><br><span class="line"> #4 [ffff88103fbc5bb0] watchdog_overflow_callback at ffffffff8112f879</span><br><span class="line"> #5 [ffff88103fbc5bc8] __perf_event_overflow at ffffffff81174d2e</span><br><span class="line"> #6 [ffff88103fbc5c00] perf_event_overflow at ffffffff81175974</span><br><span class="line"> #7 [ffff88103fbc5c10] intel_pmu_handle_irq at ffffffff81009d88</span><br><span class="line"> #8 [ffff88103fbc5e38] perf_event_nmi_handler at ffffffff8168ed6b</span><br><span class="line"> #9 [ffff88103fbc5e58] nmi_handle at ffffffff816901b7</span><br><span class="line">#10 [ffff88103fbc5eb0] do_nmi at ffffffff816903c3</span><br><span class="line">#11 [ffff88103fbc5ef0] end_repeat_nmi at ffffffff8168f5d3</span><br><span class="line">    [exception RIP: update_curr+15]</span><br><span class="line">    RIP: ffffffff810ce3cf  RSP: ffff88103fbc3db8  RFLAGS: 00000002</span><br><span class="line">    RAX: 0000000000000001  RBX: ffff88092b2ed200  RCX: 0000000000000001</span><br><span class="line">    RDX: 0000000000000001  RSI: ffff88092b2ed200  RDI: ffff880f6afb8600</span><br><span class="line">    RBP: ffff88103fbc3dd0   R8: ffff88103d2b7500   R9: 0000000000000001</span><br><span class="line">    R10: 0000000000000000  R11: 0000000000000000  R12: ffff880f6afb8600</span><br><span class="line">    R13: 0000000000000001  R14: 0000000000000003  R15: ffff8813bf7f5548</span><br><span class="line">    ORIG_RAX: ffffffffffffffff  CS: 0010  SS: 0018</span><br><span class="line">--- &lt;NMI exception stack&gt; ---</span><br><span class="line">#12 [ffff88103fbc3db8] update_curr at ffffffff810ce3cf</span><br><span class="line">#13 [ffff88103fbc3dd8] enqueue_entity at ffffffff810d042d</span><br><span class="line">#14 [ffff88103fbc3e20] unthrottle_cfs_rq at ffffffff810d16f4</span><br><span class="line">#15 [ffff88103fbc3e58] distribute_cfs_runtime at ffffffff810d1932</span><br><span class="line">#16 [ffff88103fbc3ea0] sched_cfs_period_timer at ffffffff810d1acf</span><br><span class="line">#17 [ffff88103fbc3ed8] __hrtimer_run_queues at ffffffff810b4d72</span><br><span class="line">#18 [ffff88103fbc3f30] hrtimer_interrupt at ffffffff810b5310</span><br><span class="line">#19 [ffff88103fbc3f80] local_apic_timer_interrupt at ffffffff81051037</span><br><span class="line">#20 [ffff88103fbc3f98] smp_apic_timer_interrupt at ffffffff81699f0f</span><br><span class="line">#21 [ffff88103fbc3fb0] apic_timer_interrupt at ffffffff8169845d</span><br><span class="line">--- &lt;IRQ stack&gt; ---</span><br><span class="line">#22 [ffff8801699a3de8] apic_timer_interrupt at ffffffff8169845d</span><br><span class="line">    [exception RIP: native_safe_halt+6]</span><br><span class="line">    RIP: ffffffff81060fe6  RSP: ffff8801699a3e98  RFLAGS: 00000286</span><br><span class="line">    RAX: 00000000ffffffed  RBX: ffff88103fbcd080  RCX: 0100000000000000</span><br><span class="line">    RDX: 0000000000000000  RSI: 0000000000000000  RDI: 0000000000000046</span><br><span class="line">    RBP: ffff8801699a3e98   R8: 0000000000000000   R9: 0000000000000000</span><br><span class="line">    R10: 0000000000000000  R11: 0000000000000000  R12: 00099b9bb0645f00</span><br><span class="line">    R13: ffff88103fbcfde0  R14: f21bf8c4662d3c34  R15: 0000000000000082</span><br><span class="line">    ORIG_RAX: ffffffffffffff10  CS: 0010  SS: 0018</span><br><span class="line">#23 [ffff8801699a3ea0] default_idle at ffffffff810347ff</span><br><span class="line">#24 [ffff8801699a3ec0] arch_cpu_idle at ffffffff81035146</span><br><span class="line">#25 [ffff8801699a3ed0] cpu_startup_entry at ffffffff810e82f5</span><br><span class="line">#26 [ffff8801699a3f28] start_secondary at ffffffff8104f0da</span><br></pre></td></tr></table></figure>
+
+<p>看 bt 的长相，推断系统死亡之前应该没啥事情，然后开始处理一个时钟中断，正在处理时钟中断的过程中发生一个 NMI 异常，然后进入异常处理，然后在异常处理里 panic 了。在异常栈中选择多看了两眼的函数是 watchdog_overflow_callback，是因为后面的打印信息和 panic 操作都在这个函数里面进行的，关于 watchdog_overflow_callback 这个函数描述<a href="%5Bwatchdog%5D(http://linuxperf.com/?p=83)">^watchdog</a>：</p>
+<blockquote>
+<p>This function is invoked from Non-Maskable Interrupt (NMI) context. If a CPU is busy, this function executes periodically and it checks whether watchdog_timer_fn has incremented the CPU-specific counter during the past interval. If the counter has not been incremented, watchdog_overflow_callback assumes that the CPU is ‘locked up’ in a section of kernel code where interrupts are disabled, and a panic occurs unless ‘panic on hard lockup’ is explicitly disabled via the nmi_watchdog&#x3D;nopanic parameter on the kernel command line.</p>
+</blockquote>
+<p>分析 watchdog_overflow_callback 函数的实现，其中 is_hardlockup 后面对应的代码块中具体是对比如下的两个值：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; px hrtimer_interrupts_saved:7</span><br><span class="line">per_cpu(hrtimer_interrupts_saved, 7) = $14 = 0xa50fb</span><br><span class="line">crash&gt; px hrtimer_interrupts:7</span><br><span class="line">per_cpu(hrtimer_interrupts, 7) = $15 = 0xa50fb</span><br></pre></td></tr></table></figure>
+
+<p>其中 hrtimer_interrupts 是 pre-cpu 变量，它会被 call_timer_fn 更新 (根据外部信息)，也就是说 watchdog 发现 cpu #7 locked up 在一块内核代码里了。回头注意看一下 bt 注意其中两次 RFLAGS 的变化，在中断栈之前 00000286 是即 IF 标志位置位，进入异常栈过后发现 00000002 即 IF 未置位，一个典型中断被 NMI 抢占的现象，这现象可能是 ISR 占用了太久了触发了 watchdog。</p>
+<p>IRQ stack 如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">    [exception RIP: update_curr+15]</span><br><span class="line">    RIP: ffffffff810ce3cf  RSP: ffff88103fbc3db8  RFLAGS: 00000002</span><br><span class="line">    RAX: 0000000000000001  RBX: ffff88092b2ed200  RCX: 0000000000000001</span><br><span class="line">    RDX: 0000000000000001  RSI: ffff88092b2ed200  RDI: ffff880f6afb8600</span><br><span class="line">    RBP: ffff88103fbc3dd0   R8: ffff88103d2b7500   R9: 0000000000000001</span><br><span class="line">    R10: 0000000000000000  R11: 0000000000000000  R12: ffff880f6afb8600</span><br><span class="line">    R13: 0000000000000001  R14: 0000000000000003  R15: ffff8813bf7f5548</span><br><span class="line">    ORIG_RAX: ffffffffffffffff  CS: 0010  SS: 0018</span><br><span class="line">--- &lt;NMI exception stack&gt; ---</span><br><span class="line">#12 [ffff88103fbc3db8] update_curr at ffffffff810ce3cf</span><br><span class="line">#13 [ffff88103fbc3dd8] enqueue_entity at ffffffff810d042d</span><br><span class="line">#14 [ffff88103fbc3e20] unthrottle_cfs_rq at ffffffff810d16f4</span><br><span class="line">#15 [ffff88103fbc3e58] distribute_cfs_runtime at ffffffff810d1932</span><br><span class="line">#16 [ffff88103fbc3ea0] sched_cfs_period_timer at ffffffff810d1acf</span><br><span class="line">#17 [ffff88103fbc3ed8] __hrtimer_run_queues at ffffffff810b4d72</span><br><span class="line">#18 [ffff88103fbc3f30] hrtimer_interrupt at ffffffff810b5310</span><br><span class="line">#19 [ffff88103fbc3f80] local_apic_timer_interrupt at ffffffff81051037</span><br><span class="line">#20 [ffff88103fbc3f98] smp_apic_timer_interrupt at ffffffff81699f0f</span><br><span class="line">#21 [ffff88103fbc3fb0] apic_timer_interrupt at ffffffff8169845d</span><br><span class="line">--- &lt;IRQ stack&gt; ---</span><br></pre></td></tr></table></figure>
+
+<p>已知 apic_timer_interrupt 会禁用中断，而且在 hrtimer_interrupt 函数注释也重复说明了这一点，就在一定程度上强化了之前猜想 ISR（apic_timer_interrupt）触发 NMI watchdog 的想法。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; dis -s hrtimer_interrupt|head -n 10</span><br><span class="line">FILE: kernel/hrtimer.c</span><br><span class="line">LINE: 1292</span><br><span class="line"></span><br><span class="line">  1287	/*</span><br><span class="line">  1288	 * High resolution timer interrupt</span><br><span class="line">  1289	 * Called with interrupts disabled</span><br><span class="line">  1290	 */</span><br><span class="line">  1291	void hrtimer_interrupt(struct clock_event_device *dev)</span><br><span class="line">* 1292	&#123;</span><br><span class="line">  1293		struct hrtimer_cpu_base *cpu_base = this_cpu_ptr(&amp;hrtimer_bases);</span><br></pre></td></tr></table></figure>
+
+<p>通过 backtrace 梳理函数的调用关系 update_curr&lt;-enqueue_entity&lt;-unthrottle_cfs_rq&lt;-distribute_cfs_runtime&lt;-sched_cfs_period_timer<br>猜测这个可能与 CFS Bandwidth Control [^cfs_bandwidth] 特性有点关系 (通过 dis -s unthrottle_cfs_rq 确认)，下面就是利基于 x86_64 上 caller 与 callee 约定以及函数原型看参数，去参数的值对比。</p>
+<p>第一组：distribute_cfs_runtime 函数<br>原型：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; dis -s distribute_cfs_runtime</span><br><span class="line">  3423  static u64 distribute_cfs_runtime(struct cfs_bandwidth *cfs_b,</span><br><span class="line">  3424                  u64 remaining, u64 expires)</span><br></pre></td></tr></table></figure>
+
+<p>caller:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#16 [ffff88103fbc3ea0] sched_cfs_period_timer at ffffffff810d1acf</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; dis 0xffffffff810d1acf -r |tail</span><br><span class="line">...</span><br><span class="line">0xffffffff810d1ac1 &lt;sched_cfs_period_timer+193&gt;:	mov    %r13,%rsi</span><br><span class="line">0xffffffff810d1ac4 &lt;sched_cfs_period_timer+196&gt;:	mov    %r15,%rdx</span><br><span class="line">0xffffffff810d1ac7 &lt;sched_cfs_period_timer+199&gt;:	mov    %r12,%rdi</span><br><span class="line">0xffffffff810d1aca &lt;sched_cfs_period_timer+202&gt;:	callq  0xffffffff810d1840 &lt;distribute_cfs_runtime&gt;</span><br></pre></td></tr></table></figure>
+
+<p>callee:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; dis distribute_cfs_runtime|head -n 20</span><br><span class="line">0xffffffff810d1840 &lt;distribute_cfs_runtime&gt;:	nopl   0x0(%rax,%rax,1) [FTRACE NOP]</span><br><span class="line">0xffffffff810d1845 &lt;distribute_cfs_runtime+5&gt;:	push   %rbp</span><br><span class="line">0xffffffff810d1846 &lt;distribute_cfs_runtime+6&gt;:	mov    %rsp,%rbp</span><br><span class="line">0xffffffff810d1849 &lt;distribute_cfs_runtime+9&gt;:	push   %r15  // 3rd</span><br><span class="line">0xffffffff810d184b &lt;distribute_cfs_runtime+11&gt;:	push   %r14</span><br><span class="line">0xffffffff810d184d &lt;distribute_cfs_runtime+13&gt;:	mov    %rdx,%r14</span><br><span class="line">0xffffffff810d1850 &lt;distribute_cfs_runtime+16&gt;:	push   %r13  // 2nd</span><br><span class="line">0xffffffff810d1852 &lt;distribute_cfs_runtime+18&gt;:	push   %r12  // 1st</span><br><span class="line">0xffffffff810d1854 &lt;distribute_cfs_runtime+20&gt;:	mov    %rsi,%r12</span><br><span class="line">0xffffffff810d1857 &lt;distribute_cfs_runtime+23&gt;:	push   %rbx</span><br><span class="line">0xffffffff810d1858 &lt;distribute_cfs_runtime+24&gt;:	sub    $0x10,%rsp</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; bt -f</span><br><span class="line">...</span><br><span class="line">#15 [ffff88103fbc3e58] distribute_cfs_runtime at ffffffff810d1932</span><br><span class="line">    ffff88103fbc3e60: ffff88103d2b7500 f21bf8c4662d3c34</span><br><span class="line">    ffff88103fbc3e70: ffff8813bf7f5580 ffff8813bf7f5548</span><br><span class="line">    ffff88103fbc3e80: 0000000002625a00 ffff8813bf7f5640</span><br><span class="line">    ffff88103fbc3e90: 00099ba6210dc705 ffff88103fbc3ed0</span><br><span class="line">    ffff88103fbc3ea0: ffffffff810d1acf</span><br></pre></td></tr></table></figure>
+
+<p>根据栈顺序：<br>cfs_bandwidth *cfs_b 是 ffff8813bf7f5548,<br>u64 remaining 是 0000000002625a00,<br>u64 expires 是 00099ba6210dc705。</p>
+<p>第二组数 unthrottle_cfs_rq 函数</p>
+<p>原型：unthrottle_cfs_rq(struct cfs_rq *cfs_rq)</p>
+<p>caller:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; dis -r ffffffff810d1932 | tail</span><br><span class="line">...</span><br><span class="line">0xffffffff810d192a &lt;distribute_cfs_runtime+234&gt;:	mov    %r15,%rdi</span><br><span class="line">0xffffffff810d192d &lt;distribute_cfs_runtime+237&gt;:	callq  0xffffffff810d1610 &lt;unthrottle_cfs_rq&gt;</span><br></pre></td></tr></table></figure>
+
+<p>callee:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; dis -r ffffffff810d16f4 | head -n 20</span><br><span class="line">0xffffffff810d1610 &lt;unthrottle_cfs_rq&gt;:	nopl   0x0(%rax,%rax,1) [FTRACE NOP]</span><br><span class="line">0xffffffff810d1615 &lt;unthrottle_cfs_rq+5&gt;:	push   %rbp</span><br><span class="line">0xffffffff810d1616 &lt;unthrottle_cfs_rq+6&gt;:	mov    %rsp,%rbp</span><br><span class="line">0xffffffff810d1619 &lt;unthrottle_cfs_rq+9&gt;:	push   %r15</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">#14 [ffff88103fbc3e20] unthrottle_cfs_rq at ffffffff810d16f4</span><br><span class="line">    ffff88103fbc3e28: ffff88103fe56c40 00000000008cc0b3</span><br><span class="line">    ffff88103fbc3e38: ffff8813bf7f5640 00099ba6210dc705</span><br><span class="line">    ffff88103fbc3e48: ffff88103d2b7400 ffff88103fbc3e98</span><br><span class="line">    ffff88103fbc3e58: ffffffff810d1932</span><br></pre></td></tr></table></figure>
+
+<p>则 struct cfs_rq *cfs_rq 是 <code>ffff88103d2b7400</code></p>
+<p>查看结构体字段的值：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; cfs_rq.runtime_remaining,runtime_expires ffff88103d2b7400</span><br><span class="line">  runtime_remaining = 1</span><br><span class="line">  runtime_expires = 2704412611823365</span><br></pre></td></tr></table></figure>
+
+<p>获取 cfs_rq.throttled_list 链表的地址：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; cfs_rq.throttled_list ffff88103d2b7400 -ox</span><br><span class="line">struct cfs_rq &#123;</span><br><span class="line">  [ffff88103d2b7500] struct list_head throttled_list;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>确认 rq 的剩余运行时间总量：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; list -H ffff88103d2b7500 -o cfs_rq.throttled_list -s cfs_rq.runtime_remaining | grep -c runtime_remaining</span><br><span class="line">22</span><br><span class="line"></span><br><span class="line">crash&gt; list -H ffff88103d2b7500 -o cfs_rq.throttled_list -s cfs_rq.throttled,runtime_remaining</span><br><span class="line">ffff88103d2b6200</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2535</span><br><span class="line">ffff88103d2b6800</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2337</span><br><span class="line">ffff88103d2b7e00</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2706</span><br><span class="line">ffff880f30f33e00</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2441</span><br><span class="line">ffff88103d2b5600</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2356</span><br><span class="line">ffff88103d2b6a00</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2365</span><br><span class="line">ffff88103d2b7a00</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2260</span><br><span class="line">ffff88103d2b5400</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2404</span><br><span class="line">ffff88103d2b6c00</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2421</span><br><span class="line">ffff88103d2b7600</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2429</span><br><span class="line">ffff88103d2b4200</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2357</span><br><span class="line">ffff88103d2b7800</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2359</span><br><span class="line">ffff88103d2b6000</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2416</span><br><span class="line">ffff88103d2b7200</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2353</span><br><span class="line">ffff88103d2b6e00</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2263</span><br><span class="line">ffff8813be33a800</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -3394</span><br><span class="line">ffff880f30f33c00</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2599</span><br><span class="line">ffff880f30f31000</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2546</span><br><span class="line">ffff8813be33ae00</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -3157</span><br><span class="line">ffff88103d2b4c00</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2337</span><br><span class="line">ffff88103d2b6600</span><br><span class="line">  throttled = 1</span><br><span class="line">  runtime_remaining = -2284</span><br><span class="line">ffff8813bf7f5540</span><br><span class="line">  throttled = 1767994478</span><br><span class="line">  runtime_remaining = 0</span><br></pre></td></tr></table></figure>
+
+<p>看到一组异常的值明显和上面的 cfs_rq 的不一样。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; struct cfs_rq.throttled,runtime_remaining ffff8813bf7f5540</span><br><span class="line">  throttled = 1767994478</span><br><span class="line">  runtime_remaining = 0</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>感谢 wuzhouhui 的指正 ffff8813bf7f5540 是一个 cfs_bandwidth 结构体，所以值看上去非常诡异。</p>
+</blockquote>
+<p>累加 remaining 的值计算一共多少时间。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; pd 2535+2337+2706+2441+2356+2365+2260+2404+2421+2429+2357+2359+2416+2353+2263+3394+2599+2546+3157+2337+2284+0</span><br><span class="line">$2 = 52319</span><br></pre></td></tr></table></figure>
+
+<p>如法炮制，来取得 static u64 distribute_cfs_runtime(struct cfs_bandwidth *cfs_b, u64 remaining, u64 expires) 中 remaining 参数经过处理过后的值：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">/usr/src/debug/kernel-3.10.0-514.26.2.el7/linux-3.10.0-514.26.2.el7.x86_64/kernel/sched/fair.c: 3438</span><br><span class="line">0xffffffff810d190e &lt;distribute_cfs_runtime+206&gt;:        sub    %rcx,%rdx</span><br><span class="line">0xffffffff810d1911 &lt;distribute_cfs_runtime+209&gt;:        cmp    %rdx,%r12</span><br><span class="line">0xffffffff810d1914 &lt;distribute_cfs_runtime+212&gt;:        cmovbe %r12,%rdx</span><br><span class="line">/usr/src/debug/kernel-3.10.0-514.26.2.el7/linux-3.10.0-514.26.2.el7.x86_64/kernel/sched/fair.c: 3441</span><br><span class="line">0xffffffff810d1918 &lt;distribute_cfs_runtime+216&gt;:        sub    %rdx,%r12</span><br><span class="line">/usr/src/debug/kernel-3.10.0-514.26.2.el7/linux-3.10.0-514.26.2.el7.x86_64/kernel/sched/fair.c: 3443</span><br><span class="line">0xffffffff810d191b &lt;distribute_cfs_runtime+219&gt;:        add    %rcx,%rdx</span><br><span class="line">/usr/src/debug/kernel-3.10.0-514.26.2.el7/linux-3.10.0-514.26.2.el7.x86_64/kernel/sched/fair.c: 3447</span><br><span class="line">0xffffffff810d191e &lt;distribute_cfs_runtime+222&gt;:        test   %rdx,%rdx</span><br><span class="line">/usr/src/debug/kernel-3.10.0-514.26.2.el7/linux-3.10.0-514.26.2.el7.x86_64/kernel/sched/fair.c: 3443</span><br><span class="line">0xffffffff810d1921 &lt;distribute_cfs_runtime+225&gt;:        mov    %rdx,0xd8(%r15)</span><br><span class="line">/usr/src/debug/kernel-3.10.0-514.26.2.el7/linux-3.10.0-514.26.2.el7.x86_64/kernel/sched/fair.c: 3447</span><br><span class="line">0xffffffff810d1928 &lt;distribute_cfs_runtime+232&gt;:        jle    0xffffffff810d18bf &lt;distribute_cfs_runtime+127&gt;</span><br><span class="line">/usr/src/debug/kernel-3.10.0-514.26.2.el7/linux-3.10.0-514.26.2.el7.x86_64/kernel/sched/fair.c: 3448</span><br><span class="line">0xffffffff810d192a &lt;distribute_cfs_runtime+234&gt;:        mov    %r15,%rdi</span><br><span class="line">0xffffffff810d192d &lt;distribute_cfs_runtime+237&gt;:        callq  0xffffffff810d1610 &lt;unthrottle_cfs_rq&gt;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; l 3438</span><br><span class="line">3433</span><br><span class="line">3434                    raw_spin_lock(&amp;rq-&gt;lock);</span><br><span class="line">3435                    if (!cfs_rq_throttled(cfs_rq))</span><br><span class="line">3436                            goto next;</span><br><span class="line">3437</span><br><span class="line">3438                    runtime = -cfs_rq-&gt;runtime_remaining + 1;</span><br><span class="line">3439                    if (runtime &gt; remaining)</span><br><span class="line">3440                            runtime = remaining;</span><br><span class="line">3441                    remaining -= runtime;</span><br><span class="line">3442</span><br><span class="line">3443                    cfs_rq-&gt;runtime_remaining += runtime;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到 remaining 的值放在 r12 里面，且下面的汇编指令都没有修改 r12，就调用了 unthrottle_cfs_rq。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; dis unthrottle_cfs_rq</span><br><span class="line">0xffffffff810d1610 &lt;unthrottle_cfs_rq&gt;: nopl   0x0(%rax,%rax,1) [FTRACE NOP]</span><br><span class="line">0xffffffff810d1615 &lt;unthrottle_cfs_rq+5&gt;:       push   %rbp</span><br><span class="line">0xffffffff810d1616 &lt;unthrottle_cfs_rq+6&gt;:       mov    %rsp,%rbp</span><br><span class="line">0xffffffff810d1619 &lt;unthrottle_cfs_rq+9&gt;:       push   %r15</span><br><span class="line">0xffffffff810d161b &lt;unthrottle_cfs_rq+11&gt;:      push   %r14</span><br><span class="line">0xffffffff810d161d &lt;unthrottle_cfs_rq+13&gt;:      push   %r13</span><br><span class="line">0xffffffff810d161f &lt;unthrottle_cfs_rq+15&gt;:      push   %r12</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">#14 [ffff88103fbc3e20] unthrottle_cfs_rq at ffffffff810d16f4</span><br><span class="line">    ffff88103fbc3e28: ffff88103fe56c40 00000000008cc0b3 // r12</span><br><span class="line">    ffff88103fbc3e38: ffff8813bf7f5640 00099ba6210dc705</span><br><span class="line">    ffff88103fbc3e48: ffff88103d2b7400 ffff88103fbc3e98 // r15 | rbp</span><br><span class="line">    ffff88103fbc3e58: ffffffff810d1932</span><br><span class="line"></span><br><span class="line">crash&gt; pd 0x00000000008cc0b3</span><br><span class="line">$3 = 9224371</span><br></pre></td></tr></table></figure>
+
+<p>在 unthrottle_cfs_rq 中取得 distribute_cfs_runtime 的 remaining 的值为 9224371。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; cfs_bandwidth.throttled_cfs_rq ffff8813bf7f5548</span><br><span class="line">  throttled_cfs_rq = &#123;</span><br><span class="line">    next = 0xffff88103d2b6300,</span><br><span class="line">    prev = 0xffff88103d2b6700</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">crash&gt; list 0xffff88103d2b6300 | wc -l</span><br><span class="line">22</span><br></pre></td></tr></table></figure>
+
+<p>之前计算在地址为 ffff88103d2b7400 的 cfs_rq 中的 runtime_remaining 的值为 52319。distribute_cfs_runtime 中的本地变量的 remaining 为 9224371 远大于 cfs_rq 中的 remaining 为 52319，这就是使得 kernel 在下面 while 的循环中出不来：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">crash&gt; l do_sched_cfs_period_timer</span><br><span class="line">3471</span><br><span class="line">...</span><br><span class="line">3513</span><br><span class="line">3514            /*</span><br><span class="line">3515             * This check is repeated as we are holding onto the new bandwidth</span><br><span class="line">3516             * while we unthrottle.  This can potentially race with an unthrottled</span><br><span class="line">3517             * group trying to acquire new bandwidth from the global pool.</span><br><span class="line">3518             */</span><br><span class="line">3519            while (throttled &amp;&amp; runtime &gt; 0) &#123;</span><br><span class="line">3520                    raw_spin_unlock(&amp;cfs_b-&gt;lock);</span><br><span class="line">3521                    /* we can&#x27;t nest cfs_b-&gt;lock while distributing bandwidth */</span><br><span class="line">3522                    runtime = distribute_cfs_runtime(cfs_b, runtime,</span><br><span class="line">3523                                                     runtime_expires);</span><br><span class="line">3524                    raw_spin_lock(&amp;cfs_b-&gt;lock);</span><br><span class="line">3525</span><br><span class="line">3526                    throttled = !list_empty(&amp;cfs_b-&gt;throttled_cfs_rq);</span><br><span class="line">3527            &#125;</span><br><span class="line">3528</span><br><span class="line">3529            /* return (any) remaining runtime */</span><br><span class="line">3530            cfs_b-&gt;runtime = runtime;</span><br><span class="line">3531            /*</span><br><span class="line">3532             * While we are ensured activity in the period following an</span><br><span class="line">3533             * unthrottle, this also covers the case in which the new bandwidth is</span><br><span class="line">3534             * insufficient to cover the existing bandwidth deficit.  (Forcing the</span><br><span class="line">3535             * timer to remain active while there are any throttled entities.)</span><br><span class="line">3536             */</span><br><span class="line">3537            cfs_b-&gt;idle = 0;</span><br><span class="line">3538</span><br><span class="line">3539            return 0;</span><br><span class="line">3540</span><br><span class="line">3541    out_deactivate:</span><br><span class="line">3542            cfs_b-&gt;timer_active = 0;</span><br><span class="line">3543            return 1;</span><br><span class="line">3544    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>referece：</p>
+<p>[^cfs_bandwidth]: <a target="_blank" rel="noopener" href="https://lwn.net/Articles/385055/">CFS Bandwidth Control</a></p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2017/09/21/cfs-per-entity-load-track/">cfs per entity load track</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2017/08/25/about-load_avg-and-nr_running/">a question which about load_avg</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

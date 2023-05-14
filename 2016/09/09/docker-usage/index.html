@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>docker usage - sn0rt's blog</title>
+
+  
+    <meta name="description" content="0x00 starting公司准备开容器项目且我被分到了项目组，但对容器技术一无所知，所以这个 post 来记录目前工业界主流容器技术 –docker 的实践过程。 0x01 what’s docker? Docker is the world’s leading software containerization platform.  0x02 why docker? Docker’s comm">
+<meta property="og:type" content="article">
+<meta property="og:title" content="docker usage">
+<meta property="og:url" content="http://sn0rt.github.io/2016/09/09/docker-usage/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="0x00 starting公司准备开容器项目且我被分到了项目组，但对容器技术一无所知，所以这个 post 来记录目前工业界主流容器技术 –docker 的实践过程。 0x01 what’s docker? Docker is the world’s leading software containerization platform.  0x02 why docker? Docker’s comm">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2016-09-08T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.760Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="docker">
+<meta name="twitter:card" content="summary">
+  
+  
+  
+  <meta name="keywords" content="docker">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">docker usage</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x01-what%E2%80%99s-docker"><span class="toc-text">0x01 what’s docker?</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x02-why-docker"><span class="toc-text">0x02 why docker?</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x03-docker-component"><span class="toc-text">0x03 docker component</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x04-review-container"><span class="toc-text">0x04 review container</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x11-install-amp-configure"><span class="toc-text">0x11 install &amp; configure</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#install"><span class="toc-text">install</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#http-proxy-systemd"><span class="toc-text">http proxy[^systemd]</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x12-containers-management"><span class="toc-text">0x12 containers management</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#create-container"><span class="toc-text">create container</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#status"><span class="toc-text">status</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#attach-to-container"><span class="toc-text">attach to container</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#create-demon-container"><span class="toc-text">create demon container</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#show-logs"><span class="toc-text">show logs</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#exec-in-container"><span class="toc-text">exec in container</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#inspect-container"><span class="toc-text">inspect container</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#stop-and-remove"><span class="toc-text">stop and remove</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x13-image-management"><span class="toc-text">0x13 image management</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#pull"><span class="toc-text">pull</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#list"><span class="toc-text">list</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#search"><span class="toc-text">search</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#remove"><span class="toc-text">remove</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#create-commit"><span class="toc-text">create(commit)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#export"><span class="toc-text">export</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#import"><span class="toc-text">import</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ubuntu"><span class="toc-text">ubuntu</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#mysql"><span class="toc-text">mysql</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#building"><span class="toc-text">building:</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#apache"><span class="toc-text">apache</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#building-1"><span class="toc-text">building:</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#checking-history"><span class="toc-text">checking history</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#using"><span class="toc-text">using</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#mysql-1"><span class="toc-text">mysql</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#apache-1"><span class="toc-text">apache</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#testing"><span class="toc-text">testing</span></a></li></ol></li></ol></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2016-09-08T16:00:00.000Z">2016-09-09</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>docker usage</span></h1>
+<h1 id="0x00-starting"><a href="#0x00-starting" class="headerlink" title="0x00 starting"></a>0x00 starting</h1><p>公司准备开容器项目且我被分到了项目组，但对容器技术一无所知，所以这个 post 来记录目前工业界主流容器技术 –docker 的实践过程。</p>
+<h2 id="0x01-what’s-docker"><a href="#0x01-what’s-docker" class="headerlink" title="0x01 what’s docker?"></a>0x01 what’s docker?</h2><blockquote>
+<p>Docker is the world’s leading software containerization platform.</p>
+</blockquote>
+<h2 id="0x02-why-docker"><a href="#0x02-why-docker" class="headerlink" title="0x02 why docker?"></a>0x02 why docker?</h2><blockquote>
+<p>Docker’s commercial solutions provide an out of the box CaaS environment that gives IT Ops teams security and control over their environment, while enabling developers to build applications in a self service way. With a clear separation of concerns and robust tooling, organizations are able to innovate faster, reduce costs and ensure security.</p>
+</blockquote>
+<h2 id="0x03-docker-component"><a href="#0x03-docker-component" class="headerlink" title="0x03 docker component"></a>0x03 docker component</h2><ul>
+<li>client&#x2F;server: docker 是一个 c&#x2F;s 架构的服务.server 提供一套完整 RESTful API.</li>
+<li>image: image 是 docker 创建容器的基础，相当于源码对于程序。</li>
+<li>registry: 用来做镜像管理，相当于源码与 git repo 的关系。</li>
+<li>containers: 运行起来的实体，相当于多个程序。</li>
+</ul>
+<h2 id="0x04-review-container"><a href="#0x04-review-container" class="headerlink" title="0x04 review container"></a>0x04 review container</h2><p>容器发展到现在逐步进入了标准化过程，目前有工业界广泛是用的 docker; 还有 coreos 定制的 <a target="_blank" rel="noopener" href="https://github.com/appc/spec">appc</a>, 目前遵循的 appc 的容器技术有 freebsd 平台的 Jet Pack 和 Linux 平台通过 C++ 实现的 Nose Cone.</p>
+<h1 id="0x10-bases-usage"><a href="#0x10-bases-usage" class="headerlink" title="0x10 bases usage"></a>0x10 bases usage</h1><p>这里记录一下 docker 在命令行下面最近基本的用法。</p>
+<h2 id="0x11-install-amp-configure"><a href="#0x11-install-amp-configure" class="headerlink" title="0x11 install &amp; configure"></a>0x11 install &amp; configure</h2><h3 id="install"><a href="#install" class="headerlink" title="install"></a>install</h3><p>fedora24 下面安装如此容易。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo dnf install docker -y</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo systemctl <span class="built_in">enable</span> docker</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo systemctl start docker</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="http-proxy-systemd"><a href="#http-proxy-systemd" class="headerlink" title="http proxy[^systemd]"></a>http proxy[^systemd]</h3><p>因为公司网络安全策略所以需要配置代理服务器。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo <span class="built_in">mkdir</span> /etc/systemd/system/docker.service.d</span></span><br><span class="line">cat &lt;&lt; EOF &gt;&gt; /etc/systemd/system/docker.service.d/http-proxy.conf</span><br><span class="line">[Service]</span><br><span class="line">Environment=&quot;HTTP_PROXY=http://username:password@10.0.58.88:8080/&quot;</span><br><span class="line">EOF</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo systemctl daemon-reload</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo systemctl show --property=Environment docker</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo systemctl restart docker</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="0x12-containers-management"><a href="#0x12-containers-management" class="headerlink" title="0x12 containers management"></a>0x12 containers management</h2><h3 id="create-container"><a href="#create-container" class="headerlink" title="create container"></a>create container</h3><p>运行一个名字叫 sn0rt 的容器且进入 bash.</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker run -i --name sn0rt -t ubuntu:14.04 /bin/bash</span></span><br><span class="line">exit</span><br></pre></td></tr></table></figure>
+<h3 id="status"><a href="#status" class="headerlink" title="status"></a>status</h3><p>查看当前服务器的容器状态。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker ps -a</span></span><br><span class="line">CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS                          PORTS               NAMES</span><br><span class="line">ca06ea65dda8        ubuntu:14.04        &quot;/bin/bash&quot;              30 minutes ago      Exited (0) About a minute ago                       sn0rt</span><br></pre></td></tr></table></figure>
+
+<h3 id="attach-to-container"><a href="#attach-to-container" class="headerlink" title="attach to container"></a>attach to container</h3><p>开始曾经停止的容器，附加上去：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker start sn0rt</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker attach sn0rt</span></span><br></pre></td></tr></table></figure>
+<h3 id="create-demon-container"><a href="#create-demon-container" class="headerlink" title="create demon container"></a>create demon container</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker run --name sn0rt -d ubuntu:14.04 /bin/sh -c <span class="string">&quot;while true;</span></span></span><br><span class="line">do echo hello word; sleep 1; done&quot;</span><br><span class="line">51b1a48d762441717cec525e42022328417f1c5ff9b18c456dbde0a925db7d57</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="string">sudo docker ps -a</span></span></span><br><span class="line">CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS                      PORTS               NAMES</span><br><span class="line">51b1a48d7624        ubuntu:14.04        &quot;/bin/sh -c &#x27;while tr&quot;   10 seconds ago      Up 7 seconds                                    sn0rt</span><br></pre></td></tr></table></figure>
+
+<h3 id="show-logs"><a href="#show-logs" class="headerlink" title="show logs"></a>show logs</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker logs -ft sn0rt</span></span><br><span class="line">2016-09-09T03:30:47.986708000Z hello word</span><br><span class="line">2016-09-09T03:30:49.233008000Z hello word</span><br></pre></td></tr></table></figure>
+
+<h3 id="exec-in-container"><a href="#exec-in-container" class="headerlink" title="exec in container"></a>exec in container</h3><p>在容器中运行个非交互式进程后在运行交互式进程。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker ps</span></span><br><span class="line">CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS               NAMES</span><br><span class="line">51b1a48d7624        ubuntu:14.04        &quot;/bin/sh -c &#x27;while tr&quot;   About an hour ago   Up About an hour                        sn0rt</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker <span class="built_in">exec</span> -d sn0rt <span class="built_in">touch</span> /tmp/linux</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker <span class="built_in">exec</span> -t -i sn0rt /bin/bash</span></span><br><span class="line">root@51b1a48d7624:/# ls /tmp/linux </span><br><span class="line">/tmp/linux</span><br><span class="line">root@51b1a48d7624:/# </span><br></pre></td></tr></table></figure>
+
+<h3 id="inspect-container"><a href="#inspect-container" class="headerlink" title="inspect container"></a>inspect container</h3><p>获取更多的信息以 json 格式展示，省略部分以<code>...</code>代替。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker inspect sn0rt</span></span><br><span class="line">[</span><br><span class="line">    &#123;</span><br><span class="line">        &quot;Id&quot;: &quot;51b1a48d762441717cec525e42022328417f1c5ff9b18c456dbde0a925db7d57&quot;,</span><br><span class="line">        &quot;Created&quot;: &quot;2016-09-09T03:28:16.986340741Z&quot;,</span><br><span class="line">        &quot;Path&quot;: &quot;/bin/sh&quot;,</span><br><span class="line">        &quot;Args&quot;: [</span><br><span class="line">            &quot;-c&quot;,</span><br><span class="line">            &quot;while true;\ndo echo hello word; sleep 1; done&quot;</span><br><span class="line">        ],</span><br><span class="line">    ...</span><br><span class="line">    &#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+
+<h3 id="stop-and-remove"><a href="#stop-and-remove" class="headerlink" title="stop and remove"></a>stop and remove</h3><p>不能移除一个在运行的容器。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker stop sn0rt</span></span><br><span class="line">sn0rt</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker ps</span></span><br><span class="line">CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker <span class="built_in">rm</span> sn0rt</span></span><br><span class="line">sn0rt</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker <span class="built_in">rm</span> `docker ps -a -q`</span></span><br></pre></td></tr></table></figure>
+<h2 id="0x13-image-management"><a href="#0x13-image-management" class="headerlink" title="0x13 image management"></a>0x13 image management</h2><p>容器镜像的管理，名字叫法类似于 git.</p>
+<h3 id="pull"><a href="#pull" class="headerlink" title="pull"></a>pull</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker pull ubuntu:14.04</span></span><br><span class="line">Trying to pull repository docker.io/library/ubuntu ... </span><br><span class="line">14.04: Pulling from docker.io/library/ubuntu</span><br><span class="line">Digest: sha256:5b5d48912298181c3c80086e7d3982029b288678fccabf2265899199c24d7f89</span><br><span class="line">Status: Image is up to date for docker.io/ubuntu:14.04</span><br></pre></td></tr></table></figure>
+
+<h3 id="list"><a href="#list" class="headerlink" title="list"></a>list</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker images</span></span><br><span class="line">REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE</span><br><span class="line">test                latest              d373bc5e4a77        20 hours ago        340.4 MB</span><br><span class="line">docker.io/ubuntu    14.04               4a725d3b3b1c        13 days ago         187.9 MB</span><br></pre></td></tr></table></figure>
+
+<h3 id="search"><a href="#search" class="headerlink" title="search"></a>search</h3><p>需要先通过<code>docker login</code>登录 docker.io.</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker search kali</span></span><br><span class="line">INDEX       NAME                                                DESCRIPTION                                     STARS     OFFICIAL   AUTOMATED</span><br><span class="line">docker.io   docker.io/kalilinux/kali-linux-docker               Kali Linux Rolling Distribution Base Image      216                  [OK]</span><br></pre></td></tr></table></figure>
+
+<h3 id="remove"><a href="#remove" class="headerlink" title="remove"></a>remove</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker images</span></span><br><span class="line">REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE</span><br><span class="line">test                latest              d373bc5e4a77        20 hours ago        340.4 MB</span><br><span class="line">docker.io/ubuntu    14.04               4a725d3b3b1c        13 days ago         187.9 MB</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker rmi <span class="built_in">test</span></span></span><br><span class="line">Untagged: test:latest</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker images</span></span><br><span class="line">REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE</span><br><span class="line">docker.io/ubuntu    14.04               4a725d3b3b1c        13 days ago         187.9 MB</span><br></pre></td></tr></table></figure>
+
+<h3 id="create-commit"><a href="#create-commit" class="headerlink" title="create(commit)"></a>create(commit)</h3><p>有几种方法可以创建自己的 image, 这里纪录一下 commit 的使用。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker run -i --name sn0rt -t ubuntu:14.04 /bin/bash</span></span><br><span class="line">root@41f815d96b7a:/# apt-get update -yqq</span><br><span class="line">root@41f815d96b7a:/# exit</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">docker ps -a</span></span><br><span class="line">CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                      PORTS               NAMES</span><br><span class="line">41f815d96b7a        ubuntu:14.04        &quot;/bin/bash&quot;         4 minutes ago       Exited (0) 12 seconds ago                       sn0rt</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">docker commit -m=<span class="string">&quot;update finshed&quot;</span> --author=<span class="string">&quot;Sn0rt@abc.shop.edu.cn&quot;</span> 41f815d96b7a sn0rt/ubuntu_updated</span></span><br><span class="line">sha256:92ae626c3fb58ad14b621d831bc8c1529357824ebbbdf1b2b4691b4d9e84814c</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">docker images</span></span><br><span class="line">REPOSITORY                  TAG                 IMAGE ID            CREATED             SIZE</span><br><span class="line">sn0rt/ubuntu_updated   latest              92ae626c3fb5        58 seconds ago      210.1 MB</span><br><span class="line">docker.io/ubuntu            14.04               4a725d3b3b1c        13 days ago         187.9 MB</span><br></pre></td></tr></table></figure>
+
+<h3 id="export"><a href="#export" class="headerlink" title="export"></a>export</h3><p>有时候网络不好，或者某些限制导致你不能通过 pull 来安装 image.docker 提供一个导出的功能可以使用。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">docker save -o kubedns-amd64.tar gcr.io/google_containers/kubedns-amd64</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="import"><a href="#import" class="headerlink" title="import"></a>import</h3><p>上面的导出文件你可以通过下面这个命令把这个文件导入进自己的 docker image.</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">docker load --input kubedns-amd64.tar</span></span><br></pre></td></tr></table></figure>
+
+<h1 id="0x20-dockerfile-dockerfile"><a href="#0x20-dockerfile-dockerfile" class="headerlink" title="0x20 dockerfile[^dockerfile]"></a>0x20 dockerfile[^dockerfile]</h1><p>这是另一种构建自己 image 的方法，也是官方推荐的 (高度可定制).<br>利用 dockerfile 构建三个 images, 命名为 ubuntu,apache 与 mysql.<br>其中 apache 与 mysql 基于 ubuntu_updated, 而 ubuntu_updated 是基于 ubuntu:14.04.</p>
+<h2 id="ubuntu"><a href="#ubuntu" class="headerlink" title="ubuntu"></a>ubuntu</h2><p>基本 ubuntu 镜像做一个 update 操作后 build 一下，如果不做的话其实 docker 也会帮你缓存，docker 每命令每镜像</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> ubuntu:<span class="number">14.04</span></span><br><span class="line"><span class="keyword">MAINTAINER</span> Sn0rt &lt;Sn0rt@abc.shop.edu.cn&gt;</span><br><span class="line"></span><br><span class="line"><span class="keyword">ENV</span> http_proxy=<span class="string">&quot;http://username:password@10.0.58.88:8080/&quot;</span></span><br><span class="line"><span class="keyword">ENV</span> https_proxy=<span class="string">&quot;http://username:password@10.0.58.88:8080/&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> apt-get update -yqq</span></span><br></pre></td></tr></table></figure>
+
+<p>如果写错了可以修改<code>Dockerfile</code>重新 build, 它会自最近一次正确 image 开始继续 build.</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">➜  ubuntu docker build -t=&quot;sn0rt/ubuntu&quot; . </span><br><span class="line">Sending build context to Docker daemon 2.048 kB</span><br><span class="line">Step 1 : FROM ubuntu:14.04</span><br><span class="line"><span class="meta prompt_"> ---&gt; </span><span class="language-bash">4a725d3b3b1c</span></span><br><span class="line">...</span><br><span class="line">Step 5 : RUN apt-get update -yqq</span><br><span class="line"><span class="meta prompt_"> ---&gt; </span><span class="language-bash">Running <span class="keyword">in</span> 91e8e54e3be5</span></span><br><span class="line"><span class="meta prompt_"> ---&gt; </span><span class="language-bash">8aae246f5e4c</span></span><br><span class="line">Removing intermediate container 91e8e54e3be5</span><br><span class="line">Successfully built 8aae246f5e4c</span><br></pre></td></tr></table></figure>
+
+<h2 id="mysql"><a href="#mysql" class="headerlink" title="mysql"></a>mysql</h2><figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> sn0rt/ubuntu</span><br><span class="line"><span class="keyword">MAINTAINER</span> Sn0rt &lt;Sn0rt@abc.shop.edu.cn&gt;</span><br><span class="line"></span><br><span class="line"><span class="keyword">ENV</span> http_proxy=<span class="string">&quot;http://username:password@10.0.58.88:8080/&quot;</span></span><br><span class="line"><span class="keyword">ENV</span> https_proxy=<span class="string">&quot;http://username:password@10.0.58.88:8080/&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> apt-get install mysql-server -yqq</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> my.cnf /etc/mysql/my.cnf</span></span><br><span class="line"><span class="keyword">WORKDIR</span><span class="language-bash"> /root</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> init.sql init.sql</span></span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> /etc/init.d/mysql restart &amp;&amp; mysql &lt; init.sql</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="building"><a href="#building" class="headerlink" title="building:"></a>building:</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker build -t=<span class="string">&quot;sn0rt/mysql:v1&quot;</span> .</span></span><br><span class="line">Sending build context to Docker daemon 7.168 kB</span><br><span class="line">Step 1 : FROM sn0rt/ubuntu</span><br><span class="line"><span class="meta prompt_"> ---&gt; </span><span class="language-bash">8aae246f5e4c</span></span><br><span class="line">...</span><br><span class="line">Step 9 : RUN /etc/init.d/mysql restart &amp;&amp; mysql &lt; init.sql</span><br><span class="line"><span class="meta prompt_"> ---&gt; </span><span class="language-bash">Running <span class="keyword">in</span> 73fd2bc50964</span></span><br><span class="line"> * Stopping MySQL database server mysqld</span><br><span class="line">   ...done.</span><br><span class="line"> * Starting MySQL database server mysqld</span><br><span class="line">   ...done.</span><br><span class="line"> * Checking for tables which need an upgrade, are corrupt or were </span><br><span class="line">not closed cleanly.</span><br><span class="line"><span class="meta prompt_"> ---&gt; </span><span class="language-bash">5d3c0a4fa4ed</span></span><br><span class="line">Removing intermediate container 73fd2bc50964</span><br><span class="line">Successfully built 5d3c0a4fa4ed</span><br></pre></td></tr></table></figure>
+
+<h2 id="apache"><a href="#apache" class="headerlink" title="apache"></a>apache</h2><p>利用<code>Dockerfile</code>来安装<code>phpmyadmin</code>.</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> sn0rt/ubuntu</span><br><span class="line"><span class="keyword">MAINTAINER</span> Sn0rt &lt;Sn0rt@abc.shop.edu.cn&gt;</span><br><span class="line"></span><br><span class="line"><span class="keyword">ENV</span> http_proxy=<span class="string">&quot;http://username:password@10.0.58.88:8080/&quot;</span></span><br><span class="line"><span class="keyword">ENV</span> https_proxy=<span class="string">&quot;http://username:password@10.0.58.88:8080/&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> apt-get install apache2 -yqq</span></span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> apt-get install php5 libapache2-mod-php5 php5-mcrypt php5-mysql -yqq</span></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> dir.conf /etc/apache2/mods-available/dir.conf</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">ADD</span><span class="language-bash"> phpMyAdmin-4.6.4-all-languages.tar.gz /var/www/html/</span></span><br><span class="line"><span class="keyword">WORKDIR</span><span class="language-bash"> /var/www/html/phpMyAdmin-4.6.4-all-languages/</span></span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> <span class="built_in">mv</span> * ..</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> config.inc.php /var/www/html/config.inc.php</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">ENTRYPOINT</span><span class="language-bash"> [<span class="string">&quot;apachectl&quot;</span>]</span></span><br><span class="line"><span class="keyword">CMD</span><span class="language-bash"> [<span class="string">&quot;-X&quot;</span>]</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="building-1"><a href="#building-1" class="headerlink" title="building:"></a>building:</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">➜  apache docker build -t=&quot;sn0rt/apache:v1&quot; .           </span><br><span class="line">Sending build context to Docker daemon 10.38 MB</span><br><span class="line">Step 1 : FROM sn0rt/ubuntu</span><br><span class="line"><span class="meta prompt_"> ---&gt; </span><span class="language-bash">8aae246f5e4c</span></span><br><span class="line">...</span><br><span class="line">Step 13 : CMD -X</span><br><span class="line"><span class="meta prompt_"> ---&gt; </span><span class="language-bash">Running <span class="keyword">in</span> 45fa01e8ac4c</span></span><br><span class="line"><span class="meta prompt_"> ---&gt; </span><span class="language-bash">366ef630e06f</span></span><br><span class="line">Removing intermediate container 45fa01e8ac4c</span><br><span class="line">Successfully built 366ef630e06f</span><br></pre></td></tr></table></figure>
+
+<h2 id="checking-history"><a href="#checking-history" class="headerlink" title="checking history"></a>checking history</h2><p>通过 history 命令可以查看到历史命令。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker images</span>                           </span><br><span class="line">REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE</span><br><span class="line">sn0rt/apache   v1                  366ef630e06f        3 minutes ago       324.8 MB</span><br><span class="line">sn0rt/mysql    v1                  5d3c0a4fa4ed        2 hours ago         345.7 MB</span><br><span class="line">sn0rt/ubuntu   latest              8aae246f5e4c        2 hours ago         210.1 MB</span><br><span class="line">docker.io/ubuntu    14.04               4a725d3b3b1c        2 weeks ago         187.9 MB</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker <span class="built_in">history</span> sn0rt/mysql:v1</span></span><br><span class="line">IMAGE               CREATED             CREATED BY                                      SIZE                COMMENT</span><br><span class="line">5d3c0a4fa4ed        20 minutes ago      /bin/sh -c /etc/init.d/mysql restart &amp;&amp; mysql   5.252 MB            </span><br><span class="line">92dba0a2acb2        20 minutes ago      /bin/sh -c #(nop) COPY file:77fac40c1774c2ad4   172 B               </span><br><span class="line">c3df7fa0d3d1        20 minutes ago      /bin/sh -c #(nop) WORKDIR /root                 0 B                 </span><br><span class="line">ca7a6756a3c7        20 minutes ago      /bin/sh -c #(nop) COPY file:30489e5e5529ad833   3.506 kB            </span><br><span class="line">d06d1ddad673        20 minutes ago      /bin/sh -c apt-get install mysql-server -yqq    130.3 MB            </span><br><span class="line">91190a6c9e32        22 minutes ago      /bin/sh -c #(nop) ENV https_proxy=http://fnst   0 B                 </span><br><span class="line">7d8936b1f833        22 minutes ago      /bin/sh -c #(nop) ENV http_proxy=http://fnsts   0 B                 </span><br><span class="line">f08d8e1643b3        22 minutes ago      /bin/sh -c #(nop) MAINTAINER Sn0rt &lt;Sn0rt@abc   0 B                 </span><br><span class="line">8aae246f5e4c        48 minutes ago      /bin/sh -c apt-get update -yqq                  22.16 MB            </span><br><span class="line">091e0ec51c90        50 minutes ago      /bin/sh -c #(nop) ENV https_proxy=http://fnst   0 B                 </span><br><span class="line">43bff3143ad4        50 minutes ago      /bin/sh -c #(nop) ENV http_proxy=http://fnsts   0 B                 </span><br><span class="line">913e5f034797        50 minutes ago      /bin/sh -c #(nop) MAINTAINER Sn0rt &lt;Sn0rt@abc   0 B       </span><br></pre></td></tr></table></figure>
+
+<h2 id="using"><a href="#using" class="headerlink" title="using"></a>using</h2><p>需要一个前台进程，如果以 apache 以服务在后台启动的话，容器会变成退出状态。</p>
+<h3 id="mysql-1"><a href="#mysql-1" class="headerlink" title="mysql"></a>mysql</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker run -d -p 3306:3306 --name mysql sn0rt/mysql:v1 mysqld_safe</span></span><br><span class="line">b946792318652c2d405406e66fbbaa7472a6a5a8dc281c71abe6fd8651070d46</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker ps</span></span><br><span class="line">CONTAINER ID        IMAGE                 COMMAND             CREATED             STATUS              PORTS                    NAMES</span><br><span class="line">b94679231865        sn0rt/mysql:v1   &quot;mysqld_safe&quot;       5 seconds ago       Up 2 seconds        0.0.0.0:3306-&gt;3306/tcp   mysql</span><br></pre></td></tr></table></figure>
+
+<h3 id="apache-1"><a href="#apache-1" class="headerlink" title="apache"></a>apache</h3><p>对外服务提供以一直的 ip 地址 (宿主机器的地址),apache 以前台进程在运行。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">docker run -d -p 80:80 --name apache sn0rt/apache:v1</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker ps -a</span></span><br><span class="line">CONTAINER ID        IMAGE                  COMMAND             CREATED             STATUS              PORTS                    NAMES</span><br><span class="line">a478f202f3bf        sn0rt/apache:v1   &quot;apachectl -X&quot;      47 seconds ago      Up 44 seconds       0.0.0.0:80-&gt;80/tcp       apache</span><br><span class="line">b94679231865        sn0rt/mysql:v1    &quot;mysqld_safe&quot;       3 minutes ago       Up 3 minutes        0.0.0.0:3306-&gt;3306/tcp   mysql</span><br></pre></td></tr></table></figure>
+
+<h3 id="testing"><a href="#testing" class="headerlink" title="testing"></a>testing</h3><p>在宿主机器上面进行测试 apache 与 mysql 的端口绑定。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo curl -I localhost</span></span><br><span class="line">HTTP/1.1 200 OK</span><br><span class="line">Date: Mon, 12 Sep 2016 03:23:31 GMT</span><br><span class="line">Server: Apache/2.4.7 (Ubuntu)</span><br><span class="line">X-Powered-By: PHP/5.5.9-1ubuntu4.19</span><br><span class="line">Set-Cookie: pmaCookieVer=5; expires=Wed, 12-Oct-2016 03:23:31 GMT; Max-Age=2592000; path=/; httponly</span><br><span class="line">Set-Cookie: phpMyAdmin=npcfgt7puqs2cmld1ttk2k3naa7pv54a; path=/; HttpOnly</span><br><span class="line">Expires: Mon, 12 Sep 2016 03:23:31 +0000</span><br><span class="line">...</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo mysql -u root -p -h 172.17.0.1</span></span><br><span class="line">Enter password: </span><br><span class="line">Welcome to the MariaDB monitor.  Commands end with ; or \g.</span><br><span class="line">Your MySQL connection id is 3</span><br><span class="line">Server version: 5.5.50-0ubuntu0.14.04.1 (Ubuntu)</span><br><span class="line"></span><br><span class="line">Copyright (c) 2000, 2016, Oracle, MariaDB Corporation Ab and others.</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker logs mysql</span></span><br><span class="line">160912 03:17:34 mysqld_safe Can&#x27;t log to error log and syslog at the same time.  Remove all --log-error configuration options for --syslog to take effect.</span><br><span class="line">160912 03:17:34 mysqld_safe Logging to &#x27;/var/log/mysql/error.log&#x27;.</span><br><span class="line">160912 03:17:34 mysqld_safe Starting mysqld daemon with databases from /var/lib/mysql</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker logs apache</span></span><br><span class="line">AH00558: apache2: Could not reliably determine the server&#x27;s fully qualified domain name, using 172.17.0.3. Set the &#x27;ServerName&#x27; directive globally to suppress this message</span><br></pre></td></tr></table></figure>
+
+<h1 id="0x30-dockerhub"><a href="#0x30-dockerhub" class="headerlink" title="0x30 dockerhub"></a>0x30 dockerhub</h1><p>测试完成没有问题，且打算分享你的容器这个时候就可以把它推送到 dockerhub(记得<code>docker login</code>).</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker push sn0rt/ubuntu</span></span><br><span class="line">The push refers to a repository [docker.io/sn0rt/ubuntu]</span><br><span class="line">54da5869939f: Pushed </span><br><span class="line">ffb6ddc7582a: Mounted from library/ubuntu </span><br><span class="line">344f56a35ff9: Mounted from library/ubuntu </span><br><span class="line">530d731d21e1: Mounted from library/ubuntu </span><br><span class="line">24fe29584c04: Mounted from library/ubuntu </span><br><span class="line">102fca64f924: Mounted from library/ubuntu </span><br><span class="line">latest: digest: sha256:703fec1e8c32ebc0da29d12be2515f640b9022e45c38df62a48145851ad651b6 size: 1549</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">sudo docker search sn0rt/ubuntu</span></span><br><span class="line">INDEX       NAME                          DESCRIPTION   STARS     OFFICIAL   AUTOMATED</span><br><span class="line">docker.io   docker.io/sn0rt/ubuntu                 1                    </span><br></pre></td></tr></table></figure>
+
+<h1 id="0x40-summary-docker-hype"><a href="#0x40-summary-docker-hype" class="headerlink" title="0x40 summary[^docker-hype]"></a>0x40 summary[^docker-hype]</h1><ul>
+<li>layer: 初步接触 docker 发现 layer 这样的设计放到环境部署里面非常实用。但是算不上完全创新，至少我之前 vmware 有尝试过类似的概念，我基于虚拟机的某个配置对其进行快照，然后以快照为基础进行不同的修改，这样自己用起来是没有太多问题的。</li>
+<li>dockerfile: docker 官方提供的 dockerfile 组织过于原始，退回了 shell 部署时代，而且 dockerfile build 的依赖关系层级划分是通过多个 docker image 来实现的，这样至少目前可能是需要手工解决依赖 (安装镜像).</li>
+<li>security: docker 的 Linux 实现依赖于 namespace 与 cgroup,namepsace 本身的安全性 (CVE) 与 cgroup 的颗粒度本身都是不完善的 (cgroup 对网络限制), 从容器中逸出也不是没有可能。</li>
+<li>performance: KVM 在运行基于模板生成的虚拟机可以合并相同内存的，容器是共享内核的可以想象一下是节约一点内存;cpu 不需要在 guest 和 host 之间来回切换可能节约一点 cpu 时间。</li>
+<li>limit: 作为一个软件安全爱好者有时候对 kernel 本身感兴趣，这时候 docker 就不行了。</li>
+</ul>
+<p>[^systemd]: <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/admin/systemd/">systemd configure</a><br>[^dockerfile]: <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/reference/builder/">dockfile manual</a><br>[^docker-hype]: <a target="_blank" rel="noopener" href="http://iops.io/blog/docker-hype">docker-hype</a></p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2016/09/13/k8s-ii/">kubernetes II - network policy</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2016/08/27/intern-in-shanghai/">internship in Shanghai</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

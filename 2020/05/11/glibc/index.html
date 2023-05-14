@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>容器中 glibc 兼容问题 - sn0rt's blog</title>
+
+  
+    <meta name="description" content="今天同事在线上做Debain版本升级遇到问题 123456# kubectl exec -it fqh-realserver-01-69586d7c74-dd9cl bashcommand terminated with exit code 139# apt-get updateE: Method http has died unexpectedly!E: Sub-process http rec">
+<meta property="og:type" content="article">
+<meta property="og:title" content="容器中 glibc 兼容问题">
+<meta property="og:url" content="http://sn0rt.github.io/2020/05/11/glibc/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="今天同事在线上做Debain版本升级遇到问题 123456# kubectl exec -it fqh-realserver-01-69586d7c74-dd9cl bashcommand terminated with exit code 139# apt-get updateE: Method http has died unexpectedly!E: Sub-process http rec">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-05-10T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.752Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="go">
+<meta name="twitter:card" content="summary">
+  
+  
+  
+  <meta name="keywords" content="go">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">容器中 glibc 兼容问题</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90"><span class="toc-text">问题分析</span></a></li></ol></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2020-05-10T16:00:00.000Z">2020-05-11</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>容器中 glibc 兼容问题</span></h1>
+<p>今天同事在线上做<code>Debain</code>版本升级遇到问题</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># kubectl exec -it fqh-realserver-01-69586d7c74-dd9cl bash</span></span><br><span class="line"><span class="built_in">command</span> terminated with <span class="built_in">exit</span> code 139</span><br><span class="line"></span><br><span class="line"><span class="comment"># apt-get update</span></span><br><span class="line">E: Method http has died unexpectedly!</span><br><span class="line">E: Sub-process http received a segmentation fault.</span><br></pre></td></tr></table></figure>
+
+<p>可以看到错误代码是 139 是客户端报错，再看一下内核日志 </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">May 11 16:11:20 xxx kernel: [5790773.000196] bash[231251] vsyscall attempted with vsyscall=none ip:ffffffffff600400 cs:33 sp:7ffc7942aad8 ax:ffffffffff600400 si:7ffc7942af76 di:0</span><br><span class="line">May 11 16:11:20 xxx kernel: [5790773.000200] bash[231251]: segfault at ffffffffff600400 ip ffffffffff600400 sp 00007ffc7942aad8 error 15</span><br><span class="line">May 11 16:11:20 xxx kernel: [5790773.000202] Code: Bad RIP value.</span><br></pre></td></tr></table></figure>
+
+<h2 id="问题分析"><a href="#问题分析" class="headerlink" title="问题分析"></a>问题分析</h2><p>错误信息就怀疑是 ABI 层面的兼容问题，要验证想法就要看一下为什么发生 segmentation fault。</p>
+<p>构造一下测试环境，在一个终端启动一个 docker，因为 docker 是 c&#x2F;s 模型，没有必要在客户端 debug，客户端仅仅是个发请求的工具。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># /usr/bin/docker run -it dockerhub.nie.netease.com/frosty/sea sh</span></span><br><span class="line"><span class="comment">#</span></span><br></pre></td></tr></table></figure>
+<p>因为我发现镜像里面的 sh 是可以启动，通过 sh 先将 container 运行起来，任何再 container 运行其他指令。</p>
+<p>可以可看到 container，获取这个 container 的 PID，也就是宿主层面的视角的 container 实体。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># docker ps</span></span><br><span class="line">CONTAINER ID        IMAGE                                               COMMAND                  CREATED             STATUS              PORTS               NAMES</span><br><span class="line">899eea8d3958        dockerhub.nie.netease.com/frosty/sea                <span class="string">&quot;sh&quot;</span>                     4 seconds ago       Up 3 seconds                            happy_galileo</span><br><span class="line">307eb53d45df        e15788915c71                                        <span class="string">&quot;/usr/bin/cadvisor -…&quot;</span>   7 weeks ago         Up 7 weeks                              k8s_cadvisor_kube-cadvisor-d429r_kube-system_5b88b786-1ecc-4c63-9c10-2b4d5000d3bc_0</span><br><span class="line">076136a16137        dockerhub.nie.netease.com/whale/google_containers   <span class="string">&quot;/pause&quot;</span>                 7 weeks ago         Up 7 weeks                              k8s_POD_kube-cadvisor-d429r_kube-system_5b88b786-1ecc-4c63-9c10-2b4d5000d3bc_0</span><br><span class="line"><span class="comment"># docker inspect 899eea8d3958  | grep Pid</span></span><br><span class="line">            <span class="string">&quot;Pid&quot;</span>: 2204330,</span><br><span class="line">            <span class="string">&quot;PidMode&quot;</span>: <span class="string">&quot;&quot;</span>,</span><br><span class="line">            <span class="string">&quot;PidsLimit&quot;</span>: 0,</span><br></pre></td></tr></table></figure>
+
+<p>gdb attach 进程，附加上去并继续运行 container（这个 gdb 我安装了 <code>peda</code> 插件</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># gdb -q attach 2204330</span></span><br><span class="line">attach: No such file or directory.</span><br><span class="line">Attaching to process 2204330</span><br><span class="line">Reading symbols from target:/bin/dash...(no debugging symbols found)...<span class="keyword">done</span>.</span><br><span class="line">Reading symbols from target:/lib/x86_64-linux-gnu/libc.so.6...(no debugging symbols found)...<span class="keyword">done</span>.</span><br><span class="line">Reading symbols from target:/lib64/ld-linux-x86-64.so.2...(no debugging symbols found)...<span class="keyword">done</span>.</span><br><span class="line"></span><br><span class="line">warning: Target and debugger are <span class="keyword">in</span> different PID namespaces; thread lists and other data are likely unreliable.  Connect to gdbserver inside the container.</span><br><span class="line">[----------------------------------registers-----------------------------------]</span><br><span class="line">RAX: 0xfffffffffffffe00</span><br><span class="line">RBX: 0x0</span><br><span class="line">RCX: 0x7f5da5a917d0 --&gt; 0x3173fffff0013d48</span><br><span class="line">RDX: 0x2000 (<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">RSI: 0x61a200 --&gt; 0x0</span><br><span class="line">RDI: 0x0</span><br><span class="line">RBP: 0x61a200 --&gt; 0x0</span><br><span class="line">RSP: 0x7ffdc70f6608 --&gt; 0x40881d (cmp    eax,0x0)</span><br><span class="line">RIP: 0x7f5da5a917d0 --&gt; 0x3173fffff0013d48</span><br><span class="line">R8 : 0x7f5da5d48e40 --&gt; 0x100000000</span><br><span class="line">R9 : 0x7f5da5d48e90 --&gt; 0x0</span><br><span class="line">R10: 0x0</span><br><span class="line">R11: 0x246</span><br><span class="line">R12: 0x0</span><br><span class="line">R13: 0x1</span><br><span class="line">R14: 0x0</span><br><span class="line">R15: 0x0</span><br><span class="line">EFLAGS: 0x246 (carry PARITY adjust ZERO sign <span class="built_in">trap</span> INTERRUPT direction overflow)</span><br><span class="line">[-------------------------------------code-------------------------------------]</span><br><span class="line">   0x7f5da5a917c7 &lt;<span class="built_in">read</span>+7&gt;:	jne    0x7f5da5a917d9 &lt;<span class="built_in">read</span>+25&gt;</span><br><span class="line">   0x7f5da5a917c9 &lt;<span class="built_in">read</span>+9&gt;:	mov    eax,0x0</span><br><span class="line">   0x7f5da5a917ce &lt;<span class="built_in">read</span>+14&gt;:	syscall</span><br><span class="line">=&gt; 0x7f5da5a917d0 &lt;<span class="built_in">read</span>+16&gt;:	cmp    rax,0xfffffffffffff001</span><br><span class="line">   0x7f5da5a917d6 &lt;<span class="built_in">read</span>+22&gt;:	jae    0x7f5da5a91809 &lt;<span class="built_in">read</span>+73&gt;</span><br><span class="line">   0x7f5da5a917d8 &lt;<span class="built_in">read</span>+24&gt;:	ret</span><br><span class="line">   0x7f5da5a917d9 &lt;<span class="built_in">read</span>+25&gt;:	sub    rsp,0x8</span><br><span class="line">   0x7f5da5a917dd &lt;<span class="built_in">read</span>+29&gt;:	call   0x7f5da5aaa240</span><br><span class="line">[------------------------------------stack-------------------------------------]</span><br><span class="line">0000| 0x7ffdc70f6608 --&gt; 0x40881d (cmp    eax,0x0)</span><br><span class="line">0008| 0x7ffdc70f6610 --&gt; 0x1</span><br><span class="line">0016| 0x7ffdc70f6618 --&gt; 0x0</span><br><span class="line">0024| 0x7ffdc70f6620 --&gt; 0x0</span><br><span class="line">0032| 0x7ffdc70f6628 --&gt; 0x40e9cd (mov    ebx,eax)</span><br><span class="line">0040| 0x7ffdc70f6630 --&gt; 0x1</span><br><span class="line">0048| 0x7ffdc70f6638 --&gt; 0x40ca67 (<span class="built_in">test</span>   ebp,ebp)</span><br><span class="line">0056| 0x7ffdc70f6640 --&gt; 0x1</span><br><span class="line">[------------------------------------------------------------------------------]</span><br><span class="line">Legend: code, data, rodata, value</span><br><span class="line">0x00007f5da5a917d0 <span class="keyword">in</span> <span class="built_in">read</span> () from target:/lib/x86_64-linux-gnu/libc.so.6</span><br></pre></td></tr></table></figure>
+
+<p>切换到容器里面执行 <code>ldd</code> （理论上任何非静态打包的程序都可以</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># /usr/bin/docker run -it dockerhub.nie.netease.com/frosty/sea sh</span></span><br><span class="line"><span class="comment"># ldd</span></span><br></pre></td></tr></table></figure>
+
+<p>发现进程收到 <code>SIGSEGV</code>信号，而这个信号的默认行为就是终止进程。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">[----------------------------------registers-----------------------------------]</span><br><span class="line">RAX: 0xffffffffff600400</span><br><span class="line">RBX: 0x7ffd0d88cf60 (<span class="string">&quot;/bin/bash&quot;</span>)</span><br><span class="line">RCX: 0x7361622f6e69622f (<span class="string">&#x27;/bin/bas&#x27;</span>)</span><br><span class="line">RDX: 0x2f (<span class="string">&#x27;/&#x27;</span>)</span><br><span class="line">RSI: 0x7ffd0d88cf60 (<span class="string">&quot;/bin/bash&quot;</span>)</span><br><span class="line">RDI: 0x0</span><br><span class="line">RBP: 0x0</span><br><span class="line">RSP: 0x7ffd0d88baf8 --&gt; 0x7f6be2ca160d --&gt; 0x909090c308c48348</span><br><span class="line">RIP: 0xffffffffff600400</span><br><span class="line">R8 : 0x7ffd0d88cf60 (<span class="string">&quot;/bin/bash&quot;</span>)</span><br><span class="line">R9 : 0x1</span><br><span class="line">R10: 0x0</span><br><span class="line">R11: 0x7f6be2ca1600 --&gt; 0xc0c74808ec8348</span><br><span class="line">R12: 0x42164c (&lt;_start&gt;:	xor    ebp,ebp)</span><br><span class="line">R13: 0x7ffd0d88bd40 --&gt; 0x2</span><br><span class="line">R14: 0x0</span><br><span class="line">R15: 0x0</span><br><span class="line">EFLAGS: 0x10206 (carry PARITY adjust zero sign <span class="built_in">trap</span> INTERRUPT direction overflow)</span><br><span class="line">[-------------------------------------code-------------------------------------]</span><br><span class="line">Invalid <span class="variable">$PC</span> address: 0xffffffffff600400</span><br><span class="line">[------------------------------------stack-------------------------------------]</span><br><span class="line">0000| 0x7ffd0d88baf8 --&gt; 0x7f6be2ca160d --&gt; 0x909090c308c48348</span><br><span class="line">0008| 0x7ffd0d88bb00 --&gt; 0x6d (<span class="string">&#x27;m&#x27;</span>)</span><br><span class="line">0016| 0x7ffd0d88bb08 --&gt; 0x420324 (&lt;main+1028&gt;:	mov    edx,DWORD PTR [rsp+0x28])</span><br><span class="line">0024| 0x7ffd0d88bb10 --&gt; 0x7ffd0d88bc80 --&gt; 0x200000000</span><br><span class="line">0032| 0x7ffd0d88bb18 --&gt; 0x7ffd0d88bd48 --&gt; 0x7ffd0d88cf60 (<span class="string">&quot;/bin/bash&quot;</span>)</span><br><span class="line">0040| 0x7ffd0d88bb20 --&gt; 0x7ffd0d88bd60 --&gt; 0x7ffd0d88cf77 (<span class="string">&quot;HOSTNAME=899eea8d3958&quot;</span>)</span><br><span class="line">0048| 0x7ffd0d88bb28 --&gt; 0x7f6b00000002</span><br><span class="line">0056| 0x7ffd0d88bb30 --&gt; 0xf63d4e2e</span><br><span class="line">[------------------------------------------------------------------------------]</span><br><span class="line">Legend: code, data, rodata, value</span><br><span class="line">Stopped reason: SIGSEGV</span><br><span class="line">0xffffffffff600400 <span class="keyword">in</span> ?? ()</span><br></pre></td></tr></table></figure>
+
+<p>发现 <code>RIP</code> 寄存器访问了内核的地址空间了，内核所在高地址。任何系统就给发了一个 SIGSEGV 信号，默认行为就是终止进程。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">gdb-peda$ bt</span><br><span class="line"><span class="comment">#0  0xffffffffff600400 in ?? ()</span></span><br><span class="line"><span class="comment">#1  0x00007f828873f60d in time () from target:/lib/x86_64-linux-gnu/libc.so.6</span></span><br><span class="line"><span class="comment">#2  0x0000000000420324 in main ()</span></span><br><span class="line"><span class="comment">#3  0x00007f82886c0ead in __libc_start_main () from target:/lib/x86_64-linux-gnu/libc.so.6</span></span><br><span class="line"><span class="comment">#4  0x0000000000421675 in _start ()</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看到其实进程死的时候调用了标准库里面的函数 <code>time()</code> ，标准库的问题在容器中位于 <code>/lib/x86_64-linux-gnu/libc.so.6</code>。</p>
+<p>反汇编看一下这个函数的实现</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">gdb-peda$ disassemble 0x00007fa58acd060d</span><br><span class="line">Dump of assembler code for function time:</span><br><span class="line">   0x00007fa58acd0600 &lt;+0&gt;:	sub    rsp,0x8</span><br><span class="line">   0x00007fa58acd0604 &lt;+4&gt;:	mov    rax,0xffffffffff600400</span><br><span class="line">   0x00007fa58acd060b &lt;+11&gt;:	call   rax</span><br><span class="line">   0x00007fa58acd060d &lt;+13&gt;:	add    rsp,0x8</span><br><span class="line">   0x00007fa58acd0611 &lt;+17&gt;:	ret</span><br><span class="line">End of assembler dump.</span><br></pre></td></tr></table></figure>
+<p>可以看到 <code>rax</code> 值就是异常的原因，看一下当前进程的 memory layout。可以看到至少没有将 <code>0xffffffffff600400</code> 这个地址映射到进程的地址空间。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">gdb-peda$ vmmap</span><br><span class="line">Start              End                Perm	Name</span><br><span class="line">0x00400000         0x004e5000         r-xp	/bin/bash</span><br><span class="line">0x006e4000         0x006e5000         r--p	/bin/bash</span><br><span class="line">0x006e5000         0x006ee000         rw-p	/bin/bash</span><br><span class="line">0x006ee000         0x006f4000         rw-p	mapped</span><br><span class="line">0x0190e000         0x01910000         rw-p	[heap]</span><br><span class="line">0x00007fa58ac33000 0x00007fa58adb5000 r-xp	/lib/x86_64-linux-gnu/libc-2.13.so</span><br><span class="line">0x00007fa58adb5000 0x00007fa58afb5000 ---p	/lib/x86_64-linux-gnu/libc-2.13.so</span><br><span class="line">0x00007fa58afb5000 0x00007fa58afb9000 r--p	/lib/x86_64-linux-gnu/libc-2.13.so</span><br><span class="line">0x00007fa58afb9000 0x00007fa58afba000 rw-p	/lib/x86_64-linux-gnu/libc-2.13.so</span><br><span class="line">0x00007fa58afba000 0x00007fa58afbf000 rw-p	mapped</span><br><span class="line">0x00007fa58afbf000 0x00007fa58afc1000 r-xp	/lib/x86_64-linux-gnu/libdl-2.13.so</span><br><span class="line">0x00007fa58afc1000 0x00007fa58b1c1000 ---p	/lib/x86_64-linux-gnu/libdl-2.13.so</span><br><span class="line">0x00007fa58b1c1000 0x00007fa58b1c2000 r--p	/lib/x86_64-linux-gnu/libdl-2.13.so</span><br><span class="line">0x00007fa58b1c2000 0x00007fa58b1c3000 rw-p	/lib/x86_64-linux-gnu/libdl-2.13.so</span><br><span class="line">0x00007fa58b1c3000 0x00007fa58b1e8000 r-xp	/lib/x86_64-linux-gnu/libtinfo.so.5.9</span><br><span class="line">0x00007fa58b1e8000 0x00007fa58b3e7000 ---p	/lib/x86_64-linux-gnu/libtinfo.so.5.9</span><br><span class="line">0x00007fa58b3e7000 0x00007fa58b3eb000 r--p	/lib/x86_64-linux-gnu/libtinfo.so.5.9</span><br><span class="line">0x00007fa58b3eb000 0x00007fa58b3ec000 rw-p	/lib/x86_64-linux-gnu/libtinfo.so.5.9</span><br><span class="line">0x00007fa58b3ec000 0x00007fa58b40c000 r-xp	/lib/x86_64-linux-gnu/ld-2.13.so</span><br><span class="line">0x00007fa58b604000 0x00007fa58b607000 rw-p	mapped</span><br><span class="line">0x00007fa58b609000 0x00007fa58b60b000 rw-p	mapped</span><br><span class="line">0x00007fa58b60b000 0x00007fa58b60c000 r--p	/lib/x86_64-linux-gnu/ld-2.13.so</span><br><span class="line">0x00007fa58b60c000 0x00007fa58b60d000 rw-p	/lib/x86_64-linux-gnu/ld-2.13.so</span><br><span class="line">0x00007fa58b60d000 0x00007fa58b60e000 rw-p	mapped</span><br><span class="line">0x00007ffca937e000 0x00007ffca939f000 rw-p	[stack]</span><br><span class="line">0x00007ffca93ca000 0x00007ffca93cd000 r--p	[vvar]</span><br><span class="line">0x00007ffca93cd000 0x00007ffca93cf000 r-xp	[vdso]</span><br></pre></td></tr></table></figure>
+
+<p>确认一下 <code>glibc</code>的版本并将这个动态连接库复制到宿主上，反汇编分析。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ls /lib/x86_64-linux-gnu/libc.so.6</span></span><br><span class="line">/lib/x86_64-linux-gnu/libc.so.6</span><br><span class="line"><span class="comment"># ls -al /lib/x86_64-linux-gnu/libc.so.6</span></span><br><span class="line">lrwxrwxrwx 1 root root 12 Oct 16  2014 /lib/x86_64-linux-gnu/libc.so.6 -&gt; libc-2.13.so</span><br><span class="line"><span class="comment"># ls /lib/x86_64-linux-gnu/libc-2.13.so</span></span><br><span class="line">/lib/x86_64-linux-gnu/libc-2.13.so</span><br></pre></td></tr></table></figure>
+
+<p>反汇编如下可以看到和运行时的代码是一样的，也就是说这个版本 <code>glibc</code> 代码里面硬编码了 <code>0xffffffffff600400</code> 这个地址。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"># gdb -q libc-2.13.so</span><br><span class="line">Reading symbols from libc-2.13.so...(no debugging symbols found)...done.</span><br><span class="line">gdb-peda$ disassemble time</span><br><span class="line">Dump of assembler code for function time:</span><br><span class="line">   0x000000000009d600 &lt;+0&gt;:	sub    rsp,0x8</span><br><span class="line">   0x000000000009d604 &lt;+4&gt;:	mov    rax,0xffffffffff600400</span><br><span class="line">   0x000000000009d60b &lt;+11&gt;:	call   rax</span><br><span class="line">   0x000000000009d60d &lt;+13&gt;:	add    rsp,0x8</span><br><span class="line">   0x000000000009d611 &lt;+17&gt;:	ret</span><br><span class="line">End of assembler dump.</span><br></pre></td></tr></table></figure>
+
+<p>这也就初步验证了就是应该是 ABI 层面的兼容问题，Google 一下解决方案也是很简单的在 <code>grub</code> 里面配置启动参数 <code>vsyscall=emulate</code>，之所以这样配置的原因是 <a target="_blank" rel="noopener" href="https://salsa.debian.org/kernel-team/linux/commit/74f87b226a1267b837d98a5d46824f9b5629962e">kernel Config</a>。</p>
+<p>修改参数修改一下重新尝试，发现内存里面多了一个 <code>vsyscall</code> 的 4k page。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">gdb-peda$ vmmap</span><br><span class="line">Start              End                Perm	Name</span><br><span class="line">0x00400000         0x004e5000         r-xp	/bin/bash</span><br><span class="line">0x006e4000         0x006e5000         r--p	/bin/bash</span><br><span class="line">0x006e5000         0x006ee000         rw-p	/bin/bash</span><br><span class="line">0x006ee000         0x006f4000         rw-p	mapped</span><br><span class="line">0x0134e000         0x0138b000         rw-p	[heap]</span><br><span class="line">0x00007f2d59391000 0x00007f2d5939c000 r-xp	/lib/x86_64-linux-gnu/libnss_files-2.13.so</span><br><span class="line">0x00007f2d5939c000 0x00007f2d5959b000 ---p	/lib/x86_64-linux-gnu/libnss_files-2.13.so</span><br><span class="line">0x00007f2d5959b000 0x00007f2d5959c000 r--p	/lib/x86_64-linux-gnu/libnss_files-2.13.so</span><br><span class="line">0x00007f2d5959c000 0x00007f2d5959d000 rw-p	/lib/x86_64-linux-gnu/libnss_files-2.13.so</span><br><span class="line">0x00007f2d5959d000 0x00007f2d595a7000 r-xp	/lib/x86_64-linux-gnu/libnss_nis-2.13.so</span><br><span class="line">0x00007f2d595a7000 0x00007f2d597a6000 ---p	/lib/x86_64-linux-gnu/libnss_nis-2.13.so</span><br><span class="line">0x00007f2d597a6000 0x00007f2d597a7000 r--p	/lib/x86_64-linux-gnu/libnss_nis-2.13.so</span><br><span class="line">0x00007f2d597a7000 0x00007f2d597a8000 rw-p	/lib/x86_64-linux-gnu/libnss_nis-2.13.so</span><br><span class="line">0x00007f2d597a8000 0x00007f2d597bd000 r-xp	/lib/x86_64-linux-gnu/libnsl-2.13.so</span><br><span class="line">0x00007f2d597bd000 0x00007f2d599bc000 ---p	/lib/x86_64-linux-gnu/libnsl-2.13.so</span><br><span class="line">0x00007f2d599bc000 0x00007f2d599bd000 r--p	/lib/x86_64-linux-gnu/libnsl-2.13.so</span><br><span class="line">0x00007f2d599bd000 0x00007f2d599be000 rw-p	/lib/x86_64-linux-gnu/libnsl-2.13.so</span><br><span class="line">0x00007f2d599be000 0x00007f2d599c0000 rw-p	mapped</span><br><span class="line">0x00007f2d599c0000 0x00007f2d599c7000 r-xp	/lib/x86_64-linux-gnu/libnss_compat-2.13.so</span><br><span class="line">0x00007f2d599c7000 0x00007f2d59bc6000 ---p	/lib/x86_64-linux-gnu/libnss_compat-2.13.so</span><br><span class="line">0x00007f2d59bc6000 0x00007f2d59bc7000 r--p	/lib/x86_64-linux-gnu/libnss_compat-2.13.so</span><br><span class="line">0x00007f2d59bc7000 0x00007f2d59bc8000 rw-p	/lib/x86_64-linux-gnu/libnss_compat-2.13.so</span><br><span class="line">0x00007f2d59bc8000 0x00007f2d59d4a000 r-xp	/lib/x86_64-linux-gnu/libc-2.13.so</span><br><span class="line">0x00007f2d59d4a000 0x00007f2d59f4a000 ---p	/lib/x86_64-linux-gnu/libc-2.13.so</span><br><span class="line">0x00007f2d59f4a000 0x00007f2d59f4e000 r--p	/lib/x86_64-linux-gnu/libc-2.13.so</span><br><span class="line">0x00007f2d59f4e000 0x00007f2d59f4f000 rw-p	/lib/x86_64-linux-gnu/libc-2.13.so</span><br><span class="line">0x00007f2d59f4f000 0x00007f2d59f54000 rw-p	mapped</span><br><span class="line">0x00007f2d59f54000 0x00007f2d59f56000 r-xp	/lib/x86_64-linux-gnu/libdl-2.13.so</span><br><span class="line">0x00007f2d59f56000 0x00007f2d5a156000 ---p	/lib/x86_64-linux-gnu/libdl-2.13.so</span><br><span class="line">0x00007f2d5a156000 0x00007f2d5a157000 r--p	/lib/x86_64-linux-gnu/libdl-2.13.so</span><br><span class="line">0x00007f2d5a157000 0x00007f2d5a158000 rw-p	/lib/x86_64-linux-gnu/libdl-2.13.so</span><br><span class="line">0x00007f2d5a158000 0x00007f2d5a17d000 r-xp	/lib/x86_64-linux-gnu/libtinfo.so.5.9</span><br><span class="line">0x00007f2d5a17d000 0x00007f2d5a37c000 ---p	/lib/x86_64-linux-gnu/libtinfo.so.5.9</span><br><span class="line">0x00007f2d5a37c000 0x00007f2d5a380000 r--p	/lib/x86_64-linux-gnu/libtinfo.so.5.9</span><br><span class="line">0x00007f2d5a380000 0x00007f2d5a381000 rw-p	/lib/x86_64-linux-gnu/libtinfo.so.5.9</span><br><span class="line">0x00007f2d5a381000 0x00007f2d5a3a1000 r-xp	/lib/x86_64-linux-gnu/ld-2.13.so</span><br><span class="line">0x00007f2d5a599000 0x00007f2d5a59c000 rw-p	mapped</span><br><span class="line">0x00007f2d5a59e000 0x00007f2d5a5a0000 rw-p	mapped</span><br><span class="line">0x00007f2d5a5a0000 0x00007f2d5a5a1000 r--p	/lib/x86_64-linux-gnu/ld-2.13.so</span><br><span class="line">0x00007f2d5a5a1000 0x00007f2d5a5a2000 rw-p	/lib/x86_64-linux-gnu/ld-2.13.so</span><br><span class="line">0x00007f2d5a5a2000 0x00007f2d5a5a3000 rw-p	mapped</span><br><span class="line">0x00007ffe04499000 0x00007ffe044ba000 rw-p	[stack]</span><br><span class="line">0x00007ffe044d0000 0x00007ffe044d3000 r--p	[vvar]</span><br><span class="line">0x00007ffe044d3000 0x00007ffe044d5000 r-xp	[vdso]</span><br><span class="line">0xffffffffff600000 0xffffffffff601000 r-xp	[vsyscall]</span><br></pre></td></tr></table></figure>
+
+<p>也就说启用这个特性操作系统会有更好的向下兼容的特性，但是这个操作系统上的每一个进程都会映射一块内核的地址空间。</p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2020/05/20/service-traffic-local/">service externalTrafficPolicy 探究</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2020/03/11/cgo-cross-compiler/">cgo 交叉编译</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

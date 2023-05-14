@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>cgroups II - cgroup implementation overview - sn0rt's blog</title>
+
+  
+    <meta name="description" content="0x00 cgroups implementation因为cgroups其他子系统的应用远比net_cls要简单的多，所以后面不是介绍其他子系统使用，而是分析一下cgroups的实现 (base kernel 3.10).在正式切入实现之前回顾一下，cgroups子系统的介绍 [^lwn].    blkio — 这个子系统为块设备设定输入 &#x2F; 输出限制，比如物理设备（磁盘，固态硬盘，U">
+<meta property="og:type" content="article">
+<meta property="og:title" content="cgroups II - cgroup implementation overview">
+<meta property="og:url" content="http://sn0rt.github.io/2016/07/29/cgroup-ii-implementation-overview/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="0x00 cgroups implementation因为cgroups其他子系统的应用远比net_cls要简单的多，所以后面不是介绍其他子系统使用，而是分析一下cgroups的实现 (base kernel 3.10).在正式切入实现之前回顾一下，cgroups子系统的介绍 [^lwn].    blkio — 这个子系统为块设备设定输入 &#x2F; 输出限制，比如物理设备（磁盘，固态硬盘，U">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2016-07-28T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.759Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary">
+  
+  
+  
+  <meta name="keywords" content="linux">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">cgroups II - cgroup implementation overview</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x10-init-cgroups"><span class="toc-text">0x10 init cgroups</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x20-mainly-data-structures"><span class="toc-text">0x20 mainly data structures</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x02-cgroup-filesystem"><span class="toc-text">0x02 cgroup filesystem</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x14-blkio-subsystem"><span class="toc-text">0x14 blkio subsystem</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x11-cpu-subsystem"><span class="toc-text">0x11 cpu subsystem</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x12-cpuset-subsystem"><span class="toc-text">0x12 cpuset subsystem</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x13-memory-subsystem"><span class="toc-text">0x13 memory subsystem</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x15-freezer-subsystem"><span class="toc-text">0x15 freezer subsystem</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x16-drvices-subsystem"><span class="toc-text">0x16 drvices subsystem</span></a></li></ol></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2016-07-28T16:00:00.000Z">2016-07-29</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>cgroups II - cgroup implementation overview</span></h1>
+<h1 id="0x00-cgroups-implementation"><a href="#0x00-cgroups-implementation" class="headerlink" title="0x00 cgroups implementation"></a>0x00 cgroups implementation</h1><p>因为<code>cgroups</code>其他子系统的应用远比<code>net_cls</code>要简单的多，所以后面不是介绍其他子系统使用，而是分析一下<code>cgroups</code>的实现 (base kernel 3.10).<br>在正式切入实现之前回顾一下，<code>cgroups</code>子系统的介绍 [^lwn].</p>
+<blockquote>
+</blockquote>
+<ul>
+<li>blkio — 这个子系统为块设备设定输入 &#x2F; 输出限制，比如物理设备（磁盘，固态硬盘，USB 等等）。</li>
+<li>cpu — 这个子系统使用调度程序提供对 CPU 的 cgroup 任务访问。</li>
+<li>cpuacct — 这个子系统自动生成 cgroup 中任务所使用的 CPU 报告。</li>
+<li>cpuset — 这个子系统为 cgroup 中的任务分配独立 CPU（在多核系统）和内存节点。</li>
+<li>devices — 这个子系统可允许或者拒绝 cgroup 中的任务访问设备。</li>
+<li>freezer — 这个子系统挂起或者恢复 cgroup 中的任务。</li>
+<li>memory — 这个子系统设定 cgroup 中任务使用的内存限制，并自动生成内存资源使用报告。<br>…</li>
+</ul>
+<p>省略掉一部分不是特别关注的子系统 (因为相对应用场景小，背景知识多!).<br>这个 post 行文逻辑参考了 [^wangjiefeng], 各个子系统的实现位置可以参考 [^netlec].</p>
+<h2 id="0x10-init-cgroups"><a href="#0x10-init-cgroups" class="headerlink" title="0x10 init cgroups"></a>0x10 init cgroups</h2><p><code>cgroup</code>是一个树状结构分布，系统在启动时候会创建一个<code>cgroup</code>系统，在<code>start_kernel</code>调用<code>cgroup_init()</code>, 这个函数实现在<code>kernel/cgroup.c</code>中。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> __init <span class="title function_">cgroup_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line">    bdi_init(&amp;cgroup_backing_dev_info);</span><br><span class="line">    ...</span><br><span class="line">	<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; CGROUP_SUBSYS_COUNT; i++) &#123;</span><br><span class="line">        ...</span><br><span class="line">			cgroup_init_subsys(ss);</span><br><span class="line">		...</span><br><span class="line">			cgroup_init_idr(ss, init_css_set.subsys[ss-&gt;subsys_id]);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	key = css_set_hash(init_css_set.subsys);</span><br><span class="line">	hash_add(css_set_table, &amp;init_css_set.hlist, key);</span><br><span class="line"></span><br><span class="line">	kobject_create_and_add(<span class="string">&quot;cgroup&quot;</span>, fs_kobj);</span><br><span class="line">        register_filesystem(&amp;cgroup_fs_type);</span><br><span class="line">	proc_create(<span class="string">&quot;cgroups&quot;</span>, <span class="number">0</span>, <span class="literal">NULL</span>, &amp;proc_cgroupstats_operations);</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>bdi_init</code>参数是 kernel 用来控制回写的结构体<code>backing_dev_info</code>, 其中有控制有控制 I&#x2F;O 带宽和被谁使用等重要参数。<br>其主要工作是在利用<code>for (i &lt; CGROUP_SUBSYS_COUNT)</code>后面语句块为了每一个子系统调用<code>cgroup_init_subsys()</code>来初始化子系统，调用<code>cgroup_init_idr()</code>[^idr] 来创建<code>Integer ID Management</code>, 后利用<code>css_set_hash</code>与<code>hash_add</code>创建一个 hash 表，以此提高系统对一个已经存在的<code>css_set</code>的查找时性能，又利用<code>kobject_create_and_add(&quot;cgroup&quot;, fs_kobj)</code>创建一个<code>kobject</code>对象，利用<code>register_filesystem(&amp;cgroup_fs_type)</code>注册了<code>cgroup</code>文件系统，用<code>proc_create(&quot;cgroups&quot;, 0, NULL, &amp;proc_cgroupstats_operations)</code>在<code>proc</code>下创建了<code>cgroup</code>开关 [^source].</p>
+<h2 id="0x20-mainly-data-structures"><a href="#0x20-mainly-data-structures" class="headerlink" title="0x20 mainly data structures"></a>0x20 mainly data structures</h2><p>因为每一个<code>hierarchy</code>中都有一个<code>task</code>文件，里面放置着 PID, 可以猜测进程是<code>cgroup</code>中重要的纽带，所以从<code>task_struct</code>结构来切入<code>cgroup</code>有关的主要代码。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_CGROUPS</span></span><br><span class="line"><span class="comment">/* Control Group info protected by css_set_lock */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">css_set</span> __<span class="title">rcu</span> *<span class="title">cgroups</span>;</span></span><br><span class="line"><span class="comment">/* cg_list protected by css_set_lock and tsk-&gt;alloc_lock */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">cg_list</span>;</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+<p>可以看见<code>cgroups</code>是个<code>css_set</code>(cgroups subsystem status) 指针，而<code>css_set</code>存储了与进程相关的<code>cgroups</code>信息，<code>cg_list</code>是一个链表头指针，包含所有链接到同一个<code>css_set</code>的 task.</p>
+<p><code>css_set</code>的结构如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">css_set</span> &#123;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 当前 css_set 引用计数器，因为 css_set 可以多个进程共用，只要这些进程的 cgroups 信息相同。*/</span></span><br><span class="line">	<span class="type">atomic_t</span> refcount;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* hlist 是 hash 表中的节点，用于把所有 css_set 组织成一个 hash 表，方便内核快速查找特定的 css_set. */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">hlist_node</span> <span class="title">hlist</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* task 指向所有连接到此 css_set 的进程组成的链表。*/</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">tasks</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* cg_links 变量自当前的 css_set 指向 cg_group_link 组成的链表。*/</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">cg_links</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 子系统的状态集合，它由 init_css_set 的在系统启动和子系统模块载入和卸载时创建，且之后不能改变。*/</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cgroup_subsys_state</span> *<span class="title">subsys</span>[<span class="title">CGROUP_SUBSYS_COUNT</span>];</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 利用 rcu 保证删除一致性 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rcu_head</span> <span class="title">rcu_head</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p><code>css_set-&gt;subsys</code>是<code>cgroup_subsys_state</code>指针数组，它记录进程与特定子系统相关的信息，通过这个指针数组，进程可以获得相应的 cgroup 的控制信息。</p>
+<p><code>cgroup_subsys_state</code>结构如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 由系统维护的每进程 / 每 cgroup 的状态 */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cgroup_subsys_state</span> &#123;</span></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * The cgroup that this subsystem is attached to. Useful</span></span><br><span class="line"><span class="comment">	 * for subsystems that want to know about the cgroup</span></span><br><span class="line"><span class="comment">	 * hierarchy structure</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cgroup</span> *<span class="title">cgroup</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * State maintained by the cgroup system to allow subsystems</span></span><br><span class="line"><span class="comment">	 * to be &quot;busy&quot;. Should be accessed via css_get(),</span></span><br><span class="line"><span class="comment">	 * css_tryget() and css_put().</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="type">atomic_t</span> refcnt;</span><br><span class="line"></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> flags;</span><br><span class="line">	<span class="comment">/* ID for this css, if possible */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">css_id</span> __<span class="title">rcu</span> *<span class="title">id</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Used to put @cgroup-&gt;dentry on the last css_put() */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">work_struct</span> <span class="title">dput_work</span>;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>cgroup_subsys_state</code>里面最重要的就是<code>*cgroup</code>字段，cgroup 指针指向一个 cgroup 结构，也就是进程所属的 cgroup. 进程收到特定子系统的控制就是加入特定的 cgroup 实现的。<br>因为 cgroup 在特定 hierarchy 上面，而子系统有事附加到层级上的，这样结构就完整了梳理出来了<code>task_struct-&gt;css_set-&gt;cgroup_state-&gt;cgroup</code>.<br>虽然注释写的是”由系统维护的每进程 &#x2F; 每 cgroup 的状态”, 但是在结构体里面并没有看见控制信息，知识定义了各个子系统都需要的共同信息，比如该 cgroup_subsys_state 从属的 cgroup. 其实各子系统在根据各自的实际需求实现自己的控制信息，最后在各自的结构体中将<code>cgroup_subsys_state</code>包含进去。这样 kernel 就可以用宏通过<code>cgroup_subsys_state</code>来获取相应的信息。[^wangjiefeng]</p>
+<p><code>cgroup_subsys_state-&gt;cgroup</code>结构如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cgroup</span> &#123;</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> flags;		<span class="comment">/* &quot;unsigned long&quot; so bitops work */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * count users of this cgroup. &gt;0 means busy, but doesn&#x27;t</span></span><br><span class="line"><span class="comment">	 * necessarily indicate the number of tasks in the cgroup</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="type">atomic_t</span> count;</span><br><span class="line"></span><br><span class="line">	<span class="type">int</span> id;				<span class="comment">/* ida 分配的层级内的 ID 号 */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* sibling, children, parent 利用兄弟孩子表示法将层级的 cgroup 构成一颗树。</span></span><br><span class="line"><span class="comment">	 * We link our &#x27;sibling&#x27; struct into our parent&#x27;s &#x27;children&#x27;.</span></span><br><span class="line"><span class="comment">	 * Our children link their &#x27;sibling&#x27; into our &#x27;children&#x27;.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">     </span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">sibling</span>;</span>	<span class="comment">/* my parent&#x27;s children */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">children</span>;</span>	<span class="comment">/* my children */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">files</span>;</span>		<span class="comment">/* my files */</span></span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cgroup</span> *<span class="title">parent</span>;</span>		<span class="comment">/* my parent */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">dentry</span> *<span class="title">dentry</span>;</span>		<span class="comment">/* cgroup 的 fs entry */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * This is a copy of dentry-&gt;d_name, and it&#x27;s needed because</span></span><br><span class="line"><span class="comment">	 * we can&#x27;t use dentry-&gt;d_name in cgroup_path().</span></span><br><span class="line"><span class="comment">	 *</span></span><br><span class="line"><span class="comment">	 * You must acquire rcu_read_lock() to access cgrp-&gt;name, and</span></span><br><span class="line"><span class="comment">	 * the only place that can change it is rename(), which is</span></span><br><span class="line"><span class="comment">	 * protected by parent dir&#x27;s i_mutex.</span></span><br><span class="line"><span class="comment">	 *</span></span><br><span class="line"><span class="comment">	 * Normally you should use cgroup_name() wrapper rather than</span></span><br><span class="line"><span class="comment">	 * access it directly.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cgroup_name</span> __<span class="title">rcu</span> *<span class="title">name</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* subsys 中指针指向每一个已注册子系统的指针，root 指向所在层级的 cgroup 的 cgroup_root 结构体 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cgroup_subsys_state</span> *<span class="title">subsys</span>[<span class="title">CGROUP_SUBSYS_COUNT</span>];</span></span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cgroupfs_root</span> *<span class="title">root</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * List of cg_cgroup_links pointing at css_sets with</span></span><br><span class="line"><span class="comment">	 * tasks in this cgroup. Protected by css_set_lock</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">css_sets</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">allcg_node</span>;</span>	<span class="comment">/* cgroupfs_root-&gt;allcg_list */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">cft_q_node</span>;</span>	<span class="comment">/* used during cftype add/rm */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * Linked list running through all cgroups that can</span></span><br><span class="line"><span class="comment">	 * potentially be reaped by the release agent. Protected by</span></span><br><span class="line"><span class="comment">	 * release_list_lock</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">release_list</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * list of pidlists, up to two for each namespace (one for procs, one</span></span><br><span class="line"><span class="comment">	 * for tasks); created on demand.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">pidlists</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">mutex</span> <span class="title">pidlist_mutex</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* For RCU-protected deletion */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rcu_head</span> <span class="title">rcu_head</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">work_struct</span> <span class="title">free_work</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 用户态期望收到的事件列表 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">event_list</span>;</span></span><br><span class="line">	<span class="type">spinlock_t</span> event_list_lock;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 目录的 xattrs */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">simple_xattrs</span> <span class="title">xattrs</span>;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>cgroup-&gt;css_sets</code>是一个头指针，指向由<code>cg_cgroup_link</code>(包含 cgroup 于 task 之间多对多关系的信息) 形成的链表。由此每一个<code>cg_cgroup_link</code>都包含一个指向<code>css_set *cg</code>指向每一个<code>task</code>的<code>css_set</code>.<code>css_set</code>结构中则包含<code>tasks</code>头指针。指向所有链接此<code>css_set</code>的 task 进程构成的链表。</p>
+<p><code>cgroup-&gt;root</code>是指向<code>cgroupfs_root</code>的指针，这就是 cgroup 所在层级对应的结构体。</p>
+<p><code>cgroupfs_root</code>结构如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cgroupfs_root</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">super_block</span> *<span class="title">sb</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* bitmask 记录将要附加到层级的子系统</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> subsys_mask;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 当前层级的 id 号 (唯一) */</span></span><br><span class="line">	<span class="type">int</span> hierarchy_id;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 当前已经附加到层级的子系统掩码 */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> actual_subsys_mask;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* A list running through the attached subsystems */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">subsys_list</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 指向当前层级的根 cgroup, 也就是创建层级自动创建的 cgroup */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cgroup</span> <span class="title">top_cgroup</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 追踪当前层级对应的 cgroup 数量 */</span></span><br><span class="line">	<span class="type">int</span> number_of_cgroups;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* A list running through the active hierarchies */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">root_list</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* All cgroups on this root, cgroup_mutex protected */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">allcg_list</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 层级详细的 flags */</span></span><br><span class="line">	<span class="type">unsigned</span> <span class="type">long</span> flags;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* IDs for cgroups in this hierarchy */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ida</span> <span class="title">cgroup_ida</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* The path to use for release notifications. */</span></span><br><span class="line">	<span class="type">char</span> release_agent_path[PATH_MAX];</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 层级的名字 (也许是空的) */</span></span><br><span class="line">	<span class="type">char</span> name[MAX_CGROUP_ROOT_NAMELEN];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p><code>cgroupfs_root-&gt;sb</code>是指向该层级关联的文件系统的超级块。<br>之所以<code>cgroup</code>与<code>css_set</code>之间多了一个<code>cgroup_state</code>结构体，是因为<code>cgroup</code>于<code>css_set</code>是一个多对多的关系需要一个中间结构将他们联系起来，</p>
+<h2 id="0x02-cgroup-filesystem"><a href="#0x02-cgroup-filesystem" class="headerlink" title="0x02 cgroup filesystem"></a>0x02 cgroup filesystem</h2><p>cgroups 是用户态接口是用文件系统实现的，在 linux 上实现文件系统必然要知道一些<code>VFS</code>相关的知识。</p>
+<ul>
+<li>超级块对象 (superblock object): 存放已安装文件系统相关信息。</li>
+<li>索引节点对象 (inode object): 存放关于文件的一般信息。</li>
+<li>文件对象 (file object): 存放打开文件与进程直接的信息。</li>
+<li>目录项对象 (dentry object): 存放目录项与对应文件进行链接的有关信息。</li>
+</ul>
+<p>cgroup 文件系统的定义：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_system_type</span> <span class="title">cgroup_fs_type</span> =</span> &#123;</span><br><span class="line">	.name = <span class="string">&quot;cgroup&quot;</span>,</span><br><span class="line">	.mount = cgroup_mount, <span class="comment">// mount</span></span><br><span class="line">	.kill_sb = cgroup_kill_sb, <span class="comment">// umount</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>超级块定义：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">super_operations</span> <span class="title">cgroup_ops</span> =</span> &#123;</span><br><span class="line">	.statfs = simple_statfs,</span><br><span class="line">	.drop_inode = generic_delete_inode,</span><br><span class="line">	.show_options = cgroup_show_options,</span><br><span class="line">	.remount_fs = cgroup_remount,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>文件操作定义：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> <span class="title">cgroup_file_operations</span> =</span> &#123;</span><br><span class="line">	.read = cgroup_file_read,</span><br><span class="line">	.write = cgroup_file_write,</span><br><span class="line">	.llseek = generic_file_llseek,</span><br><span class="line">	.open = cgroup_file_open,</span><br><span class="line">	.release = cgroup_file_release,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>索引块定义：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">inode_operations</span> <span class="title">cgroup_dir_inode_operations</span> =</span> &#123;</span><br><span class="line">	.lookup = cgroup_lookup,</span><br><span class="line">	.mkdir = cgroup_mkdir,</span><br><span class="line">	.rmdir = cgroup_rmdir,</span><br><span class="line">	.rename = cgroup_rename,</span><br><span class="line">	.setxattr = cgroup_setxattr,</span><br><span class="line">	.getxattr = cgroup_getxattr,</span><br><span class="line">	.listxattr = cgroup_listxattr,</span><br><span class="line">	.removexattr = cgroup_removexattr,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h1 id="0x10-subsystems"><a href="#0x10-subsystems" class="headerlink" title="0x10 subsystems"></a>0x10 subsystems</h1><p>子系统对应的实现在<code>cgroup_subsys</code>结构体中，其实现：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cgroup_subsys</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cgroup_subsys_state</span> *(*<span class="title">css_alloc</span>)(<span class="keyword">struct</span> <span class="title">cgroup</span> *<span class="title">cgrp</span>);</span></span><br><span class="line">	<span class="type">int</span> (*css_online)(<span class="keyword">struct</span> cgroup *cgrp);</span><br><span class="line">	<span class="type">void</span> (*css_offline)(<span class="keyword">struct</span> cgroup *cgrp);</span><br><span class="line">	<span class="type">void</span> (*css_free)(<span class="keyword">struct</span> cgroup *cgrp);</span><br><span class="line"></span><br><span class="line">	<span class="type">int</span> (*can_attach)(<span class="keyword">struct</span> cgroup *cgrp, <span class="keyword">struct</span> cgroup_taskset *tset);</span><br><span class="line">	<span class="type">void</span> (*cancel_attach)(<span class="keyword">struct</span> cgroup *cgrp, <span class="keyword">struct</span> cgroup_taskset *tset);</span><br><span class="line">	<span class="type">void</span> (*attach)(<span class="keyword">struct</span> cgroup *cgrp, <span class="keyword">struct</span> cgroup_taskset *tset);</span><br><span class="line">	<span class="type">void</span> (*fork)(<span class="keyword">struct</span> task_struct *task);</span><br><span class="line">	<span class="type">void</span> (*<span class="built_in">exit</span>)(<span class="keyword">struct</span> cgroup *cgrp, <span class="keyword">struct</span> cgroup *old_cgrp, <span class="keyword">struct</span> task_struct *task);</span><br><span class="line">	<span class="type">void</span> (*bind)(<span class="keyword">struct</span> cgroup *root);</span><br><span class="line"></span><br><span class="line">	<span class="type">int</span> subsys_id;</span><br><span class="line">	<span class="type">int</span> disabled;</span><br><span class="line">	<span class="type">int</span> early_init;</span><br><span class="line">	<span class="comment">/* ... */</span></span><br><span class="line">	<span class="type">bool</span> use_id;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* ... */</span></span><br><span class="line">	<span class="type">bool</span> broken_hierarchy;</span><br><span class="line">	<span class="type">bool</span> warned_broken_hierarchy;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MAX_CGROUP_TYPE_NAMELEN 32</span></span><br><span class="line">	<span class="type">const</span> <span class="type">char</span> *name;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Link to parent, and list entry in parent&#x27;s children. Protected by cgroup_lock() */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cgroupfs_root</span> *<span class="title">root</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">sibling</span>;</span></span><br><span class="line">    </span><br><span class="line">	<span class="comment">/* used when use_id == true */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">idr</span> <span class="title">idr</span>;</span></span><br><span class="line">	<span class="type">spinlock_t</span> id_lock;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* list of cftype_sets */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">cftsets</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* base cftypes, automatically [de]registered with subsys itself */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cftype</span> *<span class="title">base_cftypes</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cftype_set</span> <span class="title">base_cftset</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* should be defined only by modular subsystems */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">module</span> *<span class="title">module</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>结构体是各子系统的抽象，其中包含各子系统操作的交集。<br>在实践具体子系统时候填充抽象中定义且需要的部分 (面向对象的 C 在 kernel 中大量使用).</p>
+<h2 id="0x14-blkio-subsystem"><a href="#0x14-blkio-subsystem" class="headerlink" title="0x14 blkio subsystem"></a>0x14 blkio subsystem</h2><p>blkio subsystem 是基于<code>CFQ</code>实现的。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cgroup_subsyssu</span> <span class="title">blkio_subsys</span> =</span> &#123;</span><br><span class="line">	.name = <span class="string">&quot;blkio&quot;</span>,</span><br><span class="line">	.css_alloc = blkcg_css_alloc,</span><br><span class="line">	.css_offline = blkcg_css_offline,</span><br><span class="line">	.css_free = blkcg_css_free,</span><br><span class="line">	.can_attach = blkcg_can_attach,</span><br><span class="line">	.subsys_id = blkio_subsys_id,</span><br><span class="line">	.base_cftypes = blkcg_files,</span><br><span class="line">	.module = THIS_MODULE,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h2 id="0x11-cpu-subsystem"><a href="#0x11-cpu-subsystem" class="headerlink" title="0x11 cpu subsystem"></a>0x11 cpu subsystem</h2><p>当运行 SCHED_NORMAL，SCHED_BATCH cpu subsystem 是基于<code>CFS</code>实现的，然后 dl_sched_class 调度类也是实现 fair_group_scheduling 但是两者之间差别目前还没有深究。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cgroup_subsys</span> <span class="title">cpu_cgroup_subsys</span> =</span> &#123;</span><br><span class="line">	.name		= <span class="string">&quot;cpu&quot;</span>,</span><br><span class="line">	.css_alloc	= cpu_cgroup_css_alloc,</span><br><span class="line">	.css_free	= cpu_cgroup_css_free,</span><br><span class="line">	.css_online	= cpu_cgroup_css_online,</span><br><span class="line">	.css_offline	= cpu_cgroup_css_offline,</span><br><span class="line">	.can_attach	= cpu_cgroup_can_attach,</span><br><span class="line">	.attach		= cpu_cgroup_attach,</span><br><span class="line">	.<span class="built_in">exit</span>		= cpu_cgroup_exit,</span><br><span class="line">	.subsys_id	= cpu_cgroup_subsys_id,</span><br><span class="line">	.base_cftypes	= cpu_files,</span><br><span class="line">	.early_init	= <span class="number">1</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="0x12-cpuset-subsystem"><a href="#0x12-cpuset-subsystem" class="headerlink" title="0x12 cpuset subsystem"></a>0x12 cpuset subsystem</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cgroup_subsys</span> <span class="title">cpuset_subsys</span> =</span> &#123;</span><br><span class="line">	.name = <span class="string">&quot;cpuset&quot;</span>,</span><br><span class="line">	.css_alloc = cpuset_css_alloc,</span><br><span class="line">	.css_online = cpuset_css_online,</span><br><span class="line">	.css_offline = cpuset_css_offline,</span><br><span class="line">	.css_free = cpuset_css_free,</span><br><span class="line">	.can_attach = cpuset_can_attach,</span><br><span class="line">	.cancel_attach = cpuset_cancel_attach,</span><br><span class="line">	.attach = cpuset_attach,</span><br><span class="line">	.subsys_id = cpuset_subsys_id,</span><br><span class="line">	.base_cftypes = files,</span><br><span class="line">	.early_init = <span class="number">1</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="0x13-memory-subsystem"><a href="#0x13-memory-subsystem" class="headerlink" title="0x13 memory subsystem"></a>0x13 memory subsystem</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cgroup_subsys</span> <span class="title">mem_cgroup_subsys</span> =</span> &#123;</span><br><span class="line">	.name = <span class="string">&quot;memory&quot;</span>,</span><br><span class="line">	.subsys_id = mem_cgroup_subsys_id,</span><br><span class="line">	.css_alloc = mem_cgroup_css_alloc,</span><br><span class="line">	.css_online = mem_cgroup_css_online,</span><br><span class="line">	.css_offline = mem_cgroup_css_offline,</span><br><span class="line">	.css_free = mem_cgroup_css_free,</span><br><span class="line">	.can_attach = mem_cgroup_can_attach,</span><br><span class="line">	.cancel_attach = mem_cgroup_cancel_attach,</span><br><span class="line">	.attach = mem_cgroup_move_task,</span><br><span class="line">	.bind = mem_cgroup_bind,</span><br><span class="line">	.base_cftypes = mem_cgroup_files,</span><br><span class="line">	.early_init = <span class="number">0</span>,</span><br><span class="line">	.use_id = <span class="number">1</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h2 id="0x15-freezer-subsystem"><a href="#0x15-freezer-subsystem" class="headerlink" title="0x15 freezer subsystem"></a>0x15 freezer subsystem</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cgroup_subsys</span> <span class="title">freezer_subsys</span> =</span> &#123;</span><br><span class="line">	.name		= <span class="string">&quot;freezer&quot;</span>,</span><br><span class="line">	.css_alloc	= freezer_css_alloc,</span><br><span class="line">	.css_online	= freezer_css_online,</span><br><span class="line">	.css_offline	= freezer_css_offline,</span><br><span class="line">	.css_free	= freezer_css_free,</span><br><span class="line">	.subsys_id	= freezer_subsys_id,</span><br><span class="line">	.attach		= freezer_attach,</span><br><span class="line">	.fork		= freezer_fork,</span><br><span class="line">	.base_cftypes	= files,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="0x16-drvices-subsystem"><a href="#0x16-drvices-subsystem" class="headerlink" title="0x16 drvices subsystem"></a>0x16 drvices subsystem</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cgroup_subsys</span> <span class="title">devices_subsys</span> =</span> &#123;</span><br><span class="line">	.name = <span class="string">&quot;devices&quot;</span>,</span><br><span class="line">	.can_attach = devcgroup_can_attach,</span><br><span class="line">	.css_alloc = devcgroup_css_alloc,</span><br><span class="line">	.css_free = devcgroup_css_free,</span><br><span class="line">	.css_online = devcgroup_online,</span><br><span class="line">	.css_offline = devcgroup_offline,</span><br><span class="line">	.subsys_id = devices_subsys_id,</span><br><span class="line">	.base_cftypes = dev_cgroup_files,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>[^wangjiefeng]: <a target="_blank" rel="noopener" href="http://files.cnblogs.com/files/lisperl/cgroups%E4%BB%8B%E7%BB%8D.pdf">王喆锋 Linux Cgroups 详解</a><br>[^source]: <a target="_blank" rel="noopener" href="http://www.oenhan.com/cgroups-src-1">Cgroups 源码分析 1: 基本概念与框架</a><br>[^lwn]: <a target="_blank" rel="noopener" href="http://lwn.net/Articles/648292/">LWN Writeback and control groups</a><br>[^idr]: <a target="_blank" rel="noopener" href="https://lwn.net/Articles/103209/">idr - integer ID management</a><br>[^netlec]: <a target="_blank" rel="noopener" href="http://www.haifux.org/lectures/299/netLec7.pdf">netlec</a></p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2016/08/04/kernel-panic/">analysis of kernel crash</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2016/07/25/cgroup-i/">cgroups I - usage</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>amzon aws cni 踩坑 2 - sn0rt's blog</title>
+
+  
+    <meta name="description" content="目前业务上准备试用 aws vpc cni 方案，之前遇到了一些 cni 的使用问题发现还有一些细节不了解。 遂去尝试使用它提供的一些特性开关，在试用 AWS_VPC_K8S_CNI_EXTERNALSNAT 开关，重建了 aws node ds, 发现 ec2 节点的 网卡被 deattach 了，继而导致了使用了绑定在这个网卡上的浮动 ip 的 pod 失联了。 结论：是 ipamd deat">
+<meta property="og:type" content="article">
+<meta property="og:title" content="amzon aws cni 踩坑 2">
+<meta property="og:url" content="http://sn0rt.github.io/2019/11/25/amazon-vpc-cni-delete-eni/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="目前业务上准备试用 aws vpc cni 方案，之前遇到了一些 cni 的使用问题发现还有一些细节不了解。 遂去尝试使用它提供的一些特性开关，在试用 AWS_VPC_K8S_CNI_EXTERNALSNAT 开关，重建了 aws node ds, 发现 ec2 节点的 网卡被 deattach 了，继而导致了使用了绑定在这个网卡上的浮动 ip 的 pod 失联了。 结论：是 ipamd deat">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2019-11-24T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.753Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="k8s">
+<meta name="twitter:card" content="summary">
+  
+  
+  
+  <meta name="keywords" content="k8s">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">amzon aws cni 踩坑 2</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E5%88%86%E6%9E%90"><span class="toc-text">代码分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%97%A5%E5%BF%97%E5%88%86%E6%9E%90"><span class="toc-text">日志分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%9D%E8%AF%95%E4%BF%AE%E5%A4%8D%E8%BF%99%E4%B8%AA%E9%97%AE%E9%A2%98"><span class="toc-text">尝试修复这个问题</span></a></li></ol></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2019-11-24T16:00:00.000Z">2019-11-25</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>amzon aws cni 踩坑 2</span></h1>
+<p>目前业务上准备试用 aws vpc cni 方案，之前遇到了一些 cni 的使用问题发现还有一些细节不了解。</p>
+<p>遂去尝试使用它提供的一些特性开关，在试用 <code>AWS_VPC_K8S_CNI_EXTERNALSNAT</code> 开关，重建了 aws node ds, 发现 ec2 节点的 网卡被 deattach 了，继而导致了使用了绑定在这个网卡上的浮动 ip 的 pod 失联了。</p>
+<p>结论：是 ipamd deattach 了 eni, 是 ipamd delete 了 eni. </p>
+<p>ipamd 这也的逻辑很奇怪，看代码没有发现明显逻辑问题。</p>
+<h2 id="代码分析"><a href="#代码分析" class="headerlink" title="代码分析"></a>代码分析</h2><p>下面就是 <code>ipamd</code> 的起手代码，无关逻辑直接删除了方便梳理核心。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> _<span class="title">main</span><span class="params">()</span></span> <span class="type">int</span> &#123;</span><br><span class="line">...</span><br><span class="line">	discoverController := k8sapi.NewController(kubeClient)</span><br><span class="line">	<span class="keyword">go</span> discoverController.DiscoverK8SPods()</span><br><span class="line"></span><br><span class="line">	eniConfigController := eniconfig.NewENIConfigController()</span><br><span class="line">...</span><br><span class="line">	ipamContext, err := ipamd.New(discoverController, eniConfigController)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Errorf(<span class="string">&quot;Initialization failure: %v&quot;</span>, err)</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上述代码和重逻辑，核心在 <code>ipamd.New</code> 的实现中，下面就看一下这个 <code>function</code> 的实现</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// New retrieves IP address usage information from Instance MetaData service and Kubelet</span></span><br><span class="line"><span class="comment">// then initializes IP address pool data store</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(k8sapiClient k8sapi.K8SAPIs, eniConfig *eniconfig.ENIConfigController)</span></span> (*IPAMContext, <span class="type">error</span>) &#123;</span><br><span class="line">...</span><br><span class="line">	c.warmENITarget = getWarmENITarget()</span><br><span class="line">	c.warmIPTarget = getWarmIPTarget()</span><br><span class="line"></span><br><span class="line">	err = c.nodeInit()</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>上述代码就是函数核心，看一下官方的的设计提议里面<code>L-IPAM can immediately take one available secondary IP address from its warm pool and assign it to Pod.</code>,  那两行代码就是准备去满足这个设计需求的。</p>
+<p>其实后面 <code>nodeInit</code> 才是这一串代码中的关键点。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//TODO need to break this function down(comments from CR)</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *IPAMContext)</span></span> nodeInit() <span class="type">error</span> &#123;</span><br><span class="line">...</span><br><span class="line">	c.maxENI, err = c.getMaxENI()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Error(<span class="string">&quot;Failed to get ENI limit&quot;</span>)</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	enisMax.Set(<span class="type">float64</span>(c.maxENI))</span><br><span class="line"></span><br><span class="line">	c.maxIPsPerENI, err = c.awsClient.GetENIipLimit()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Error(<span class="string">&quot;Failed to get IPs per ENI limit&quot;</span>)</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	ipMax.Set(<span class="type">float64</span>(c.maxIPsPerENI * c.maxENI)) <span class="comment">// 因为 ec2 不同机型可以添加 eni 以及每个 eni 上附加的 ip 数量不一致。</span></span><br><span class="line"></span><br><span class="line">	c.useCustomNetworking = UseCustomNetworkCfg()</span><br><span class="line">	c.primaryIP = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span>)</span><br><span class="line">	c.reconcileCooldownCache.cache = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="type">string</span>]time.Time)</span><br><span class="line"></span><br><span class="line">	enis, err := c.awsClient.GetAttachedENIs()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Error(<span class="string">&quot;Failed to retrieve ENI info&quot;</span>)</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">&quot;ipamd init: failed to retrieve attached ENIs info&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	_, vpcCIDR, err := net.ParseCIDR(c.awsClient.GetVPCIPv4CIDR())</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Error(<span class="string">&quot;Failed to parse VPC IPv4 CIDR&quot;</span>, err.Error())</span><br><span class="line">		<span class="keyword">return</span> errors.Wrap(err, <span class="string">&quot;ipamd init: failed to retrieve VPC CIDR&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	primaryIP := net.ParseIP(c.awsClient.GetLocalIPv4())</span><br><span class="line">	err = c.networkClient.SetupHostNetwork(vpcCIDR, c.awsClient.GetVPCIPv4CIDRs(), c.awsClient.GetPrimaryENImac(), &amp;primaryIP)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Error(<span class="string">&quot;Failed to set up host network&quot;</span>, err)</span><br><span class="line">		<span class="keyword">return</span> errors.Wrap(err, <span class="string">&quot;ipamd init: failed to set up host network&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	c.dataStore = datastore.NewDataStore() <span class="comment">// 这里就是创建那个本地 ip 池的数据结构了</span></span><br><span class="line">	<span class="keyword">for</span> _, eni := <span class="keyword">range</span> enis &#123;</span><br><span class="line">		log.Debugf(<span class="string">&quot;Discovered ENI %s, trying to set it up&quot;</span>, eni.ENIID)</span><br><span class="line">		<span class="comment">// Retry ENI sync</span></span><br><span class="line">		retry := <span class="number">0</span></span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			retry++</span><br><span class="line">			err = c.setupENI(eni.ENIID, eni)</span><br><span class="line">			<span class="comment">// 这个函数只要干三件事情 </span></span><br><span class="line">			<span class="comment">// 1 把 eni 添加到 datastore 中。</span></span><br><span class="line">			<span class="comment">// 2 把 设置 Linux eni 相关，</span></span><br><span class="line">			<span class="comment">// 3 将 eni 的浮动 ip 放置到 datastore 中</span></span><br><span class="line">			<span class="comment">// 虽然都是与本次问题没有关系的。</span></span><br><span class="line">			<span class="keyword">if</span> retry &gt; maxRetryCheckENI &#123;</span><br><span class="line">				log.Errorf(<span class="string">&quot;Unable to discover attached IPs for ENI from metadata service&quot;</span>)</span><br><span class="line">				ipamdErrInc(<span class="string">&quot;waitENIAttachedMaxRetryExceeded&quot;</span>)</span><br><span class="line">				<span class="keyword">break</span></span><br><span class="line">			&#125;</span><br><span class="line">...</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	usedIPs, err := c.getLocalPodsWithRetry()</span><br><span class="line">	log.Debugf(<span class="string">&quot;getLocalPodsWithRetry() found %d used IPs.&quot;</span>, <span class="built_in">len</span>(usedIPs))</span><br><span class="line">	<span class="comment">// 上面 function 重建本地 pod 信息，包括 name/namespace/ip/containerid</span></span><br><span class="line">	</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Warnf(<span class="string">&quot;During ipamd init, failed to get Pod information from kubelet %v&quot;</span>, err)</span><br><span class="line">		ipamdErrInc(<span class="string">&quot;nodeInitK8SGetLocalPodIPsFailed&quot;</span>)</span><br><span class="line">		<span class="comment">// This can happens when L-IPAMD starts before kubelet.</span></span><br><span class="line">		<span class="comment">// TODO  need to add node health stats here</span></span><br><span class="line">		<span class="keyword">return</span> errors.Wrap(err, <span class="string">&quot;failed to get running pods!&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	rules, err := c.networkClient.GetRuleList()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Errorf(<span class="string">&quot;During ipamd init: failed to retrieve IP rule list %v&quot;</span>, err)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> _, ip := <span class="keyword">range</span> usedIPs &#123;</span><br><span class="line">		<span class="keyword">if</span> ip.Container == <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">			log.Infof(<span class="string">&quot;Skipping Pod %s, Namespace %s, due to no matching container&quot;</span>, ip.Name, ip.Namespace)</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> ip.IP == <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">			log.Infof(<span class="string">&quot;Skipping Pod %s, Namespace %s, due to no IP&quot;</span>, ip.Name, ip.Namespace)</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		log.Infof(<span class="string">&quot;Recovered AddNetwork for Pod %s, Namespace %s, Container %s&quot;</span>, ip.Name, ip.Namespace, ip.Container)</span><br><span class="line">		_, _, err = c.dataStore.AssignPodIPv4Address(ip)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			ipamdErrInc(<span class="string">&quot;nodeInitAssignPodIPv4AddressFailed&quot;</span>)</span><br><span class="line">			log.Warnf(<span class="string">&quot;During ipamd init, failed to use pod IP %s returned from Kubelet %v&quot;</span>, ip.IP, err)</span><br><span class="line">			<span class="comment">// TODO continue, but need to add node health stats here</span></span><br><span class="line">			<span class="comment">// TODO need to feed this to controller on the health of pod and node</span></span><br><span class="line">			<span class="comment">// This is a bug among kubelet/cni-plugin/l-ipamd/ec2-metadata that this particular pod is using an non existent ip address.</span></span><br><span class="line">			<span class="comment">// Here we choose to continue instead of returning error and EXIT out L-IPAMD(exit L-IPAMD will make whole node out)</span></span><br><span class="line">			<span class="comment">// The plan(TODO) is to feed this info back to controller and let controller cleanup this pod from this node.</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Update ip rules in case there is a change in VPC CIDRs, AWS_VPC_K8S_CNI_EXTERNALSNAT setting</span></span><br><span class="line">		srcIPNet := net.IPNet&#123;IP: net.ParseIP(ip.IP), Mask: net.IPv4Mask(<span class="number">255</span>, <span class="number">255</span>, <span class="number">255</span>, <span class="number">255</span>)&#125;</span><br><span class="line">		vpcCIDRs := c.awsClient.GetVPCIPv4CIDRs()</span><br><span class="line"></span><br><span class="line">		<span class="keyword">var</span> pbVPCcidrs []<span class="type">string</span></span><br><span class="line">		<span class="keyword">for</span> _, cidr := <span class="keyword">range</span> vpcCIDRs &#123;</span><br><span class="line">			pbVPCcidrs = <span class="built_in">append</span>(pbVPCcidrs, *cidr)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		err = c.networkClient.UpdateRuleListBySrc(rules, srcIPNet, pbVPCcidrs, !c.networkClient.UseExternalSNAT())</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Errorf(<span class="string">&quot;UpdateRuleListBySrc in nodeInit() failed for IP %s: %v&quot;</span>, ip.IP, err)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>稍微小结一下，上面是初始化流程，每一次启动的时候 ipamd 会在本地建一个地址池，并通过本地一个 <code>dataStore</code>来标记地址池的分配状态。</p>
+<p>具体的下方规则在我们这个问题里面并不关心，是因为我遇到的不是<code>iptables</code>的转发问题。</p>
+<p>看一下每次重启重新标记分配出去的 <code>ip</code> 的逻辑，其实核心逻辑就是 <code>assignPodIPv4AddressUnsafe</code> 中在内存中重建分配数据。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// AssignPodIPv4Address assigns an IPv4 address to pod</span></span><br><span class="line"><span class="comment">// It returns the assigned IPv4 address, device number, error</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ds *DataStore)</span></span> AssignPodIPv4Address(k8sPod *k8sapi.K8SPodInfo) (<span class="type">string</span>, <span class="type">int</span>, <span class="type">error</span>) &#123;</span><br><span class="line">	ds.lock.Lock()</span><br><span class="line">	<span class="keyword">defer</span> ds.lock.Unlock()</span><br><span class="line"></span><br><span class="line">	log.Debugf(<span class="string">&quot;AssignIPv4Address: IP address pool stats: total: %d, assigned %d&quot;</span>, ds.total, ds.assigned)</span><br><span class="line">	podKey := PodKey&#123;</span><br><span class="line">		name:      k8sPod.Name,</span><br><span class="line">		namespace: k8sPod.Namespace,</span><br><span class="line">		container: k8sPod.Container,</span><br><span class="line">	&#125;</span><br><span class="line">	ipAddr, ok := ds.podsIP[podKey]</span><br><span class="line">	<span class="keyword">if</span> ok &#123;</span><br><span class="line">		<span class="keyword">if</span> ipAddr.IP == k8sPod.IP &amp;&amp; k8sPod.IP != <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">			<span class="comment">// The caller invoke multiple times to assign(PodName/NameSpace --&gt; same IPAddress). It is not a error, but not very efficient.</span></span><br><span class="line">			log.Infof(<span class="string">&quot;AssignPodIPv4Address: duplicate pod assign for IP %s, name %s, namespace %s, container %s&quot;</span>,</span><br><span class="line">				k8sPod.IP, k8sPod.Name, k8sPod.Namespace, k8sPod.Container)</span><br><span class="line">			<span class="keyword">return</span> ipAddr.IP, ipAddr.DeviceNumber, <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// TODO Handle this bug assert? May need to add a counter here, if counter is too high, need to mark node as unhealthy...</span></span><br><span class="line">		<span class="comment">//      This is a bug that the caller invokes multiple times to assign(PodName/NameSpace -&gt; a different IP address).</span></span><br><span class="line">		log.Errorf(<span class="string">&quot;AssignPodIPv4Address: current IP %s is changed to IP %s for pod(name %s, namespace %s, container %s)&quot;</span>,</span><br><span class="line">			ipAddr, k8sPod.IP, k8sPod.Name, k8sPod.Namespace, k8sPod.Container)</span><br><span class="line">		<span class="keyword">return</span> <span class="string">&quot;&quot;</span>, <span class="number">0</span>, errors.New(<span class="string">&quot;AssignPodIPv4Address: invalid pod with multiple IP addresses&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> ds.assignPodIPv4AddressUnsafe(k8sPod)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="日志分析"><a href="#日志分析" class="headerlink" title="日志分析"></a>日志分析</h2><p>第一段是无关代码，基本的一些版本信息</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">2019-11-26T02:28:11.342Z [INFO]	Starting L-IPAMD v1.5.3  ...</span><br><span class="line">2019-11-26T02:28:11.380Z [INFO]	Testing communication with server</span><br><span class="line">2019-11-26T02:28:11.380Z [INFO]	Running with Kubernetes cluster version: v1.12. git version: v1.12.4+0422-clusterip-bugfix. git tree state: archive. commit: f49fa022dbe63faafd0da106ef7e05a29721d3f1. platform: linux/amd64</span><br><span class="line">2019-11-26T02:28:11.380Z [INFO]	Communication with server successful</span><br></pre></td></tr></table></figure>
+
+<p>main 函数开始了，通过 <code>ec2</code> 的 <code>metadata</code> 接口通过 discover 函数的实现来收集 ipamd 启动需要的信息。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">2019-11-26T02:28:11.380Z [INFO]	Starting Pod controller</span><br><span class="line">2019-11-26T02:28:11.380Z [INFO]	Waiting for controller cache sync</span><br><span class="line">2019-11-26T02:28:11.382Z [DEBUG]	Discovered region: us-east-1</span><br><span class="line">2019-11-26T02:28:11.382Z [DEBUG]	Found availability zone: us-east-1a</span><br><span class="line">2019-11-26T02:28:11.383Z [DEBUG]	Discovered the instance primary ip address: 10.0.10.66</span><br><span class="line">2019-11-26T02:28:11.383Z [DEBUG]	Found instance-id: i-0ba03a7c305eb480c</span><br><span class="line">2019-11-26T02:28:11.384Z [DEBUG]	Found instance-type: c5.xlarge</span><br><span class="line">2019-11-26T02:28:11.384Z [DEBUG]	Found primary interface&#x27;s MAC address: 02:43:a8:0e:05:2f</span><br><span class="line">2019-11-26T02:28:11.384Z [DEBUG]	Discovered 2 interfaces.</span><br><span class="line">2019-11-26T02:28:11.385Z [DEBUG]	Found device-number: 0</span><br><span class="line">2019-11-26T02:28:11.385Z [DEBUG]	Found account ID: 179516646050</span><br><span class="line">2019-11-26T02:28:11.386Z [DEBUG]	Found eni: eni-0debffa6dcf067b1b</span><br><span class="line">2019-11-26T02:28:11.386Z [DEBUG]	Found ENI eni-0debffa6dcf067b1b is a primary ENI</span><br><span class="line">2019-11-26T02:28:11.392Z [DEBUG]	Found security-group id: sg-0ade1b7b97edfbc0b</span><br><span class="line">2019-11-26T02:28:11.392Z [DEBUG]	Found security-group id: sg-05c56cb6937b7cd9e</span><br><span class="line">2019-11-26T02:28:11.393Z [DEBUG]	Found subnet-id: subnet-048c7f0d1e821113d</span><br><span class="line">2019-11-26T02:28:11.393Z [DEBUG]	Found vpc-ipv4-cidr-block: 10.0.0.0/16</span><br><span class="line">2019-11-26T02:28:11.394Z [DEBUG]	Found VPC CIDR: 10.0.0.0/16</span><br></pre></td></tr></table></figure>
+
+<p>下面就是准备 node init 了，准备本地路由表，转发规则，建立本地址池。</p>
+<p>其中建立地址池的过程概述就是获取弹性网卡，从弹性网卡上获取浮动 ip，将浮动 ip 放到进程缓存中，然后调用 k8s 接口 和 docker 接口重建本地 ip 分配关系。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">2019-11-26T02:28:11.394Z [DEBUG]	Start node init</span><br><span class="line">2019-11-26T02:28:11.394Z [DEBUG]	Total number of interfaces found: 2</span><br><span class="line">2019-11-26T02:28:11.394Z [DEBUG]	Found ENI mac address : 02:43:a8:0e:05:2f</span><br><span class="line">2019-11-26T02:28:11.395Z [DEBUG]	Using device number 0 for primary eni: eni-0debffa6dcf067b1b</span><br><span class="line">2019-11-26T02:28:11.395Z [DEBUG]	Found ENI: eni-0debffa6dcf067b1b, MAC 02:43:a8:0e:05:2f, device 0</span><br><span class="line">2019-11-26T02:28:11.396Z [DEBUG]	Found CIDR 10.0.10.0/24 for ENI 02:43:a8:0e:05:2f</span><br><span class="line">2019-11-26T02:28:11.397Z [DEBUG]	Found IP addresses [10.0.10.66 10.0.10.192 10.0.10.130 10.0.10.227 10.0.10.166 10.0.10.72 10.0.10.40 10.0.10.136 10.0.10.113 10.0.10.115 10.0.10.53 10.0.10.22 10.0.10.25 10.0.10.26 10.0.10.95] on ENI 02:43:a8:0e:05:2f</span><br><span class="line">2019-11-26T02:28:11.397Z [DEBUG]	Found ENI mac address : 02:ef:be:01:7c:ad</span><br><span class="line">2019-11-26T02:28:11.398Z [DEBUG]	Found ENI: eni-08bafec9495ebc6df, MAC 02:ef:be:01:7c:ad, device 2</span><br><span class="line">2019-11-26T02:28:11.398Z [DEBUG]	Found CIDR 10.0.10.0/24 for ENI 02:ef:be:01:7c:ad</span><br><span class="line">2019-11-26T02:28:11.399Z [DEBUG]	Found IP addresses [10.0.10.43 10.0.10.97 10.0.10.34 10.0.10.35 10.0.10.132 10.0.10.70 10.0.10.231 10.0.10.112 10.0.10.208 10.0.10.177 10.0.10.114 10.0.10.214 10.0.10.87 10.0.10.119 10.0.10.185] on ENI 02:ef:be:01:7c:ad</span><br><span class="line">2019-11-26T02:28:11.399Z [INFO]	Setting up host network...</span><br><span class="line">2019-11-26T02:28:11.399Z [DEBUG]	Trying to find primary interface that has mac : 02:43:a8:0e:05:2f</span><br><span class="line">2019-11-26T02:28:11.399Z [DEBUG]	Discovered interface: lo, mac:</span><br><span class="line">2019-11-26T02:28:11.399Z [DEBUG]	Discovered interface: eth0, mac: 02:43:a8:0e:05:2f</span><br><span class="line">2019-11-26T02:28:11.399Z [INFO]	Discovered primary interface: eth0</span><br><span class="line">2019-11-26T02:28:11.399Z [DEBUG]	Setting RPF for primary interface: /proc/sys/net/ipv4/conf/eth0/rp_filter</span><br><span class="line">2019-11-26T02:28:11.400Z [DEBUG]	Setup Host Network: iptables -N AWS-SNAT-CHAIN-0 -t nat</span><br><span class="line">2019-11-26T02:28:11.401Z [DEBUG]	Setup Host Network: iptables -N AWS-SNAT-CHAIN-1 -t nat</span><br><span class="line">2019-11-26T02:28:11.402Z [DEBUG]	Setup Host Network: iptables -A POSTROUTING -m comment --comment &quot;AWS SNAT CHAIN&quot; -j AWS-SNAT-CHAIN-0</span><br><span class="line">2019-11-26T02:28:11.402Z [DEBUG]	Setup Host Network: iptables -A AWS-SNAT-CHAIN-0 ! -d 10.0.0.0/16 -t nat -j AWS-SNAT-CHAIN-1</span><br><span class="line">2019-11-26T02:28:11.402Z [DEBUG]	iptableRules: [nat/POSTROUTING rule first SNAT rules for non-VPC outbound traffic nat/AWS-SNAT-CHAIN-0 rule [0] AWS-SNAT-CHAIN nat/AWS-SNAT-CHAIN-1 rule last SNAT rule for non-VPC outbound traffic]</span><br><span class="line">2019-11-26T02:28:11.402Z [DEBUG]	execute iptable rule : first SNAT rules for non-VPC outbound traffic</span><br><span class="line">2019-11-26T02:28:11.403Z [DEBUG]	execute iptable rule : [0] AWS-SNAT-CHAIN</span><br><span class="line">2019-11-26T02:28:11.403Z [DEBUG]	execute iptable rule : last SNAT rule for non-VPC outbound traffic</span><br><span class="line">2019-11-26T02:28:11.404Z [DEBUG]	execute iptable rule : connmark for primary ENI</span><br><span class="line">2019-11-26T02:28:11.405Z [DEBUG]	execute iptable rule : connmark restore for primary ENI</span><br><span class="line">2019-11-26T02:28:11.406Z [DEBUG]	execute iptable rule : rule for primary address 10.0.10.66</span><br><span class="line">2019-11-26T02:28:11.407Z [DEBUG]	Discovered ENI eni-0debffa6dcf067b1b, trying to set it up</span><br></pre></td></tr></table></figure>
+
+<p>下面就是重建地址池分配的细节</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">2019-11-26T02:28:11.481Z [INFO]	Synced successfully with APIServer</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod istio-telemetry-6dbd664c76-2m4x4 on my node, namespace = istio-system, IP = 10.0.10.136</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod cni-metrics-helper-7774cb895c-cfhlh on my node, namespace = kube-system, IP = 10.0.10.113</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod istio-galley-59fd9c6c8-vxmsn on my node, namespace = istio-system, IP = 10.0.10.22</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod kiali-7b5b867f8-hn9pg on my node, namespace = istio-system, IP = 10.0.10.130</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod istio-citadel-864989dd69-lx72c on my node, namespace = istio-system, IP = 10.0.10.227</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod istio-egressgateway-6bc7c7874f-dvkpx on my node, namespace = istio-system, IP = 10.0.10.115</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod kiali-7b5b867f8-gr6bf on my node, namespace = istio-system, IP = 10.0.10.136</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod grafana-7869478fc5-vh4fs on my node, namespace = istio-system, IP = 10.0.10.40</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod istio-ingressgateway-756fd55f-mlf9w on my node, namespace = istio-system, IP = 10.0.10.59</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod istio-tracing-79db5954f-8bkw7 on my node, namespace = istio-system, IP = 10.0.10.166</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod istio-policy-7984978f85-s4pzk on my node, namespace = istio-system, IP = 10.0.10.53</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod istio-sidecar-injector-7dc597dfc7-n8s2k on my node, namespace = istio-system, IP = 10.0.10.95</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod metrics-server-c654cf865-rt9rp on my node, namespace = kube-system, IP = 10.0.10.95</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod istio-pilot-5cdcc74bf9-h8ghs on my node, namespace = istio-system, IP = 10.0.10.165</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod prometheus-5b48f5d49-nvtc8 on my node, namespace = istio-system, IP = 10.0.10.161</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod kiali-7b5b867f8-bhgh8 on my node, namespace = istio-system, IP = 10.0.10.227</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for CNI pod aws-node-knkw9</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for CNI pod aws-node-67hv5</span><br><span class="line">2019-11-26T02:28:11.481Z [INFO]	Add/Update for Pod kiali-7b5b867f8-4bcl6 on my node, namespace = istio-system, IP = 10.0.10.40</span><br><span class="line">2019-11-26T02:28:11.564Z [DEBUG]	DataStore Add an ENI eni-0debffa6dcf067b1b</span><br><span class="line">2019-11-26T02:28:11.564Z [DEBUG]	Adding ENI(eni-0debffa6dcf067b1b)&#x27;s IPv4 address 10.0.10.192 to datastore</span><br><span class="line">2019-11-26T02:28:11.564Z [DEBUG]	IP Address Pool stats: total: 0, assigned: 0</span><br><span class="line">2019-11-26T02:28:11.564Z [INFO]	Added ENI(eni-0debffa6dcf067b1b)&#x27;s IP 10.0.10.192 to datastore</span><br><span class="line">2019-11-26T02:28:11.564Z [DEBUG]	Adding ENI(eni-0debffa6dcf067b1b)&#x27;s IPv4 address 10.0.10.130 to datastore</span><br><span class="line">...</span><br><span class="line">2019-11-26T02:28:11.565Z [DEBUG]	Adding ENI(eni-0debffa6dcf067b1b)&#x27;s IPv4 address 10.0.10.95 to datastore</span><br><span class="line">2019-11-26T02:28:11.565Z [DEBUG]	IP Address Pool stats: total: 13, assigned: 0</span><br><span class="line">2019-11-26T02:28:11.565Z [INFO]	Added ENI(eni-0debffa6dcf067b1b)&#x27;s IP 10.0.10.95 to datastore</span><br><span class="line">2019-11-26T02:28:11.565Z [INFO]	ENI eni-0debffa6dcf067b1b set up.</span><br><span class="line">2019-11-26T02:28:11.565Z [DEBUG]	Discovered ENI eni-08bafec9495ebc6df, trying to set it up</span><br><span class="line">2019-11-26T02:28:11.666Z [DEBUG]	DataStore Add an ENI eni-08bafec9495ebc6df</span><br><span class="line">2019-11-26T02:28:11.666Z [INFO]	Setting up network for an ENI with IP address 10.0.10.43, MAC address 02:ef:be:01:7c:ad, CIDR 10.0.10.0/24 and route table 2</span><br><span class="line">2019-11-26T02:28:11.666Z [DEBUG]	Found the Link that uses mac address 02:ef:be:01:7c:ad and its index is 77 (attempt 1/5)</span><br><span class="line">2019-11-26T02:28:11.666Z [DEBUG]	Setting up ENI&#x27;s primary IP 10.0.10.43</span><br><span class="line">2019-11-26T02:28:11.666Z [DEBUG]	Deleting existing IP address 10.0.10.43/24 eth1</span><br><span class="line">2019-11-26T02:28:11.667Z [DEBUG]	Adding IP address 10.0.10.43/24</span><br><span class="line">2019-11-26T02:28:11.667Z [DEBUG]	Setting up ENI&#x27;s default gateway 10.0.10.1</span><br><span class="line">2019-11-26T02:28:11.667Z [DEBUG]	Successfully added route route 10.0.10.1/0 via 10.0.10.1 table 2</span><br><span class="line">2019-11-26T02:28:11.667Z [DEBUG]	Successfully added route route 0.0.0.0/0 via 10.0.10.1 table 2</span><br><span class="line">...</span><br><span class="line">2019-11-26T02:28:11.668Z [INFO]	K8SGetLocalPodIPs discovered local Pods: grafana-7869478fc5-vh4fs istio-system 10.0.10.40 325fa5b9-0f5f-11ea-baca-0262684723a1</span><br></pre></td></tr></table></figure>
+
+<p>下面的日志就是本次问题的核心了，我还一直很奇怪为什么日志总是说 <code>IP pool stats: total = 28, used = 0, c.maxIPsPerENI = 14</code> 这样的信息，因为在我看来这个节点上使用 aws cni pod 的数量更本不是 0 个。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">2019-11-26T02:28:11.668Z [INFO]	Not able to get local containers yet (attempt 1/5): Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?</span><br><span class="line">2019-11-26T02:28:11.702Z [INFO]	Add/Update for Pod cni-metrics-helper-7774cb895c-cfhlh on my node, namespace = kube-system, IP = 10.0.10.113</span><br><span class="line">...</span><br><span class="line">2019-11-26T02:28:14.668Z [INFO]	Not able to get local containers yet (attempt 2/5): Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?</span><br><span class="line">2019-11-26T02:28:14.699Z [INFO]	Add/Update for CNI pod aws-node-67hv5</span><br><span class="line">2019-11-26T02:28:15.501Z [INFO]	Add/Update for Pod istio-tracing-79db5954f-8bkw7 on my node, namespace = istio-system, IP = 10.0.10.166</span><br><span class="line">2019-11-26T02:28:15.899Z [INFO]	Add/Update for Pod grafana-7869478fc5-vh4fs on my node, namespace = istio-system, IP = 10.0.10.40</span><br><span class="line">2019-11-26T02:28:16.298Z [INFO]	Add/Update for Pod istio-sidecar-injector-7dc597dfc7-n8s2k on my node, namespace = istio-system, IP = 10.0.10.95</span><br><span class="line">2019-11-26T02:28:16.698Z [INFO]	Add/Update for Pod prometheus-5b48f5d49-nvtc8 on my node, namespace = istio-system, IP = 10.0.10.161</span><br><span class="line">2019-11-26T02:28:17.669Z [INFO]	Not able to get local containers yet (attempt 3/5): Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?</span><br><span class="line">2019-11-26T02:28:20.669Z [INFO]	Not able to get local containers yet (attempt 4/5): Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?</span><br><span class="line">2019-11-26T02:28:23.669Z [INFO]	Not able to get local containers yet (attempt 5/5): Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?</span><br><span class="line">2019-11-26T02:28:26.669Z [DEBUG]	getLocalPodsWithRetry() found 17 used IPs.</span><br><span class="line">2019-11-26T02:28:26.669Z [INFO]	Skipping Pod istio-ingressgateway-756fd55f-mlf9w, Namespace istio-system, due to no matching container</span><br><span class="line">2019-11-26T02:28:26.669Z [INFO]	Skipping Pod istio-tracing-79db5954f-8bkw7, Namespace istio-system, due to no matching container</span><br><span class="line">2019-11-26T02:28:26.669Z [INFO]	Skipping Pod prometheus-5b48f5d49-nvtc8, Namespace istio-system, due to no matching container</span><br><span class="line">2019-11-26T02:28:26.669Z [INFO]	Skipping Pod istio-telemetry-6dbd664c76-2m4x4, Namespace istio-system, due to no matching container</span><br><span class="line">2019-11-26T02:28:26.669Z [INFO]	Skipping Pod kiali-7b5b867f8-hn9pg, Namespace istio-system, due to no matching container</span><br><span class="line">...</span><br><span class="line">// 这一段都是 INFO 级别 skip 信息.</span><br><span class="line">2019-11-26T02:28:26.669Z [INFO]	Skipping Pod grafana-7869478fc5-vh4fs, Namespace istio-system, due to no matching container</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *IPAMContext)</span></span> getLocalPodsWithRetry() ([]*k8sapi.K8SPodInfo, <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="keyword">var</span> pods []*k8sapi.K8SPodInfo</span><br><span class="line">	<span class="keyword">var</span> err <span class="type">error</span></span><br><span class="line">	<span class="keyword">for</span> retry := <span class="number">1</span>; retry &lt;= maxK8SRetries; retry++ &#123;</span><br><span class="line">		pods, err = c.k8sClient.K8SGetLocalPodIPs()</span><br><span class="line">...</span><br><span class="line">	<span class="keyword">var</span> containers <span class="keyword">map</span>[<span class="type">string</span>]*docker.ContainerInfo</span><br><span class="line">	<span class="keyword">for</span> retry := <span class="number">1</span>; retry &lt;= maxK8SRetries; retry++ &#123;</span><br><span class="line">		containers, err = c.dockerClient.GetRunningContainers() </span><br><span class="line">		<span class="comment">// 日志就是在这个函数里面打出来的，这个时候 container id 就是空的</span></span><br><span class="line">	<span class="comment">// TODO consider using map</span></span><br><span class="line">	<span class="keyword">for</span> _, pod := <span class="keyword">range</span> pods &#123;</span><br><span class="line">		<span class="comment">// needs to find the container ID</span></span><br><span class="line">		<span class="keyword">for</span> _, container := <span class="keyword">range</span> containers &#123; <span class="comment">// 这里发现是空的</span></span><br><span class="line">			<span class="keyword">if</span> container.K8SUID == pod.UID &#123;</span><br><span class="line">				log.Debugf(<span class="string">&quot;Found pod(%v)&#x27;s container ID: %v &quot;</span>, container.Name, container.ID)</span><br><span class="line">				pod.Container = container.ID</span><br><span class="line">				<span class="keyword">break</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> pods, <span class="literal">nil</span></span><br><span class="line">	<span class="comment">// 这里返回 ipamd 记录的 pod 信息里面就没有 container id</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>返回 <code>getLocalPodsWithRetry</code> 的调用方 <code>nodeinit</code> 函数，看一下相关逻辑，当 container id 不存在整个<code>ip</code>重新分配的逻辑就没有走… 没有走… 没有走…</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//TODO need to break this function down(comments from CR)</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *IPAMContext)</span></span> nodeInit() <span class="type">error</span> &#123;</span><br><span class="line">...</span><br><span class="line">	usedIPs, err := c.getLocalPodsWithRetry()</span><br><span class="line">	log.Debugf(<span class="string">&quot;getLocalPodsWithRetry() found %d used IPs.&quot;</span>, <span class="built_in">len</span>(usedIPs))</span><br><span class="line">...</span><br><span class="line">	<span class="keyword">for</span> _, ip := <span class="keyword">range</span> usedIPs &#123;</span><br><span class="line">		<span class="keyword">if</span> ip.Container == <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">			log.Infof(<span class="string">&quot;Skipping Pod %s, Namespace %s, due to no matching container&quot;</span>, ip.Name, ip.Namespace)</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">...</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>因为 ipamd 发现我们有大量 ip 申请了，但是没有用 ipamd 处于节约考虑帮我们释放了，下面就是释放的日志了。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">2019-11-26T02:47:06.317Z [DEBUG]	nodeIPPoolReconcile: skipping because time since last 51.08553629s &lt;= 1m0s</span><br><span class="line">2019-11-26T02:47:08.818Z [DEBUG]	IP pool stats: total = 28, used = 0, c.maxIPsPerENI = 14</span><br><span class="line">2019-11-26T02:47:08.818Z [DEBUG]	IP pool is NOT too low: available (28) &gt;= ENI target (1) * addrsPerENI (14)</span><br><span class="line">2019-11-26T02:47:08.818Z [DEBUG]	IP pool stats: total = 28, used = 0, c.maxIPsPerENI = 14</span><br><span class="line">2019-11-26T02:47:08.818Z [DEBUG]	It might be possible to remove extra ENIs because available (28) &gt; ENI target (1) * addrsPerENI (14):</span><br><span class="line">2019-11-26T02:47:08.818Z [DEBUG]	ENI eni-0debffa6dcf067b1b cannot be deleted because it is primary</span><br><span class="line">2019-11-26T02:47:08.818Z [DEBUG]	getDeletableENI: found a deletable ENI eni-08bafec9495ebc6df</span><br><span class="line">2019-11-26T02:47:08.818Z [INFO]	RemoveUnusedENIFromStore eni-08bafec9495ebc6df: IP address pool stats: free 14 addresses, total: 14, assigned: 0</span><br><span class="line">2019-11-26T02:47:08.818Z [DEBUG]	Start freeing ENI eni-08bafec9495ebc6df</span><br><span class="line">2019-11-26T02:47:08.818Z [INFO]	Trying to free ENI: eni-08bafec9495ebc6df</span><br><span class="line">2019-11-26T02:47:08.930Z [DEBUG]	Found ENI eni-08bafec9495ebc6df attachment id: eni-attach-0dc80c1727c8163a8</span><br><span class="line">2019-11-26T02:47:09.398Z [INFO]	Successfully detached ENI: eni-08bafec9495ebc6df</span><br><span class="line">2019-11-26T02:47:09.398Z [DEBUG]	Trying to delete ENI: eni-08bafec9495ebc6df</span><br><span class="line">2019-11-26T02:47:09.550Z [DEBUG]	Not able to delete ENI yet (attempt 1/20): InvalidParameterValue: Network interface &#x27;eni-08bafec9495ebc6df&#x27; is currently in use.</span><br><span class="line">	status code: 400, request id: de8ef372-0567-4b35-8c6d-3f7011089921</span><br><span class="line">2019-11-26T02:47:14.868Z [INFO]	Successfully deleted ENI: eni-08bafec9495ebc6df</span><br><span class="line">2019-11-26T02:47:14.868Z [INFO]	Successfully freed ENI: eni-08bafec9495ebc6df</span><br></pre></td></tr></table></figure>
+
+<h2 id="尝试修复这个问题"><a href="#尝试修复这个问题" class="headerlink" title="尝试修复这个问题"></a>尝试修复这个问题</h2><p>修复方案 1, 让 ipamd 可以正确的与 docker 通信。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">root     15066  2.9  1.4 1241172 115768 ?      Ssl  09:02   0:12 /usr/bin/dockerd -H unix:///var/run/docker.sock --containerd=/run/containerd/containerd.sock</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">guohao@pc ~ $ kubectl --kubeconfig ~/Downloads/kubeconfig -n kube-system describe ds aws-node</span><br><span class="line">Name:           aws-node</span><br><span class="line">Selector:       k8s-app=aws-node</span><br><span class="line">Node-Selector:  &lt;none&gt;</span><br><span class="line">Labels:         k8s-app=aws-node</span><br><span class="line">Annotations:    deprecated.daemonset.template.generation: 12</span><br><span class="line">                kubectl.kubernetes.io/last-applied-configuration:</span><br><span class="line">                  &#123;&quot;apiVersion&quot;:&quot;apps/v1&quot;,&quot;kind&quot;:&quot;DaemonSet&quot;,&quot;metadata&quot;:&#123;&quot;annotations&quot;:&#123;&#125;,&quot;labels&quot;:&#123;&quot;k8s-app&quot;:&quot;aws-node&quot;&#125;,&quot;name&quot;:&quot;aws-node&quot;,&quot;namespace&quot;:&quot;kub...</span><br><span class="line">Desired Number of Nodes Scheduled: 2</span><br><span class="line">Current Number of Nodes Scheduled: 2</span><br><span class="line">Number of Nodes Scheduled with Up-to-date Pods: 1</span><br><span class="line">Number of Nodes Scheduled with Available Pods: 2</span><br><span class="line">Number of Nodes Misscheduled: 0</span><br><span class="line">Pods Status:  2 Running / 0 Waiting / 0 Succeeded / 0 Failed</span><br><span class="line">Pod Template:</span><br><span class="line">  Labels:           k8s-app=aws-node</span><br><span class="line">  Service Account:  aws-node</span><br><span class="line">  Containers:</span><br><span class="line">   aws-node:</span><br><span class="line">    Image:      602401143452.dkr.ecr.us-west-2.amazonaws.com/amazon-k8s-cni:v1.5.3</span><br><span class="line">    Port:       61678/TCP</span><br><span class="line">    Host Port:  61678/TCP</span><br><span class="line">    Requests:</span><br><span class="line">      cpu:  10m</span><br><span class="line">    Environment:</span><br><span class="line">      AWS_VPC_K8S_CNI_LOGLEVEL:      trace</span><br><span class="line">      AWS_VPC_K8S_CNI_EXTERNALSNAT:  true</span><br><span class="line">      MY_NODE_NAME:                   (v1:spec.nodeName)</span><br><span class="line">    Mounts:</span><br><span class="line">      /host/etc/cni/net.d from cni-net-dir (rw)</span><br><span class="line">      /host/opt/cni/bin from cni-bin-dir (rw)</span><br><span class="line">      /host/var/log from log-dir (rw)</span><br><span class="line">      /run/containerd/containerd.sock from dockersock (rw) </span><br></pre></td></tr></table></figure>
+<p><code>/run/containerd/containerd.sock from dockersock (rw)</code> 就是这里，本是适配社区的 containerd 做了修改，而我们自己的环境是用的 docker.</p>
+<p>在重新看一下日志已经没有那个问题了。</p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2020/03/11/cgo-cross-compiler/">cgo 交叉编译</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2019/11/20/amazon-vpc-cni/">amzon aws cni 踩坑</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

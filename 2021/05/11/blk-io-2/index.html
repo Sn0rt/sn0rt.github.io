@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>blkio 源码分析 - sn0rt's blog</title>
+
+  
+    <meta name="description" content="背景之前在发现线上 blkio cgroup 层级关系中 io_merged 文件内容不符合预期，所以才有这一篇源码分析。 4.9 kernel初始化我们都知道 blkio 是基于 IO 的 scheduler 的实现的, 基于线上的唯一的一块SATA盘的且调度算法是 cfq, 读一下 cfq 实现 blkio 的相关代码,首先到 cfq 的模块的入口函数 cfq_init()移除了一些错误处理相">
+<meta property="og:type" content="article">
+<meta property="og:title" content="blkio 源码分析">
+<meta property="og:url" content="http://sn0rt.github.io/2021/05/11/blk-io-2/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="背景之前在发现线上 blkio cgroup 层级关系中 io_merged 文件内容不符合预期，所以才有这一篇源码分析。 4.9 kernel初始化我们都知道 blkio 是基于 IO 的 scheduler 的实现的, 基于线上的唯一的一块SATA盘的且调度算法是 cfq, 读一下 cfq 实现 blkio 的相关代码,首先到 cfq 的模块的入口函数 cfq_init()移除了一些错误处理相">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://sn0rt.github.io/media/pic/blk-group-support.png">
+<meta property="og:image" content="http://sn0rt.github.io/media/pic/linux-blk-write-io-merged.svg">
+<meta property="article:published_time" content="2021-05-10T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T06:19:14.960Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="k8s">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://sn0rt.github.io/media/pic/blk-group-support.png">
+  
+  
+  
+  <meta name="keywords" content="k8s">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">blkio 源码分析</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#4-9-kernel"><span class="toc-text">4.9 kernel</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="toc-text">初始化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9B%9E%E5%A4%B4%E7%9C%8B-io-merged-%E5%AD%98%E5%9C%A8%E5%86%85%E5%AE%B9%E4%B8%BA%E7%A9%BA%E9%97%AE%E9%A2%98"><span class="toc-text">回头看 io_merged 存在内容为空问题</span></a></li></ol></li></ol></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2021-05-10T16:00:00.000Z">2021-05-11</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>blkio 源码分析</span></h1>
+<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>之前在发现线上 blkio cgroup 层级关系中 io_merged 文件内容不符合预期，所以才有这一篇源码分析。</p>
+<h2 id="4-9-kernel"><a href="#4-9-kernel" class="headerlink" title="4.9 kernel"></a>4.9 kernel</h2><h3 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a>初始化</h3><p>我们都知道 blkio 是基于 IO 的 scheduler 的实现的, 基于线上的唯一的一块SATA盘的且调度算法是 cfq, 读一下 cfq 实现 blkio 的相关代码,首先到 cfq 的模块的入口函数 <code>cfq_init()</code>移除了一些错误处理相关的代码.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> __init <span class="title function_">cfq_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> ret;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_CFQ_GROUP_IOSCHED</span></span><br><span class="line">	ret = blkcg_policy_register(&amp;blkcg_policy_cfq); <span class="comment">// 如果 CONFIG_CFQ_GROUP_IOSCHED , 也就是启动 blkio 需要的内核选项, 这个变量的位置就是</span></span><br><span class="line">	<span class="keyword">if</span> (ret)</span><br><span class="line">		<span class="keyword">return</span> ret;</span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line">	cfq_group_idle = <span class="number">0</span>;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">	ret = -ENOMEM;</span><br><span class="line">	cfq_pool = KMEM_CACHE(cfq_queue, <span class="number">0</span>); </span><br><span class="line">	<span class="keyword">if</span> (!cfq_pool)</span><br><span class="line">		<span class="keyword">goto</span> err_pol_unreg;</span><br><span class="line"></span><br><span class="line">	ret = elv_register(&amp;iosched_cfq); <span class="comment">// ...实现调度算法的 callback func 即可</span></span><br><span class="line">	<span class="keyword">if</span> (ret)</span><br><span class="line">		<span class="keyword">goto</span> err_free_pool;</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p><code>blkcg_policy_register(&amp;blkcg_policy_cfq)</code> 中的 <code>blkcg_policy_cfq</code>  变量的初始化如下. 其中的 <code>cfq_blkcg_legacy_files</code> 就是需要特别关注点的他在用户态以文件形式体现出来.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_CFQ_GROUP_IOSCHED</span></span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">blkcg_policy</span> <span class="title">blkcg_policy_cfq</span> =</span> &#123;</span><br><span class="line">	.dfl_cftypes		= cfq_blkcg_files, <span class="comment">// 这里变量是个只有只有一个 .name = &quot;weight&quot;, </span></span><br><span class="line">	.legacy_cftypes		= cfq_blkcg_legacy_files, <span class="comment">// 这些是主要的用户态 blkio 文件 </span></span><br><span class="line"></span><br><span class="line">	.cpd_alloc_fn		= cfq_cpd_alloc, <span class="comment">//  有 fn 是回调函数, 没有的就是用户态文件</span></span><br><span class="line">	.cpd_init_fn		= cfq_cpd_init,</span><br><span class="line">	.cpd_free_fn		= cfq_cpd_free,</span><br><span class="line">	.cpd_bind_fn		= cfq_cpd_bind,</span><br><span class="line"></span><br><span class="line">	.pd_alloc_fn		= cfq_pd_alloc,</span><br><span class="line">	.pd_init_fn		= cfq_pd_init,</span><br><span class="line">	.pd_offline_fn		= cfq_pd_offline,</span><br><span class="line">	.pd_free_fn		= cfq_pd_free,</span><br><span class="line">	.pd_reset_stats_fn	= cfq_pd_reset_stats,</span><br><span class="line">&#125;;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+
+<p>其实我们在 Linux 中看的 blkio.io_merged 就是这里的这个变量产生的, 其中 blkio 是 sub system 名字. 在下面的代码中会拼凑出.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">cftype</span> <span class="title">cfq_blkcg_legacy_files</span>[] =</span> &#123;</span><br><span class="line">	<span class="comment">/* on root, weight is mapped to leaf_weight */</span></span><br><span class="line">...</span><br><span class="line">	&#123;</span><br><span class="line">		.name = <span class="string">&quot;io_merged&quot;</span>,</span><br><span class="line">		.private = offsetof(<span class="keyword">struct</span> cfq_group, stats.merged),</span><br><span class="line">		.seq_show = cfqg_print_rwstat,</span><br><span class="line">	&#125;,</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>看一下 <code>blkio</code> 的 <code>cg policy</code> 是如何注册的这些信息中, 虽然对其一部分逻辑还没有完全搞懂,但是我知道了这个随着 <code>CFQ</code> 一起初始化了,在内核空间中维护一些变量.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * blkcg_policy_register - register a blkcg policy</span></span><br><span class="line"><span class="comment"> * @pol: blkcg policy to register</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * Register @pol with blkcg core.  Might sleep and @pol may be modified on</span></span><br><span class="line"><span class="comment"> * successful registration.  Returns 0 on success and -errno on failure.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">blkcg_policy_register</span><span class="params">(<span class="keyword">struct</span> blkcg_policy *pol)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">blkcg</span> *<span class="title">blkcg</span>;</span></span><br><span class="line">	<span class="type">int</span> i, ret;</span><br><span class="line">....</span><br><span class="line">	<span class="comment">/* register @pol */</span></span><br><span class="line">	pol-&gt;plid = i;</span><br><span class="line">	blkcg_policy[pol-&gt;plid] = pol;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* allocate and install cpd&#x27;s */</span></span><br><span class="line">	<span class="keyword">if</span> (pol-&gt;cpd_alloc_fn) &#123;</span><br><span class="line">		list_for_each_entry(blkcg, &amp;all_blkcgs, all_blkcgs_node) &#123;</span><br><span class="line">			<span class="class"><span class="keyword">struct</span> <span class="title">blkcg_policy_data</span> *<span class="title">cpd</span>;</span></span><br><span class="line"></span><br><span class="line">			cpd = pol-&gt;cpd_alloc_fn(GFP_KERNEL);</span><br><span class="line">...</span><br><span class="line">			blkcg-&gt;cpd[pol-&gt;plid] = cpd; <span class="comment">// 看到现在对这些不是很明白</span></span><br><span class="line">			cpd-&gt;blkcg = blkcg;</span><br><span class="line">			cpd-&gt;plid = pol-&gt;plid;</span><br><span class="line">			pol-&gt;cpd_init_fn(cpd);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">..</span><br><span class="line">	<span class="comment">/* everything is in place, add intf files for the new policy */</span></span><br><span class="line">	<span class="keyword">if</span> (pol-&gt;dfl_cftypes)</span><br><span class="line"><span class="comment">// cgroup_add_dfl_cftypes 函数描述 add an array of cftypes for default hierarchy </span></span><br><span class="line"><span class="comment">// Similar to cgroup_add_cftypes() but the added files are only used for the default hierarchy.</span></span><br><span class="line">		WARN_ON(cgroup_add_dfl_cftypes(&amp;io_cgrp_subsys, </span><br><span class="line">					       pol-&gt;dfl_cftypes));</span><br><span class="line">	<span class="keyword">if</span> (pol-&gt;legacy_cftypes)</span><br><span class="line"><span class="comment">// cgroup_add_legacy_cftypes - add an array of cftypes for legacy hierarchies</span></span><br><span class="line"><span class="comment">// Similar to cgroup_add_cftypes() but the added files are only used for the legacy hierarchies.</span></span><br><span class="line"><span class="comment">// 其实到这里我们知道这个地方就是处理文件初始化的地方, 这里说的是文件初始化不包含内容正确.</span></span><br><span class="line"><span class="comment">// 这里在 cgroup fs blkio 中创建文件的地方, 拼接名字也是在这里完成的.</span></span><br><span class="line">		WARN_ON(cgroup_add_legacy_cftypes(&amp;io_cgrp_subsys,</span><br><span class="line">						  pol-&gt;legacy_cftypes));</span><br><span class="line">.... <span class="comment">// 移除一些错误处理的代码,主要是内核分配内存失败释放内存的逻辑</span></span><br><span class="line">EXPORT_SYMBOL_GPL(blkcg_policy_register);</span><br></pre></td></tr></table></figure>
+
+<p>下面这个就是按照内核提供的 <code>cgroup</code> 框架实现的一个 <code>controller group</code> 的 <code>sub system</code> 名字叫 <code>blkio</code>, 其实 <code>cgroup</code> 框架的抽象也能猜测行为, 如果猜的不对可以看 <code>kernel/cgroup.c</code> 中的调用方式.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cgroup_subsys</span> <span class="title">io_cgrp_subsys</span> =</span> &#123;</span><br><span class="line">	.css_alloc = blkcg_css_alloc, <span class="comment">// css alloc = cgroup subsystem 的 内存分配</span></span><br><span class="line">	.css_offline = blkcg_css_offline, <span class="comment">// 就是下掉当前 sub system, 其实没有怎么在生产中见过下掉 sub system</span></span><br><span class="line">	.css_free = blkcg_css_free, <span class="comment">// 释放内存</span></span><br><span class="line">	.can_attach = blkcg_can_attach, <span class="comment">// 从 https://elixir.bootlin.com/linux/v4.9.10/source/kernel/cgroup.c#L5179 主要是和管理当前`层级`task 的</span></span><br><span class="line">	.bind = blkcg_bind, <span class="comment">// 文件系统里面的 mount bind</span></span><br><span class="line">	.dfl_cftypes = blkcg_files, <span class="comment">// 涉及的用户态文件</span></span><br><span class="line">	.legacy_cftypes = blkcg_legacy_files, <span class="comment">// 涉及的用户态文件</span></span><br><span class="line">	.legacy_name = <span class="string">&quot;blkio&quot;</span>,</span><br><span class="line">...</span><br><span class="line">&#125;;</span><br><span class="line">EXPORT_SYMBOL_GPL(io_cgrp_subsys);</span><br></pre></td></tr></table></figure>
+
+<p>以上基本上将 blkio 在 cfq 实现的初始化.</p>
+<h3 id="回头看-io-merged-存在内容为空问题"><a href="#回头看-io-merged-存在内容为空问题" class="headerlink" title="回头看 io_merged 存在内容为空问题"></a>回头看 io_merged 存在内容为空问题</h3><div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/media/pic/blk-group-support.png" alt="cgroup blkio"></div><div class="image-meta"><span class="image-caption center">cgroup blkio</span></div></div>
+
+<p>看一下 blkio.io_merged 这个文件写的过程.</p>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/media/pic/linux-blk-write-io-merged.svg" alt="linux vfs"></div><div class="image-meta"><span class="image-caption center">linux vfs</span></div></div>
+
+<pre><code class="c">
+1. [腾讯 Tlinux 的一个优化](https://github.com/Tencent/TencentOS-kernel/commit/e7636c1b8b5e4214b68d048ae3d3442045ea757c#diff-aa274e206b462ae50089a5a3e16d6926e2001404a1876032316f7c37e08cd111)  可以在 github 上看到,做 pre blkcg 的隔离
+</code></pre>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2022/09/03/update-bios-by-redfish/">update BIOS attr by redfish</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2021/05/10/blk-io-1/">blkio cgroup 异常</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

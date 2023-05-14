@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>git usage - sn0rt's blog</title>
+
+  
+    <meta name="description" content="0x00 workflowgit 的工作流程，已 k8s devel 的开发者文档里面图来说明： workflow  首先在 fork 代码，然后 clone 到本地，创建分支并修改代码，commit 发 PR 或者 rebase&#x2F;fetch 别人的代码后修改发 PR. 0x01 tips Merge another branch of the same git-repo 1git me">
+<meta property="og:type" content="article">
+<meta property="og:title" content="git usage">
+<meta property="og:url" content="http://sn0rt.github.io/2016/11/01/git/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="0x00 workflowgit 的工作流程，已 k8s devel 的开发者文档里面图来说明： workflow  首先在 fork 代码，然后 clone 到本地，创建分支并修改代码，commit 发 PR 或者 rebase&#x2F;fetch 别人的代码后修改发 PR. 0x01 tips Merge another branch of the same git-repo 1git me">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://sn0rt.github.io/media/pic/git/git_workflow.png">
+<meta property="article:published_time" content="2016-10-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.754Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="tips">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://sn0rt.github.io/media/pic/git/git_workflow.png">
+  
+  
+  
+  <meta name="keywords" content="tips">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">git usage</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x01-tips"><span class="toc-text">0x01 tips</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x11-Clear-sensitive-files"><span class="toc-text">0x11 Clear sensitive files</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x12-remove-the-largest-file"><span class="toc-text">0x12 remove the largest file</span></a></li></ol></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2016-10-31T16:00:00.000Z">2016-11-01</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>git usage</span></h1>
+<h1 id="0x00-workflow"><a href="#0x00-workflow" class="headerlink" title="0x00 workflow"></a>0x00 workflow</h1><p>git 的工作流程，已 k8s devel 的开发者文档里面图来说明：</p>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/media/pic/git/git_workflow.png" alt="workflow"></div><div class="image-meta"><span class="image-caption center">workflow</span></div></div>
+
+<p>首先在 fork 代码，然后 clone 到本地，创建分支并修改代码，commit 发 PR 或者 rebase&#x2F;fetch 别人的代码后修改发 PR.</p>
+<h2 id="0x01-tips"><a href="#0x01-tips" class="headerlink" title="0x01 tips"></a>0x01 tips</h2><ul>
+<li><p>Merge another branch of the same git-repo</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git merge branch-name</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Pick up a specific commit from another branch</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git cherry-pick commit-name</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Merge a branch from another local git repo</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git pull /path/to/git-repo branch-name</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Rebase your commits</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git rebase -i commit-nameˆ</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Rebase a branch onto master</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git rebase –onto master –root</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Delete a remote branch</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git push origin :branch</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p><strong>Example of generate and release kernel patches</strong></p>
+<ul>
+<li>Generate patches<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git format-patch -s –cover-letter –thread commit1ˆ..commit2 –cc=&quot;Name &lt;user@example.com&gt;&quot;</span><br></pre></td></tr></table></figure></li>
+<li>Check&amp;fix up your patches <code>Documentation/SubmitChecklist</code>, <code>script/checkpatch.pl</code> cleanfile</li>
+<li>Release your patches Config send-email:<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git config, man git-send-email(Sending)</span><br></pre></td></tr></table></figure></li>
+<li>Get maintainers:<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./scripts/get maintainer.pl</span><br></pre></td></tr></table></figure></li>
+<li>Send out your patch:<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git send-email –to=”LKML &lt;linux-kernel@vger.kernel.org&gt;” –cc=&quot;Maintainers’ Email Address&quot;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h1 id="0x10-filter-branch"><a href="#0x10-filter-branch" class="headerlink" title="0x10 filter-branch"></a>0x10 filter-branch</h1><p>git 的本质是内容寻址文件系统，有时候需要 undo 操作消除敏感信息是不够的，关于更多 git 底层信息参考 progit<a href="%5Bprogit%5D(https://git.oschina.net/progit/9-Git-%E5%86%85%E9%83%A8%E5%8E%9F%E7%90%86.html)">^progit</a>.<br>有时候脑抽了，把敏感资料或者一个大的 binary commit 上去了，想要补救。</p>
+<h2 id="0x11-Clear-sensitive-files"><a href="#0x11-Clear-sensitive-files" class="headerlink" title="0x11 Clear sensitive files"></a>0x11 Clear sensitive files</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ ls password </span><br><span class="line">password</span><br><span class="line">$ git filter-branch --index-filter &quot;git rm -rf --cached --ignore-unmatch password&quot; --prune-empty -- --all </span><br><span class="line">Rewrite be0acf636754aea731c0b1f285142143dbf0275f (2/3) (0 seconds passed, remaining 0 predicted)    rm &#x27;password&#x27;</span><br><span class="line">Rewrite c3cc58dc9ebe7cf1f3187a0a6172e1bb274b3921 (3/3) (0 seconds passed, remaining 0 predicted)    rm &#x27;password&#x27;</span><br><span class="line"></span><br><span class="line">Ref &#x27;refs/heads/master&#x27; was rewritten</span><br><span class="line">$  ls</span><br><span class="line">chcon  init</span><br><span class="line">$ git show 100644</span><br><span class="line">fatal: ambiguous argument &#x27;100644&#x27;: unknown revision or path not in the working tree.</span><br><span class="line">Use &#x27;--&#x27; to separate paths from revisions, like this:</span><br><span class="line">&#x27;git &lt;command&gt; [&lt;revision&gt;...] -- [&lt;file&gt;...]&#x27;</span><br></pre></td></tr></table></figure>
+
+<h2 id="0x12-remove-the-largest-file"><a href="#0x12-remove-the-largest-file" class="headerlink" title="0x12 remove the largest file"></a>0x12 remove the largest file</h2><p>通过 git 阅读索引文件 (拓展名.idx),确认哪个 object 最大</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git verify-pack -v .git/objects/pack/pack-f92ea95d8f9a18dd42335fc3e3bd25feb8ed5ef8.idx | <span class="built_in">sort</span> -k 3 -n | <span class="built_in">tail</span> -3</span></span><br><span class="line">1d07197534891b5d45286850f7202dc1f84beceb blob   2885745 2873595 11242780</span><br><span class="line">61ba4967a562aaff8d1208981a2f1be968c969fd blob   8929280 3255190 3940716</span><br><span class="line">353a62618f023052c25db90d5c3f6725cadfbd95 blob   9263612 2936691 73858887</span><br></pre></td></tr></table></figure>
+
+<p>查看体积最大的 hash 属于哪个文件</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git rev-list --objects --all | grep 353a62618f023052c25db90d5c3f6725cadfbd95</span></span><br><span class="line">353a62618f023052c25db90d5c3f6725cadfbd95 vendor/github.com/go-openapi/spec/debug.test</span><br></pre></td></tr></table></figure>
+
+<p>确认该文件属于哪个 commit</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git --no-pager <span class="built_in">log</span> --pretty=oneline --branches -- vendor/github.com/go-openapi/spec/debug.test</span> </span><br><span class="line">da1f2c61c603e1cadc89e2cc690d46d2f972501e Update vendor packages (#1378)</span><br></pre></td></tr></table></figure>
+
+<p>要移除这个文件需要利用 filter-barch 重写自<code>da1f2c61c603e1cadc89e2cc690d46d2f972501e</code>的全部历史，注意 commitid 后面的<code>^</code>与<code>..</code></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git filter-branch --index-filter <span class="string">&#x27;git rm --cached --ignore-unmatch vendor/github.com/go-openapi/spec/debug.test&#x27;</span> -- da1f2c61c603e1cadc89e2cc690d46d2f972501e^..</span></span><br><span class="line">Rewrite da1f2c61c603e1cadc89e2cc690d46d2f972501e (1/8) (0 seconds passed, remaining 0 predicted)    rm &#x27;vendor/github.com/go-openapi/spec/debug.test&#x27;</span><br><span class="line">Rewrite 8c83a03a1b84fd18830b8bfaf1ea09ba5cc93e78 (2/8) (0 seconds passed, remaining 0 predicted)    rm &#x27;vendor/github.com/go-openapi/spec/debug.test&#x27;</span><br><span class="line">Rewrite 3fe627bb58a2f081a7976a13dd0b014c5c882bcb (3/8) (0 seconds passed, remaining 0 predicted)    rm &#x27;vendor/github.com/go-openapi/spec/debug.test&#x27;</span><br><span class="line">Rewrite dd3ef7d823313445774d2ed577f67d2da37a1568 (4/8) (1 seconds passed, remaining 1 predicted)    rm &#x27;vendor/github.com/go-openapi/spec/debug.test&#x27;</span><br><span class="line">Rewrite 0b0bafce155f20be369f35da045fb6338bf38e24 (4/8) (1 seconds passed, remaining 1 predicted)    rm &#x27;vendor/github.com/go-openapi/spec/debug.test&#x27;</span><br><span class="line">Rewrite fd18f0e6895bbfc144051e928d8c77a110fb2978 (4/8) (1 seconds passed, remaining 1 predicted)    rm &#x27;vendor/github.com/go-openapi/spec/debug.test&#x27;</span><br><span class="line">Rewrite 69e2d04e0f4f69f9c6c0c5d24b4b6b07490d347d (4/8) (1 seconds passed, remaining 1 predicted)    rm &#x27;vendor/github.com/go-openapi/spec/debug.test&#x27;</span><br><span class="line">Rewrite 645191d3ff4cf9e898c9e5796b86dc010c095630 (4/8) (1 seconds passed, remaining 1 predicted)    rm &#x27;vendor/github.com/go-openapi/spec/debug.test&#x27;</span><br><span class="line">Ref &#x27;refs/heads/master&#x27; was rewritten</span><br></pre></td></tr></table></figure>
+
+<p>清理 reflog 对象</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">rm</span> -Rf .git/refs/original</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">rm</span> -Rf .git/logs/</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git gc</span></span><br><span class="line">Counting objects: 36023, done.</span><br><span class="line">Delta compression using up to 4 threads.</span><br><span class="line">Compressing objects: 100% (18106/18106), done.</span><br><span class="line">Writing objects: 100% (36023/36023), done.</span><br><span class="line">Total 36023 (delta 16535), reused 35996 (delta 16515)</span><br></pre></td></tr></table></figure>
+
+<p>对比一下清理前后，其中<code>size-pack</code>是以 kB 为单位进行记录大小的。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git count-objects -v</span></span><br><span class="line">count: 0</span><br><span class="line">size: 0</span><br><span class="line">in-pack: 36023</span><br><span class="line">packs: 1</span><br><span class="line">size-pack: 77904</span><br><span class="line">prune-packable: 0</span><br><span class="line">garbage: 0</span><br><span class="line">size-garbage: 0</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">git count-objects -v</span></span><br><span class="line">count: 0</span><br><span class="line">size: 0</span><br><span class="line">in-pack: 36003</span><br><span class="line">packs: 1</span><br><span class="line">size-pack: 77911</span><br><span class="line">prune-packable: 0</span><br><span class="line">garbage: 0</span><br><span class="line">size-garbage: 0</span><br></pre></td></tr></table></figure>
+
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2016/11/15/the-organization-of-kernel-physical-memory/">the organization of linux physical memory</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2016/09/13/k8s-i/">kubernetes I - learn & install</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

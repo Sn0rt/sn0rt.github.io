@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>kubelet 是如何配合 CNI 删除容器网络 - sn0rt's blog</title>
+
+  
+    <meta name="description" content="这周协助同事解决线上CNI插件删除POD但是报错信息说 network namespace 为空，具体错误信息如下图 cni network namespace not found  看了一眼代码感觉不是我一时半会能搞定的事情，就借这个问题为契机阅读一下kubelet的部分代码，熟悉一下kubelet是如何删除POD网络，如果以后又要处理这样问题就可以有的放矢。 在线上分析可以看到kubelet的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="kubelet 是如何配合 CNI 删除容器网络">
+<meta property="og:url" content="http://sn0rt.github.io/2020/06/02/how-kubelet-to-use-cni/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="这周协助同事解决线上CNI插件删除POD但是报错信息说 network namespace 为空，具体错误信息如下图 cni network namespace not found  看了一眼代码感觉不是我一时半会能搞定的事情，就借这个问题为契机阅读一下kubelet的部分代码，熟悉一下kubelet是如何删除POD网络，如果以后又要处理这样问题就可以有的放矢。 在线上分析可以看到kubelet的">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://sn0rt.github.io/media/pic/cni_network_namespace_notfound.png">
+<meta property="article:published_time" content="2020-06-01T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.782Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="k8s">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://sn0rt.github.io/media/pic/cni_network_namespace_notfound.png">
+  
+  
+  
+  <meta name="keywords" content="k8s">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">kubelet 是如何配合 CNI 删除容器网络</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#kubelet-%E7%BD%91%E7%BB%9C%E9%83%A8%E5%88%86%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="toc-text">kubelet 网络部分的初始化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#kubelet-%E8%B0%83%E7%94%A8%E7%BD%91%E7%BB%9C%E6%8E%A5%E5%8F%A3%E6%8A%BD%E8%B1%A1"><span class="toc-text">kubelet 调用网络接口抽象</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#kubelet-%E5%A6%82%E4%BD%95%E9%94%80%E6%AF%81%E5%AE%B9%E5%99%A8"><span class="toc-text">kubelet 如何销毁容器</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#kubelet-%E5%A6%82%E4%BD%95%E5%9B%9E%E6%94%B6%E7%BD%91%E7%BB%9C"><span class="toc-text">kubelet 如何回收网络</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90"><span class="toc-text">问题分析</span></a></li></ol></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2020-06-01T16:00:00.000Z">2020-06-02</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>kubelet 是如何配合 CNI 删除容器网络</span></h1>
+<p>这周协助同事解决线上<code>CNI</code>插件删除<code>POD</code>但是报错信息说 <code>network namespace</code> 为空，具体错误信息如下图</p>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/media/pic/cni_network_namespace_notfound.png" alt="cni network namespace not found"></div><div class="image-meta"><span class="image-caption center">cni network namespace not found</span></div></div>
+
+<p>看了一眼代码感觉不是我一时半会能搞定的事情，就借这个问题为契机阅读一下<code>kubelet</code>的部分代码，熟悉一下<code>kubelet</code>是如何删除<code>POD</code>网络，如果以后又要处理这样问题就可以有的放矢。</p>
+<p>在线上分析可以看到<code>kubelet</code>的启动参数含有是 <code>--network-plugin=cni</code>，根据这个信息为线索梳理<code>kubelet</code>是如何销毁一个 <code>pod</code> 的<code>network namespace </code>。</p>
+<p>准备以<code>kubelet网络部分的初始化</code>，<code>kubelet如何销毁POD</code>，<code>kubelet如何使用CNI回收网络资源</code>这样的形式去组织这篇。</p>
+<h2 id="kubelet-网络部分的初始化"><a href="#kubelet-网络部分的初始化" class="headerlink" title="kubelet 网络部分的初始化"></a>kubelet 网络部分的初始化</h2><p>因为匆匆打开 <code>kubelet</code> 代码感觉有点复杂，单纯的看销毁逻辑让我困惑为什么<code>kubelet</code> 调用这个 <code>plugin</code> 的实现，而不是那一个实现，所以计划梳理一下 <code>kubelet</code> 是如何启动并开始它的主流程。</p>
+<p><code>kubelet</code> 启动准备工作实在是有些多，简单整理一下调用函数直接的关系从主函数调用开始 <code>NewKubeletCommand()</code> -&gt; <code>Run(kubeletServer, kubeletDeps, utilfeature.DefaultFeatureGate, stopCh)</code>-&gt;<code>run(s, kubeDeps, featureGate, stopCh)</code>-&gt;<code>RunKubelet(s, kubeDeps, s.RunOnce)</code></p>
+<p>这个函数会调用<code>createAndInitKubelet()</code>，第二个参数是<code>ContainerRuntimeOptions</code>结构体，其中有个字段就是上层传下来的<code>NetworkPluginName</code>，在我们的<code>case</code>中这个值是从命令行去来的<code>cni</code>字符串。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// RunKubelet is responsible for setting up and running a kubelet.  It is used in three different applications:</span></span><br><span class="line"><span class="comment">//   1 Integration tests</span></span><br><span class="line"><span class="comment">//   2 Kubelet binary</span></span><br><span class="line"><span class="comment">//   3 Standalone &#x27;kubernetes&#x27; binary</span></span><br><span class="line"><span class="comment">// Eventually, #2 will be replaced with instances of #3</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">RunKubelet</span><span class="params">(kubeServer *options.KubeletServer, kubeDeps *kubelet.Dependencies, runOnce <span class="type">bool</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">...</span><br><span class="line">	k, err := createAndInitKubelet(&amp;kubeServer.KubeletConfiguration,</span><br><span class="line">		kubeDeps,</span><br><span class="line">		&amp;kubeServer.ContainerRuntimeOptions, <span class="comment">// 插件名字就是这个变量的一个字段</span></span><br><span class="line">...</span><br><span class="line">		kubeServer.NodeStatusMaxImages)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;failed to create kubelet: %v&quot;</span>, err)</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">createAndInitKubelet</span><span class="params">(kubeCfg *kubeletconfiginternal.KubeletConfiguration,</span></span></span><br><span class="line"><span class="params"><span class="function">	kubeDeps *kubelet.Dependencies,</span></span></span><br><span class="line"><span class="params"><span class="function">	crOptions *config.ContainerRuntimeOptions, // 上述参数的形参</span></span></span><br><span class="line"><span class="params"><span class="function">...</span></span></span><br><span class="line"><span class="params"><span class="function">	nodeStatusMaxImages <span class="type">int32</span>)</span></span> (k kubelet.Bootstrap, err <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="comment">// <span class="doctag">TODO:</span> block until all sources have delivered at least one update to the channel, or break the sync loop</span></span><br><span class="line">	<span class="comment">// up into &quot;per source&quot; synchronizations</span></span><br><span class="line"></span><br><span class="line">	k, err = kubelet.NewMainKubelet(kubeCfg,</span><br><span class="line">		kubeDeps,</span><br><span class="line">		crOptions, <span class="comment">// 一路将变量传递到下面函数</span></span><br><span class="line">...</span><br><span class="line">	<span class="keyword">return</span> k, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewMainKubelet instantiates a new Kubelet object along with all the required internal modules.</span></span><br><span class="line"><span class="comment">// No initialization of Kubelet and its modules should happen here.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewMainKubelet</span><span class="params">(kubeCfg *kubeletconfiginternal.KubeletConfiguration,</span></span></span><br><span class="line"><span class="params"><span class="function">	kubeDeps *Dependencies,</span></span></span><br><span class="line"><span class="params"><span class="function">	crOptions *config.ContainerRuntimeOptions, // container runtime 选项参数</span></span></span><br><span class="line"><span class="params"><span class="function">...</span></span></span><br><span class="line"><span class="params"><span class="function">	// TODO: These need to become arguments to a standalone docker shim.</span></span></span><br><span class="line"><span class="params"><span class="function">	pluginSettings := dockershim.NetworkPluginSettings&#123;</span></span></span><br><span class="line"><span class="params"><span class="function">		HairpinMode:        kubeletconfiginternal.HairpinMode(kubeCfg.HairpinMode)</span></span>,</span><br><span class="line">		NonMasqueradeCIDR:  nonMasqueradeCIDR,</span><br><span class="line">		PluginName:         crOptions.NetworkPluginName, <span class="comment">// NetworkPluginName 变量值 cni</span></span><br><span class="line">		PluginConfDir:      crOptions.CNIConfDir,</span><br><span class="line">		PluginBinDirString: crOptions.CNIBinDir,</span><br><span class="line">		PluginCacheDir:     crOptions.CNICacheDir,</span><br><span class="line">		MTU:                <span class="type">int</span>(crOptions.NetworkPluginMTU),</span><br><span class="line">	&#125;</span><br><span class="line">... </span><br><span class="line">	<span class="keyword">switch</span> containerRuntime &#123;</span><br><span class="line">	<span class="keyword">case</span> kubetypes.DockerContainerRuntime: <span class="comment">// 这个值是 docker，也就是我们场景的值</span></span><br><span class="line">		<span class="comment">// Create and start the CRI shim running as a grpc server.</span></span><br><span class="line">		streamingConfig := getStreamingConfig(kubeCfg, kubeDeps, crOptions)</span><br><span class="line">		ds, err := dockershim.NewDockerService(kubeDeps.DockerClientConfig, crOptions.PodSandboxImage, streamingConfig,</span><br><span class="line">			&amp;pluginSettings, runtimeCgroups, kubeCfg.CgroupDriver, crOptions.DockershimRootDirectory, !crOptions.RedirectContainerStreaming, crOptions.NoJsonLogPath) <span class="comment">// pluginSettings 里面含有 network plugin 名称</span></span><br><span class="line">...</span><br><span class="line">	<span class="keyword">return</span> klet, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在<code>NewDockerService</code>函数中会调用<code>InitNetworkPlugin</code>函数，这个函数是构建<code>dockerservice</code>网络字段的关键。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewDockerService creates a new `DockerService` struct.</span></span><br><span class="line"><span class="comment">// <span class="doctag">NOTE:</span> Anything passed to DockerService should be eventually handled in another way when we switch to running the shim as a different process.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewDockerService</span><span class="params">(config *ClientConfig, podSandboxImage <span class="type">string</span>, streamingConfig *streaming.Config, pluginSettings *NetworkPluginSettings,</span></span></span><br><span class="line"><span class="params"><span class="function">	cgroupsName <span class="type">string</span>, kubeCgroupDriver <span class="type">string</span>, dockershimRootDir <span class="type">string</span>, startLocalStreamingServer <span class="type">bool</span>, noJsonLogPath <span class="type">string</span>)</span></span> (DockerService, <span class="type">error</span>) &#123;</span><br><span class="line">...</span><br><span class="line">	ds := &amp;dockerService&#123;</span><br><span class="line">...</span><br><span class="line">	plug, err := network.InitNetworkPlugin(cniPlugins, pluginSettings.PluginName, netHost, pluginSettings.HairpinMode, pluginSettings.NonMasqueradeCIDR, pluginSettings.MTU) <span class="comment">// 这个函数是构建 plugin 接口的关键</span></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">&quot;didn&#x27;t find compatible CNI plugin with given settings %+v: %v&quot;</span>, pluginSettings, err)</span><br><span class="line">	&#125;</span><br><span class="line">	ds.network = network.NewPluginManager(plug) <span class="comment">// DockerService 的 network 字段</span></span><br><span class="line">...</span><br><span class="line">	<span class="keyword">return</span> ds, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>多数场景 kubelet 指定 <code>plugin</code> 名字为 <code>cni</code> 或者 <code>kubenet</code> 足够了，这个初始化的逻辑就是在这个调用中 <code>network.InitNetworkPlugin(cniPlugins, pluginSettings.PluginName, netHost, pluginSettings.HairpinMode, pluginSettings.NonMasqueradeCIDR, pluginSettings.MTU)</code>，可以在 <code>kubelet</code>的目录下面看到 <code>cni</code> 和 <code>kubenet</code> 两个包实现了 <code>plugin interface</code>。</p>
+<p>我认为为了处理<code>POD</code>删除时候网络问题对启动流程分析到这里就足够了，知道了如何<code>kubelet</code>初始化准备调用 <code>cni</code> 的实现。</p>
+<h2 id="kubelet-调用网络接口抽象"><a href="#kubelet-调用网络接口抽象" class="headerlink" title="kubelet 调用网络接口抽象"></a>kubelet 调用网络接口抽象</h2><p>在上面初始化的过程中可以看到设置<code>dockerservice</code>的<code>plugin</code>，<code>plugin interface</code>设计主要关注两个接口一个是<code>SetUpPod</code>，还有一个是<code>TearDownPod</code>。</p>
+<p>看注释可能要额外注意，在这个两个接口的设计中都有对<code>infra container</code>预设前提，具体可以看一下注释。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NetworkPlugin is an interface to network plugins for the kubelet</span></span><br><span class="line"><span class="keyword">type</span> NetworkPlugin <span class="keyword">interface</span> &#123;</span><br><span class="line">...</span><br><span class="line">	<span class="comment">// SetUpPod is the method called after the infra container of</span></span><br><span class="line">	<span class="comment">// the pod has been created but before the other containers of the</span></span><br><span class="line">	<span class="comment">// pod are launched.</span></span><br><span class="line">  <span class="comment">// 看上面注释，这个函数就是用来准备 POD 运行时的网络环境的</span></span><br><span class="line">	SetUpPod(namespace <span class="type">string</span>, name <span class="type">string</span>, podSandboxID kubecontainer.ContainerID, annotations, options <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span>) <span class="type">error</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// TearDownPod is the method called before a pod&#x27;s infra container will be deleted</span></span><br><span class="line">  <span class="comment">// 这个函数是用在 POD 销毁的流程中的，但是在接口设计中有假设在 infra container 被销毁前</span></span><br><span class="line">	TearDownPod(namespace <span class="type">string</span>, name <span class="type">string</span>, podSandboxID kubecontainer.ContainerID) <span class="type">error</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="kubelet-如何销毁容器"><a href="#kubelet-如何销毁容器" class="headerlink" title="kubelet 如何销毁容器"></a>kubelet 如何销毁容器</h2><p>前面看了<code>kubelet</code>启动初始化，出于文章的完整性考虑梳理一下<code>POD</code>销毁场景下几个主要函数的调用关系。</p>
+<p>在最开始<code>kubelet</code>启动的时候知道了函数调用到<code>RunKubelet()</code>，后面其实还有<code>RunKubelet()</code>-&gt;<code>startKubelet()</code>-&gt;<code>k.Run(podCfg.Updates())</code></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Run starts the kubelet reacting to config updates</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(kl *Kubelet)</span></span> Run(updates &lt;-<span class="keyword">chan</span> kubetypes.PodUpdate) &#123;</span><br><span class="line">...</span><br><span class="line">	<span class="comment">// Start the pod lifecycle event generator.</span></span><br><span class="line">	kl.pleg.Start()</span><br><span class="line">	kl.syncLoop(updates, kl) <span class="comment">// 这个地方就是 kubelet 实际运行的核心代码了</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在 <code>syncLoop</code> 中根据收到的事件进行处理就是<code>kubelet</code>核心逻辑，这里只关注<code>pod</code>是如何开始删除的。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(kl *Kubelet)</span></span> syncLoopIteration(configCh &lt;-<span class="keyword">chan</span> kubetypes.PodUpdate, handler SyncHandler,</span><br><span class="line">	syncCh &lt;-<span class="keyword">chan</span> time.Time, housekeepingCh &lt;-<span class="keyword">chan</span> time.Time, plegCh &lt;-<span class="keyword">chan</span> *pleg.PodLifecycleEvent) <span class="type">bool</span> &#123;</span><br><span class="line">	<span class="keyword">select</span> &#123;</span><br><span class="line">...</span><br><span class="line">		<span class="keyword">switch</span> u.Op &#123; <span class="comment">// 这里对操作类型做断言，不通的类型对应不同的处理函数。</span></span><br><span class="line">...</span><br><span class="line">		<span class="keyword">case</span> kubetypes.REMOVE:</span><br><span class="line">			klog.V(<span class="number">2</span>).Infof(<span class="string">&quot;SyncLoop (REMOVE, %q): %q&quot;</span>, u.Source, format.Pods(u.Pods))</span><br><span class="line">			handler.HandlePodRemoves(u.Pods)</span><br></pre></td></tr></table></figure>
+<p>这个<code>syncLoopIteration</code>函数告诉你从几个渠道触发主循环，<code>handler</code>变量存放这处理这些事件的方法，可以看一下部分实现（这个函数的注释写的很清楚，告诉你每个 <code>channel</code> 里面是什么）</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// HandlePodRemoves is the callback in the SyncHandler interface for pods</span></span><br><span class="line"><span class="comment">// being removed from a config source.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(kl *Kubelet)</span></span> HandlePodRemoves(pods []*v1.Pod) &#123;</span><br><span class="line">   start := kl.clock.Now()</span><br><span class="line">   <span class="keyword">for</span> _, pod := <span class="keyword">range</span> pods &#123;</span><br><span class="line">      kl.podManager.DeletePod(pod)</span><br><span class="line">      <span class="keyword">if</span> kubetypes.IsMirrorPod(pod) &#123;</span><br><span class="line">         kl.handleMirrorPod(pod, start)</span><br><span class="line">         <span class="keyword">continue</span></span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// Deletion is allowed to fail because the periodic cleanup routine</span></span><br><span class="line">      <span class="comment">// will trigger deletion again.</span></span><br><span class="line">      <span class="keyword">if</span> err := kl.deletePod(pod); err != <span class="literal">nil</span> &#123; <span class="comment">// 这里就是删除 POD 的核心</span></span><br><span class="line">         klog.V(<span class="number">2</span>).Infof(<span class="string">&quot;Failed to delete pod %q, err: %v&quot;</span>, format.Pod(pod), err)</span><br><span class="line">      &#125;</span><br><span class="line">      kl.probeManager.RemovePod(pod)</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>deletePod()</code>函数其实并不是真的<code>deletePOD</code>仅仅是将期望被删除的<code>POD</code>丢掉<code>podKillingCh</code>中。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// deletePod deletes the pod from the internal state of the kubelet by:</span></span><br><span class="line"><span class="comment">// 1.  stopping the associated pod worker asynchronously</span></span><br><span class="line"><span class="comment">// 2.  signaling to kill the pod by sending on the podKillingCh channel</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// deletePod returns an error if not all sources are ready or the pod is not</span></span><br><span class="line"><span class="comment">// found in the runtime cache.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(kl *Kubelet)</span></span> deletePod(pod *v1.Pod) <span class="type">error</span> &#123;</span><br><span class="line">...</span><br><span class="line">   podPair := kubecontainer.PodPair&#123;APIPod: pod, RunningPod: &amp;runningPod&#125;</span><br><span class="line"></span><br><span class="line">   kl.podKillingCh &lt;- &amp;podPair  <span class="comment">// 这里</span></span><br><span class="line">   <span class="comment">// <span class="doctag">TODO:</span> delete the mirror pod here?</span></span><br><span class="line"></span><br><span class="line">   <span class="comment">// We leave the volume/directory cleanup to the periodic cleanup routine.</span></span><br><span class="line">   <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>根据这个 <code>channel</code> 找到删除流程的代码，这个代码是以一个<code>go routing</code> 独立运行<code>go wait.Until(kl.podKiller, 1*time.Second, wait.NeverStop)</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// podKiller launches a goroutine to kill a pod received from the channel if</span></span><br><span class="line"><span class="comment">// another goroutine isn&#x27;t already in action.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(kl *Kubelet)</span></span> podKiller() &#123;</span><br><span class="line">...</span><br><span class="line">	<span class="keyword">for</span> podPair := <span class="keyword">range</span> kl.podKillingCh &#123; <span class="comment">// 这地方可以看到通过 channel 沟通</span></span><br><span class="line">...</span><br><span class="line">		<span class="keyword">if</span> !exists &#123;</span><br><span class="line">			<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(apiPod *v1.Pod, runningPod *kubecontainer.Pod)</span></span> &#123;</span><br><span class="line">				klog.V(<span class="number">2</span>).Infof(<span class="string">&quot;Killing unwanted pod %q&quot;</span>, runningPod.Name)</span><br><span class="line">				err := kl.killPod(apiPod, runningPod, <span class="literal">nil</span>, <span class="literal">nil</span>) <span class="comment">// 这里就是做实际的删除</span></span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>看下面代码知道了实际调用了<code>containerRuntime</code>的<code>KillPod</code>接口</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// One of the following arguments must be non-nil: runningPod, status.</span></span><br><span class="line"><span class="comment">// <span class="doctag">TODO:</span> Modify containerRuntime.KillPod() to accept the right arguments.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(kl *Kubelet)</span></span> killPod(pod *v1.Pod, runningPod *kubecontainer.Pod, status *kubecontainer.PodStatus, gracePeriodOverride *<span class="type">int64</span>) <span class="type">error</span> &#123;</span><br><span class="line">...</span><br><span class="line">	<span class="comment">// Call the container runtime KillPod method which stops all running containers of the pod</span></span><br><span class="line">	<span class="keyword">if</span> err := kl.containerRuntime.KillPod(pod, p, gracePeriodOverride); err != <span class="literal">nil</span> &#123;  <span class="comment">// here</span></span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>看一下<code>KillPod</code>这个<code>interface</code>的实现如下，没有没有太多核心逻辑</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// KillPod kills all the containers of a pod. Pod may be nil, running pod must not be.</span></span><br><span class="line"><span class="comment">// gracePeriodOverride if specified allows the caller to override the pod default grace period.</span></span><br><span class="line"><span class="comment">// only hard kill paths are allowed to specify a gracePeriodOverride in the kubelet in order to not corrupt user data.</span></span><br><span class="line"><span class="comment">// it is useful when doing SIGKILL for hard eviction scenarios, or max grace period during soft eviction scenarios.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *kubeGenericRuntimeManager)</span></span> KillPod(pod *v1.Pod, runningPod kubecontainer.Pod, gracePeriodOverride *<span class="type">int64</span>) <span class="type">error</span> &#123;</span><br><span class="line">	err := m.killPodWithSyncResult(pod, runningPod, gracePeriodOverride)</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// killPodWithSyncResult kills a runningPod and returns SyncResult.</span></span><br><span class="line"><span class="comment">// Note: The pod passed in could be *nil* when kubelet restarted.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *kubeGenericRuntimeManager)</span></span> killPodWithSyncResult(pod *v1.Pod, runningPod kubecontainer.Pod, gracePeriodOverride *<span class="type">int64</span>) (result kubecontainer.PodSyncResult) &#123;</span><br><span class="line">	killContainerResults := m.killContainersWithSyncResult(pod, runningPod, gracePeriodOverride)</span><br><span class="line">	<span class="keyword">for</span> _, containerResult := <span class="keyword">range</span> killContainerResults &#123;</span><br><span class="line">		result.AddSyncResult(containerResult)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// stop sandbox, the sandbox will be removed in GarbageCollect</span></span><br><span class="line">	killSandboxResult := kubecontainer.NewSyncResult(kubecontainer.KillPodSandbox, runningPod.ID)</span><br><span class="line">	result.AddSyncResult(killSandboxResult)</span><br><span class="line">	<span class="comment">// Stop all sandboxes belongs to same pod</span></span><br><span class="line">	<span class="keyword">for</span> _, podSandbox := <span class="keyword">range</span> runningPod.Sandboxes &#123;</span><br><span class="line">		<span class="keyword">if</span> err := m.runtimeService.StopPodSandbox(podSandbox.ID.ID); err != <span class="literal">nil</span> &#123; <span class="comment">// 这里是删除 POD 的 sandbox</span></span><br><span class="line">			killSandboxResult.Fail(kubecontainer.ErrKillPodSandbox, err.Error())</span><br><span class="line">			klog.Errorf(<span class="string">&quot;Failed to stop sandbox %q&quot;</span>, podSandbox.ID)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>killContainersWithSyncResult()</code> 方法的实现就是从<code>POD</code>的操作转换为 <code>container</code> 操作的核心，在这个函数之前全部操作都是围绕这个<code>POD</code>，但是这个函数之后调用函数操作对象都是 <code>container</code>。</p>
+<p>而且这个函数保证了<code>others conainter</code>删除早于 <code>sandbox container</code>删除。</p>
+<p>后面函数调用就比较简单了<code>m.killContainersWithSyncResult(pod, runningPod, gracePeriodOverride)</code> -&gt; <code>m.runtimeService.StopPodSandbox(podSandbox.ID.ID)</code> -&gt; <code>r.runtimeClient.StopPodSandbox(ctx, &amp;runtimeapi.StopPodSandboxRequest&#123;PodSandboxId: podSandBoxID&#125;)</code>。</p>
+<p>对删除流程我们跟到这个<code>StopPodSandbox</code>方法调用我认为就够了，之所以认为够了是原因在此之前逻辑都是在<code>kubelet</code>自己主循环中，而之后的逻辑都是走的 <code>grpc</code>。</p>
+<h2 id="kubelet-如何回收网络"><a href="#kubelet-如何回收网络" class="headerlink" title="kubelet 如何回收网络"></a>kubelet 如何回收网络</h2><p>有了之前的分析，现在看一下是如何实现<code>StopPodSandbox</code> 这个服务是如何实现的</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> _RuntimeService_serviceDesc = grpc.ServiceDesc&#123;</span><br><span class="line">	ServiceName: <span class="string">&quot;runtime.v1alpha2.RuntimeService&quot;</span>,</span><br><span class="line">	HandlerType: (*RuntimeServiceServer)(<span class="literal">nil</span>),</span><br><span class="line">	Methods: []grpc.MethodDesc&#123;</span><br><span class="line">...</span><br><span class="line">		&#123;</span><br><span class="line">			MethodName: <span class="string">&quot;StopPodSandbox&quot;</span>,</span><br><span class="line">			Handler:    _RuntimeService_StopPodSandbox_Handler,</span><br><span class="line">		&#125;,</span><br></pre></td></tr></table></figure>
+
+<p><code>_RuntimeService_StopPodSandbox_Handler</code>的实现会调用<code>StopPodSandbox()</code>，后面看一下<code>StopPodSandbox()</code>的实现。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// StopPodSandbox stops the sandbox. If there are any running containers in the</span></span><br><span class="line"><span class="comment">// sandbox, they should be force terminated.</span></span><br><span class="line"><span class="comment">// <span class="doctag">TODO:</span> This function blocks sandbox teardown on networking teardown. Is it</span></span><br><span class="line"><span class="comment">// better to cut our losses assuming an out of band GC routine will cleanup</span></span><br><span class="line"><span class="comment">// after us?</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ds *dockerService)</span></span> StopPodSandbox(ctx context.Context, r *runtimeapi.StopPodSandboxRequest) (*runtimeapi.StopPodSandboxResponse, <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="keyword">var</span> namespace, name <span class="type">string</span></span><br><span class="line">	<span class="keyword">var</span> hostNetwork <span class="type">bool</span></span><br><span class="line">....</span><br><span class="line">	<span class="comment">// WARNING: The following operations made the following assumption:</span></span><br><span class="line">	<span class="comment">// 1. kubelet will retry on any error returned by StopPodSandbox.</span></span><br><span class="line">	<span class="comment">// 2. tearing down network and stopping sandbox container can succeed in any sequence.</span></span><br><span class="line">	<span class="comment">// This depends on the implementation detail of network plugin and proper error handling.</span></span><br><span class="line">	<span class="comment">// For kubenet, if tearing down network failed and sandbox container is stopped, kubelet</span></span><br><span class="line">	<span class="comment">// will retry. On retry, kubenet will not be able to retrieve network namespace of the sandbox</span></span><br><span class="line">	<span class="comment">// since it is stopped. With empty network namespcae, CNI bridge plugin will conduct best</span></span><br><span class="line">	<span class="comment">// effort clean up and will not return error.</span></span><br><span class="line">	errList := []<span class="type">error</span>&#123;&#125;</span><br><span class="line">	ready, ok := ds.getNetworkReady(podSandboxID)</span><br><span class="line">	<span class="keyword">if</span> !hostNetwork &amp;&amp; (ready || !ok) &#123;</span><br><span class="line">		<span class="comment">// Only tear down the pod network if we haven&#x27;t done so already</span></span><br><span class="line">		cID := kubecontainer.BuildContainerID(runtimeName, podSandboxID)</span><br><span class="line">		err := ds.network.TearDownPod(namespace, name, cID) </span><br></pre></td></tr></table></figure>
+
+<p><code>TearDownPod</code>就是整个<code>POD</code>网络销毁的核心函数，在这个函数的实现中做了一部分预设前提 <code>infra container</code> 后于 <code>others container</code>  删除。</p>
+<p>看一下<code>CNI</code>这个包对与这个函数的实现的销毁逻辑</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(plugin *cniNetworkPlugin)</span></span> TearDownPod(namespace <span class="type">string</span>, name <span class="type">string</span>, id kubecontainer.ContainerID) <span class="type">error</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err := plugin.checkInitialized(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Lack of namespace should not be fatal on teardown</span></span><br><span class="line">	netnsPath, err := plugin.host.GetNetNS(id.ID) <span class="comment">// 这里就就是获取 namespace 的使用</span></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		klog.Warningf(<span class="string">&quot;CNI failed to retrieve network namespace path: %v&quot;</span>, err) <span class="comment">// 看 ELK 报错信息有这个</span></span><br><span class="line">	&#125;</span><br><span class="line">...</span><br><span class="line">	<span class="keyword">return</span> plugin.deleteFromNetwork(cniTimeoutCtx, plugin.getDefaultNetwork(), name, namespace, id, netnsPath, <span class="literal">nil</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(plugin *cniNetworkPlugin)</span></span> deleteFromNetwork(ctx context.Context, network *cniNetwork, podName <span class="type">string</span>, podNamespace <span class="type">string</span>, podSandboxID kubecontainer.ContainerID, podNetnsPath <span class="type">string</span>, annotations <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span>) <span class="type">error</span> &#123;</span><br><span class="line">	rt, err := plugin.buildCNIRuntimeConf(podName, podNamespace, podSandboxID, podNetnsPath, annotations, <span class="literal">nil</span>) <span class="comment">// 通过 ELK 看到也有这个函数的警告</span></span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(plugin *cniNetworkPlugin)</span></span> buildCNIRuntimeConf(podName <span class="type">string</span>, podNs <span class="type">string</span>, podSandboxID kubecontainer.ContainerID, podNetnsPath <span class="type">string</span>, annotations <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span>) (*libcni.RuntimeConf, <span class="type">error</span>) &#123;</span><br><span class="line">	glog.V(<span class="number">4</span>).Infof(<span class="string">&quot;Got netns path %v&quot;</span>, podNetnsPath)</span><br><span class="line">	glog.V(<span class="number">4</span>).Infof(<span class="string">&quot;Using podns path %v&quot;</span>, podNs) <span class="comment">// 这行在 ELK 里面也看到了，podNs 值为 default 不符合预期 3</span></span><br><span class="line"></span><br><span class="line">...</span><br><span class="line">	<span class="keyword">return</span> rt, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这后面就是按照<code>cni</code>的标准调用<code>cni</code>二进制了。</p>
+<h2 id="问题分析"><a href="#问题分析" class="headerlink" title="问题分析"></a>问题分析</h2><p>基于之前的分析，其实出问题的地方很清楚了。就是<code>plugin.host.GetNetNS(id.ID)</code>过程错误了。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// GetNetNS returns the network namespace of the given containerID. The ID</span></span><br><span class="line"><span class="comment">// supplied is typically the ID of a pod sandbox. This getter doesn&#x27;t try</span></span><br><span class="line"><span class="comment">// to map non-sandbox IDs to their respective sandboxes.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ds *dockerService)</span></span> GetNetNS(podSandboxID <span class="type">string</span>) (<span class="type">string</span>, <span class="type">error</span>) &#123;</span><br><span class="line">	r, err := ds.client.InspectContainer(podSandboxID) <span class="comment">// 这个就是调用 docker client 了</span></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="string">&quot;&quot;</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> getNetworkNamespace(r)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *kubeDockerClient)</span></span> InspectContainer(id <span class="type">string</span>) (*dockertypes.ContainerJSON, <span class="type">error</span>) &#123;</span><br><span class="line">	ctx, cancel := d.getTimeoutContext()</span><br><span class="line">	<span class="keyword">defer</span> cancel()</span><br><span class="line">	containerJSON, err := d.client.ContainerInspect(ctx, id) <span class="comment">// 这个地方就是</span></span><br><span class="line">...</span><br><span class="line">	<span class="keyword">return</span> &amp;containerJSON, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getNetworkNamespace</span><span class="params">(c *dockertypes.ContainerJSON)</span></span> (<span class="type">string</span>, <span class="type">error</span>) &#123;</span><br><span class="line">   <span class="keyword">if</span> c.State.Pid == <span class="number">0</span> &#123;</span><br><span class="line">      <span class="comment">// Docker reports pid 0 for an exited container.</span></span><br><span class="line">      <span class="keyword">return</span> <span class="string">&quot;&quot;</span>, fmt.Errorf(<span class="string">&quot;cannot find network namespace for the terminated container %q&quot;</span>, c.ID)</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="comment">// dockerNetNSFmt = &quot;/proc/%v/ns/net&quot;</span></span><br><span class="line">   <span class="keyword">return</span> fmt.Sprintf(dockerNetNSFmt, c.State.Pid), <span class="literal">nil</span> </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>结合<code>ELK</code>错误日志初步判断出就是<code>if c.State.Pid == 0 &#123;</code>这个逻辑被触发了，也就说 <code>sandbox</code>的 container 的<code>docker state pid</code>为<code>0</code>。</p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2020/08/10/aws-nlb-full-nat/">aws nlb 使用 full nat 遇到的 tcp rest 问题</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2020/05/25/kube-proxy-configure-error/">kube-proxy 配置不当导致 service 异常</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

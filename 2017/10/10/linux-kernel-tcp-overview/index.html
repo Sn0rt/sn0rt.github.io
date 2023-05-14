@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>Linux kernel tcp overview - sn0rt's blog</title>
+
+  
+    <meta name="description" content="一直想找机会梳理一下 kernel 的网络子系统，不如现在开始动手做，在梳理 kernel 前，先回顾一下操作系统提供的网络编程 API。 0x00 用户如何使用想了解一下 Linux 下的 tcp 个人认为 socket API 是肯定要介绍的，自 bsd 4.2 引入到如今已经 30 多年了，核心 api 是非常稳定见如下表格    C&#x2F;S API    服务器端： socket,b">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux kernel tcp overview">
+<meta property="og:url" content="http://sn0rt.github.io/2017/10/10/linux-kernel-tcp-overview/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="一直想找机会梳理一下 kernel 的网络子系统，不如现在开始动手做，在梳理 kernel 前，先回顾一下操作系统提供的网络编程 API。 0x00 用户如何使用想了解一下 Linux 下的 tcp 个人认为 socket API 是肯定要介绍的，自 bsd 4.2 引入到如今已经 30 多年了，核心 api 是非常稳定见如下表格    C&#x2F;S API    服务器端： socket,b">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2017-10-09T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.768Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="tips">
+<meta name="twitter:card" content="summary">
+  
+  
+  
+  <meta name="keywords" content="tips">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">Linux kernel tcp overview</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x00-%E7%94%A8%E6%88%B7%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8"><span class="toc-text">0x00 用户如何使用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#tcp-linux-%E5%AE%9E%E7%8E%B0-TCP-Implementation"><span class="toc-text">tcp linux 实现[^TCP_Implementation]</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#tcp-%E5%A5%97%E6%8E%A5%E5%AD%97%E7%9A%84%E5%BB%BA%E7%AB%8B"><span class="toc-text">tcp 套接字的建立</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#tcp-%E7%9A%84%E7%BB%88%E6%AD%A2"><span class="toc-text">tcp 的终止</span></a></li></ol></li></ol></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2017-10-09T16:00:00.000Z">2017-10-10</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>Linux kernel tcp overview</span></h1>
+<p>一直想找机会梳理一下 kernel 的网络子系统，不如现在开始动手做，在梳理 kernel 前，先回顾一下操作系统提供的网络编程 API。</p>
+<h2 id="0x00-用户如何使用"><a href="#0x00-用户如何使用" class="headerlink" title="0x00 用户如何使用"></a>0x00 用户如何使用</h2><p>想了解一下 Linux 下的 tcp 个人认为 socket API 是肯定要介绍的，自 bsd 4.2 引入到如今已经 30 多年了，核心 api 是非常稳定见如下表格</p>
+<table>
+<thead>
+<tr>
+<th>C&#x2F;S</th>
+<th>API</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>服务器端：</td>
+<td><code>socket</code>,<code>bind</code>,<code>listen</code>,<code>accept</code>,<code>shutdown</code>等</td>
+</tr>
+<tr>
+<td>————</td>
+<td>—————————————————-</td>
+</tr>
+<tr>
+<td>客户端：</td>
+<td><code>socket</code>, <code>connect</code>, <code>recv</code>,<code>close</code>等</td>
+</tr>
+<tr>
+<td>————</td>
+<td>—————————————————-</td>
+</tr>
+</tbody></table>
+<p>几个简单的接口有效的控制了网络编程的复杂度。</p>
+<p>这些 api 围绕着一个 socket 文件操作，这个文件挂载在相对简单的 sockfs 文件系统下面 (在 socket.c 中实现)，下面这个文件操作符结构体实现描述了这个类型文件支持的文件操作。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">file_operations</span> <span class="title">socket_file_ops</span> =</span> &#123;</span><br><span class="line">        .owner =        THIS_MODULE,</span><br><span class="line">        .llseek =       no_llseek,</span><br><span class="line">        .read_iter =    sock_read_iter,</span><br><span class="line">        .write_iter =   sock_write_iter,</span><br><span class="line">        .poll =         sock_poll,</span><br><span class="line">        .unlocked_ioctl = sock_ioctl,</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_COMPAT</span></span><br><span class="line">        .compat_ioctl = compat_sock_ioctl,</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">        .mmap =         sock_mmap,</span><br><span class="line">        .release =      sock_close,</span><br><span class="line">        .fasync =       sock_fasync,</span><br><span class="line">        .sendpage =     sock_sendpage,</span><br><span class="line">        .splice_write = generic_splice_sendpage,</span><br><span class="line">        .splice_read =  sock_splice_read,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>上面这个就是体现 unix 哲学 <code>Everything is a file</code> 的体现，通过 vfs 抽象将函数指针放到结构体中，当对对应的文件调用就回调这个文件系统实现的回调函数，比如说我对 socket 文件进行  <code>mmap</code> 调用，到具体的文件系统中就是调用了 <code>sock_mmap</code> 这个文件系统实现。</p>
+<p>这个 struct 已经暴露了能对 socket 的操作了，不过并不打算对这个 struct 上纠结太多。</p>
+<p>一般的使用场景是，首先用户通过 socket 系统调用创建 ipv4 面向字节流套接字，也就是指的 TCP 套接字，当套接字创建完成过后就可以像操作文件一样操作套接字。</p>
+<p>我们这里关注的是 ipv4 tcp 套接字是如何建立的，如何传输数据的，如何关闭的，这三个问题。</p>
+<h2 id="tcp-linux-实现-TCP-Implementation"><a href="#tcp-linux-实现-TCP-Implementation" class="headerlink" title="tcp linux 实现[^TCP_Implementation]"></a>tcp linux 实现[^TCP_Implementation]</h2><p>tcp 虚链路的建立，有效的关闭是学习 TCP 的基础中的基础。</p>
+<p>多场景下高效率的传输学习和研究的难点，多场景的例子有卫星链路，其特点是带宽大延迟高；广域网，其特点是背景丢包率，IDC 内部，低延迟高带宽。</p>
+<h3 id="tcp-套接字的建立"><a href="#tcp-套接字的建立" class="headerlink" title="tcp 套接字的建立"></a>tcp 套接字的建立</h3><p>众所周知的三次握手，客户端发起 syn，服务端 ack + syn，服务端 ack。这里一共三次，为什么是三次是因为 2 次不能进行双向确认，4 次显的没有效率多一次发包。</p>
+<p>系统调用 <code>socket</code>, 通过两天函数，对应内核函数 <code>__sock_create</code></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> __sock_create(<span class="keyword">struct</span> net *net, <span class="type">int</span> family, <span class="type">int</span> type, <span class="type">int</span> protocol,</span><br><span class="line">			 <span class="keyword">struct</span> socket **res, <span class="type">int</span> kern)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> err;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">socket</span> *<span class="title">sock</span>;</span></span><br><span class="line">	<span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">net_proto_family</span> *<span class="title">pf</span>;</span></span><br><span class="line">...</span><br><span class="line">	pf = rcu_dereference(net_families[family]);</span><br><span class="line">	err = -EAFNOSUPPORT;</span><br><span class="line">	<span class="keyword">if</span> (!pf)</span><br><span class="line">		<span class="keyword">goto</span> out_release;</span><br><span class="line">...</span><br><span class="line">	err = pf-&gt;create(net, sock, protocol, kern);</span><br><span class="line">	<span class="keyword">if</span> (err &lt; <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">goto</span> out_module_put;</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>看上面代码是<code>__sock_create</code>调用已经在系统中注册的协议提供的<code>create</code>方法创建<code>sock</code>函数。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *	sock_register - add a socket protocol handler</span></span><br><span class="line"><span class="comment"> *	@ops: description of protocol</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *	This function is called by a protocol handler that wants to</span></span><br><span class="line"><span class="comment"> *	advertise its address family, and have it linked into the</span></span><br><span class="line"><span class="comment"> *	socket interface. The value ops-&gt;family corresponds to the</span></span><br><span class="line"><span class="comment"> *	socket system call protocol family.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">sock_register</span><span class="params">(<span class="type">const</span> <span class="keyword">struct</span> net_proto_family *ops)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">int</span> err;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (ops-&gt;family &gt;= NPROTO) &#123;</span><br><span class="line">		pr_crit(<span class="string">&quot;protocol %d &gt;= NPROTO(%d)\n&quot;</span>, ops-&gt;family, NPROTO);</span><br><span class="line">		<span class="keyword">return</span> -ENOBUFS;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	spin_lock(&amp;net_family_lock);</span><br><span class="line">	<span class="keyword">if</span> (rcu_dereference_protected(net_families[ops-&gt;family],</span><br><span class="line">				      lockdep_is_held(&amp;net_family_lock)))</span><br><span class="line">		err = -EEXIST;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		rcu_assign_pointer(net_families[ops-&gt;family], ops);</span><br><span class="line">		err = <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	spin_unlock(&amp;net_family_lock);</span><br><span class="line"></span><br><span class="line">	pr_info(<span class="string">&quot;NET: Registered protocol family %d\n&quot;</span>, ops-&gt;family);</span><br><span class="line">	<span class="keyword">return</span> err;</span><br><span class="line">&#125;</span><br><span class="line">EXPORT_SYMBOL(sock_register);</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span> __init <span class="title function_">inet_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">inet_protosw</span> *<span class="title">q</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> *<span class="title">r</span>;</span></span><br><span class="line">	<span class="type">int</span> rc = -EINVAL;</span><br><span class="line"></span><br><span class="line">	sock_skb_cb_check_size(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> inet_skb_parm));</span><br><span class="line"></span><br><span class="line">	rc = proto_register(&amp;tcp_prot, <span class="number">1</span>);</span><br><span class="line">	<span class="keyword">if</span> (rc)</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line"></span><br><span class="line">	rc = proto_register(&amp;udp_prot, <span class="number">1</span>);</span><br><span class="line">	<span class="keyword">if</span> (rc)</span><br><span class="line">		<span class="keyword">goto</span> out_unregister_tcp_proto;</span><br><span class="line"></span><br><span class="line">	rc = proto_register(&amp;raw_prot, <span class="number">1</span>);</span><br><span class="line">	<span class="keyword">if</span> (rc)</span><br><span class="line">		<span class="keyword">goto</span> out_unregister_udp_proto;</span><br><span class="line"></span><br><span class="line">	rc = proto_register(&amp;ping_prot, <span class="number">1</span>);</span><br><span class="line">	<span class="keyword">if</span> (rc)</span><br><span class="line">		<span class="keyword">goto</span> out_unregister_raw_proto;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 *	Tell SOCKET that we are alive...</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line"></span><br><span class="line">	(<span class="type">void</span>)sock_register(&amp;inet_family_ops);</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_SYSCTL</span></span><br><span class="line">	ip_static_sysctl_init();</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 *	Add all the base protocols.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (inet_add_protocol(&amp;icmp_protocol, IPPROTO_ICMP) &lt; <span class="number">0</span>)</span><br><span class="line">		pr_crit(<span class="string">&quot;%s: Cannot add ICMP protocol\n&quot;</span>, __func__);</span><br><span class="line">	<span class="keyword">if</span> (inet_add_protocol(&amp;udp_protocol, IPPROTO_UDP) &lt; <span class="number">0</span>)</span><br><span class="line">		pr_crit(<span class="string">&quot;%s: Cannot add UDP protocol\n&quot;</span>, __func__);</span><br><span class="line">	<span class="keyword">if</span> (inet_add_protocol(&amp;tcp_protocol, IPPROTO_TCP) &lt; <span class="number">0</span>)</span><br><span class="line">		pr_crit(<span class="string">&quot;%s: Cannot add TCP protocol\n&quot;</span>, __func__);</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_IP_MULTICAST</span></span><br><span class="line">	<span class="keyword">if</span> (inet_add_protocol(&amp;igmp_protocol, IPPROTO_IGMP) &lt; <span class="number">0</span>)</span><br><span class="line">		pr_crit(<span class="string">&quot;%s: Cannot add IGMP protocol\n&quot;</span>, __func__);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Register the socket-side information for inet_create. */</span></span><br><span class="line">	<span class="keyword">for</span> (r = &amp;inetsw[<span class="number">0</span>]; r &lt; &amp;inetsw[SOCK_MAX]; ++r)</span><br><span class="line">		INIT_LIST_HEAD(r);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (q = inetsw_array; q &lt; &amp;inetsw_array[INETSW_ARRAY_LEN]; ++q)</span><br><span class="line">		inet_register_protosw(q);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 *	Set the ARP module up</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line"></span><br><span class="line">	arp_init();</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 *	Set the IP module up</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line"></span><br><span class="line">	ip_init();</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Setup TCP slab cache for open requests. */</span></span><br><span class="line">	tcp_init();</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Setup UDP memory threshold */</span></span><br><span class="line">	udp_init();</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Add UDP-Lite (RFC 3828) */</span></span><br><span class="line">	udplite4_register();</span><br><span class="line"></span><br><span class="line">	raw_init();</span><br><span class="line"></span><br><span class="line">	ping_init();</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 *	Set the ICMP layer up</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (icmp_init() &lt; <span class="number">0</span>)</span><br><span class="line">		panic(<span class="string">&quot;Failed to create the ICMP control socket.\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 *	Initialise the multicast router</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> defined(CONFIG_IP_MROUTE)</span></span><br><span class="line">	<span class="keyword">if</span> (ip_mr_init())</span><br><span class="line">		pr_crit(<span class="string">&quot;%s: Cannot init ipv4 mroute\n&quot;</span>, __func__);</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (init_inet_pernet_ops())</span><br><span class="line">		pr_crit(<span class="string">&quot;%s: Cannot init ipv4 inet pernet ops\n&quot;</span>, __func__);</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 *	Initialise per-cpu ipv4 mibs</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (init_ipv4_mibs())</span><br><span class="line">		pr_crit(<span class="string">&quot;%s: Cannot init ipv4 mibs\n&quot;</span>, __func__);</span><br><span class="line"></span><br><span class="line">	ipv4_proc_init();</span><br><span class="line"></span><br><span class="line">	ipfrag_init();</span><br><span class="line"></span><br><span class="line">	dev_add_pack(&amp;ip_packet_type);</span><br><span class="line"></span><br><span class="line">	ip_tunnel_core_init();</span><br><span class="line"></span><br><span class="line">	rc = <span class="number">0</span>;</span><br><span class="line">out:</span><br><span class="line">	<span class="keyword">return</span> rc;</span><br><span class="line">out_unregister_raw_proto:</span><br><span class="line">	proto_unregister(&amp;raw_prot);</span><br><span class="line">out_unregister_udp_proto:</span><br><span class="line">	proto_unregister(&amp;udp_prot);</span><br><span class="line">out_unregister_tcp_proto:</span><br><span class="line">	proto_unregister(&amp;tcp_prot);</span><br><span class="line">	<span class="keyword">goto</span> out;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">fs_initcall(inet_init);</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="tcp-的终止"><a href="#tcp-的终止" class="headerlink" title="tcp 的终止"></a>tcp 的终止</h3><p>众所周知的四次挥手，为什么是四次挥手关闭呢？其实这里的四次挥手的关闭指的是两个套接字两个方向的关闭，两个套接字指的是客户端和服务端，两个方向分别是发送方和接收方。</p>
+<p>经典正确场景：当客户端 c 准备结束数据发送了，首先发起 FIN，服务端 s 收到客户端发来 FIN 信息并返回 ACK，当前阶段 c 客户端不发送数据但是还可以接收服务端发来的数据。当 s 把数据发送完成过后准备关闭这个客户的套接字，发送 FIN 给 c，这时候服务端不能发送数据。当 c 接受接收到 s 发来的 FIN，会回复一下 ACK，当 s 收到了 ack 套接字被正常关闭。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>更多描述参考<a href="%5Bkernel_flow%5D(https://wiki.linuxfoundation.org/networking/kernel_flow)">^wiki</a>.</p>
+<p>[^TCP_Implementation]: <a href="/media/paper/TCPlinux.pdf">TCP Implementation in Linux: A Brief Tutorial</a></p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2017/10/16/install-Shadowsocks-r/">quick install ShadowsocksR + tcp_bbr</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2017/10/09/deep-explore-c-va-arg/">to explore c va arg</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

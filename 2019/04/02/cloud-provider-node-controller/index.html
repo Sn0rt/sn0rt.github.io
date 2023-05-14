@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>cloud provider node controller - sn0rt's blog</title>
+
+  
+    <meta name="description" content="node controller 是负责初始化&#x2F;维护一个k8s node 在云上标识的信息，主要信息如下： 1: 初始化node的云相关的zone&#x2F;region信息labels。2: 初始化 node 的云上的实例信息，比如说 type 和 szie。3: 获取 node 的网络地址信息和主机名称。4: 当客户通过云的虚拟机管理面板删除主机的时候需要从 k8s 中同步的删除 no">
+<meta property="og:type" content="article">
+<meta property="og:title" content="cloud provider node controller">
+<meta property="og:url" content="http://sn0rt.github.io/2019/04/02/cloud-provider-node-controller/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="node controller 是负责初始化&#x2F;维护一个k8s node 在云上标识的信息，主要信息如下： 1: 初始化node的云相关的zone&#x2F;region信息labels。2: 初始化 node 的云上的实例信息，比如说 type 和 szie。3: 获取 node 的网络地址信息和主机名称。4: 当客户通过云的虚拟机管理面板删除主机的时候需要从 k8s 中同步的删除 no">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2019-04-01T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.773Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="k8s">
+<meta name="twitter:card" content="summary">
+  
+  
+  
+  <meta name="keywords" content="k8s">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+
+<widget class="widget-wrapper recent"><div class="widget-header cap theme dis-select"><span class="name">Recent Update</span></div><div class="widget-body related-posts fs14"><a class="item title" href="/2021/05/11/blk-io-2/"><span class="title">blkio 源码分析</span></a><a class="item title" href="/2022/09/03/update-bios-by-redfish/"><span class="title">update BIOS attr by redfish</span></a><a class="item title" href="/2016/06/14/ptmalloc2/"><span class="title">ptmalloc2</span></a><a class="item title" href="/2016/07/25/cgroup-i/"><span class="title">cgroups I - usage</span></a><a class="item title" href="/2017/09/02/a-panice-of-watchdog/"><span class="title">a panic of watchdog hard lockup</span></a></div></widget>
+
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2019-04-01T16:00:00.000Z">2019-04-02</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>cloud provider node controller</span></h1>
+<p>node controller 是负责初始化&#x2F;维护一个k8s node 在云上标识的信息，主要信息如下：</p>
+<p>1: 初始化node的云相关的zone&#x2F;region信息labels。<br>2: 初始化 node 的云上的实例信息，比如说 type 和 szie。<br>3: 获取 node 的网络地址信息和主机名称。<br>4: 当客户通过云的虚拟机管理面板删除主机的时候需要从 k8s 中同步的删除 node。</p>
+<p>在实现上 cloud node controllr 核心逻辑只是重度依赖 cloud 接口 和 node Informers。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// startControllers starts the cloud specific controller loops.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">startControllers</span><span class="params">(c *cloudcontrollerconfig.CompletedConfig, stop &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, cloud cloudprovider.Interface)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">...</span><br><span class="line">   <span class="comment">// Start the CloudNodeController</span></span><br><span class="line">   nodeController := cloudcontrollers.NewCloudNodeController(</span><br><span class="line">      c.SharedInformers.Core().V1().Nodes(),</span><br><span class="line">      client(<span class="string">&quot;cloud-node-controller&quot;</span>), cloud,</span><br><span class="line">      c.ComponentConfig.KubeCloudShared.NodeMonitorPeriod.Duration,</span><br><span class="line">      c.ComponentConfig.NodeStatusUpdateFrequency.Duration)</span><br><span class="line"></span><br><span class="line">   nodeController.Run(stop)</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>node controller 实现最开始描述 4 个需求只有两块核心逻辑：<br>    其一是周期性不断执行的<code>UpdateNodeStatus</code>和<code>MonitorNode</code>，前者是更新节点状态比如 ip 地址，后者通过云平台管理接口监控虚拟机，当客户通过虚拟机管理页面移除机器时候保证 k8s 中 node 也会被删除。<br>    其二是通过 controller 机制来触发的两个回调函数<code>AddCloudNode</code>和<code>UpdateCloudNode</code>添加虚拟机与云相关标签比如实例类型<code>x2.larget</code>实例 Id<code>ins-xxx</code>还有 ip 地址等。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewCloudNodeController creates a CloudNodeController object</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewCloudNodeController</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">   nodeInformer coreinformers.NodeInformer,</span></span></span><br><span class="line"><span class="params"><span class="function">   kubeClient clientset.Interface,</span></span></span><br><span class="line"><span class="params"><span class="function">   cloud cloudprovider.Interface,</span></span></span><br><span class="line"><span class="params"><span class="function">   nodeMonitorPeriod time.Duration,</span></span></span><br><span class="line"><span class="params"><span class="function">   nodeStatusUpdateFrequency time.Duration)</span></span> *CloudNodeController &#123;</span><br><span class="line">...</span><br><span class="line">   <span class="comment">// Use shared informer to listen to add/update of nodes. Note that any nodes</span></span><br><span class="line">   <span class="comment">// that exist before node controller starts will show up in the update method</span></span><br><span class="line">   cnc.nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs&#123;</span><br><span class="line">      AddFunc:    cnc.AddCloudNode,</span><br><span class="line">      UpdateFunc: cnc.UpdateCloudNode,</span><br><span class="line">   &#125;)</span><br><span class="line"></span><br><span class="line">   <span class="keyword">return</span> cnc</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>cloud node controller 第一块逻辑：在实现上 cloud node controller 仅仅注册了 2 个回调函数，而且在实现上 UpdateCloudNode 调用了 AddCloudNode。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(cnc *CloudNodeController)</span></span> UpdateCloudNode(_, newObj <span class="keyword">interface</span>&#123;&#125;) &#123;</span><br><span class="line">	<span class="keyword">if</span> _, ok := newObj.(*v1.Node); !ok &#123;</span><br><span class="line">		utilruntime.HandleError(fmt.Errorf(<span class="string">&quot;unexpected object type: %v&quot;</span>, newObj))</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	cnc.AddCloudNode(newObj)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看一下 AddCloudNode 实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// This processes nodes that were added into the cluster, and cloud initialize them if appropriate</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(cnc *CloudNodeController)</span></span> AddCloudNode(obj <span class="keyword">interface</span>&#123;&#125;) &#123;</span><br><span class="line">	node := obj.(*v1.Node)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 这里一个判断是否要进入 cloud node controller 的初始化流程</span></span><br><span class="line">	cloudTaint := getCloudTaint(node.Spec.Taints)</span><br><span class="line">	<span class="keyword">if</span> cloudTaint == <span class="literal">nil</span> &#123;</span><br><span class="line">		glog.V(<span class="number">2</span>).Infof(<span class="string">&quot;This node %s is registered without the cloud taint. Will not process.&quot;</span>, node.Name)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line">	err := clientretry.RetryOnConflict(UpdateNodeSpecBackoff, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> <span class="type">error</span> &#123;</span><br><span class="line"><span class="comment">// 移除了 gce 特有逻辑</span></span><br><span class="line">...</span><br><span class="line">		curNode, err := cnc.kubeClient.CoreV1().Nodes().Get(node.Name, metav1.GetOptions&#123;&#125;)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line"><span class="comment">// 尝试填补 node spec provider:// 字段</span></span><br><span class="line">		<span class="keyword">if</span> curNode.Spec.ProviderID == <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">			providerID, err := cloudprovider.GetInstanceProviderID(context.TODO(), cnc.cloud, types.NodeName(curNode.Name))</span><br><span class="line">			<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">				curNode.Spec.ProviderID = providerID</span><br><span class="line">			&#125;</span><br><span class="line">			...</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		nodeAddresses, err := getNodeAddressesByProviderIDOrName(instances, curNode)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// If user provided an IP address, ensure that IP address is found</span></span><br><span class="line">		<span class="comment">// in the cloud provider before removing the taint on the node</span></span><br><span class="line">		<span class="keyword">if</span> nodeIP, ok := ensureNodeProvidedIPExists(curNode, nodeAddresses); ok &#123;</span><br><span class="line">			<span class="keyword">if</span> nodeIP == <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> errors.New(<span class="string">&quot;failed to find kubelet node IP from cloud provider&quot;</span>)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> instanceType, err := getInstanceTypeByProviderIDOrName(instances, curNode); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> instanceType != <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">			glog.V(<span class="number">2</span>).Infof(<span class="string">&quot;Adding node label from cloud provider: %s=%s&quot;</span>, kubeletapis.LabelInstanceType, instanceType)</span><br><span class="line">			<span class="comment">// 在 instance spec 添加 instance type</span></span><br><span class="line">			curNode.ObjectMeta.Labels[kubeletapis.LabelInstanceType] = instanceType</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> zones, ok := cnc.cloud.Zones(); ok &#123;</span><br><span class="line">			zone, err := getZoneByProviderIDOrName(zones, curNode)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;failed to get zone from cloud provider: %v&quot;</span>, err)</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> zone.FailureDomain != <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">				glog.V(<span class="number">2</span>).Infof(<span class="string">&quot;Adding node label from cloud provider: %s=%s&quot;</span>, kubeletapis.LabelZoneFailureDomain, zone.FailureDomain)</span><br><span class="line">				<span class="comment">// 在 instance spec 中准备 zone 信息</span></span><br><span class="line">				curNode.ObjectMeta.Labels[kubeletapis.LabelZoneFailureDomain] = zone.FailureDomain</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> zone.Region != <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">				glog.V(<span class="number">2</span>).Infof(<span class="string">&quot;Adding node label from cloud provider: %s=%s&quot;</span>, kubeletapis.LabelZoneRegion, zone.Region)</span><br><span class="line">				curNode.ObjectMeta.Labels[kubeletapis.LabelZoneRegion] = zone.Region</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		curNode.Spec.Taints = excludeTaintFromList(curNode.Spec.Taints, *cloudTaint)</span><br><span class="line">		<span class="comment">// 去更新 node spec</span></span><br><span class="line">		_, err = cnc.kubeClient.CoreV1().Nodes().Update(curNode)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// After adding, call UpdateNodeAddress to set the CloudProvider provided IPAddresses</span></span><br><span class="line">		<span class="comment">// So that users do not see any significant delay in IP addresses being filled into the node</span></span><br><span class="line">		cnc.updateNodeAddress(curNode, instances)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;)</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">	glog.Infof(<span class="string">&quot;Successfully initialized node %s with cloud provider&quot;</span>, node.Name)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>cloud node controller 第二块逻辑：周期性调用<code>UpdateNodeStatus</code>和<code>MonitorNode</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// This controller deletes a node if kubelet is not reporting</span></span><br><span class="line"><span class="comment">// and the node is gone from the cloud provider.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(cnc *CloudNodeController)</span></span> Run(stopCh &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;) &#123;</span><br><span class="line">   <span class="keyword">defer</span> utilruntime.HandleCrash()</span><br><span class="line"></span><br><span class="line">   <span class="comment">// The following loops run communicate with the APIServer with a worst case complexity</span></span><br><span class="line">   <span class="comment">// of O(num_nodes) per cycle. These functions are justified here because these events fire</span></span><br><span class="line">   <span class="comment">// very infrequently. DO NOT MODIFY this to perform frequent operations.</span></span><br><span class="line"></span><br><span class="line">   <span class="comment">// Start a loop to periodically update the node addresses obtained from the cloud</span></span><br><span class="line">   <span class="keyword">go</span> wait.Until(cnc.UpdateNodeStatus, cnc.nodeStatusUpdateFrequency, stopCh)</span><br><span class="line"></span><br><span class="line">   <span class="comment">// Start a loop to periodically check if any nodes have been deleted from cloudprovider</span></span><br><span class="line">   <span class="keyword">go</span> wait.Until(cnc.MonitorNode, cnc.nodeMonitorPeriod, stopCh)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>UpdateNodeStatus</code>的实现更新了<code>ip address</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// UpdateNodeStatus updates the node status, such as node addresses</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(cnc *CloudNodeController)</span></span> UpdateNodeStatus() &#123;</span><br><span class="line">   instances, ok := cnc.cloud.Instances()</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">   nodes, err := cnc.kubeClient.CoreV1().Nodes().List(metav1.ListOptions&#123;ResourceVersion: <span class="string">&quot;0&quot;</span>&#125;)</span><br><span class="line">   <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">      glog.Errorf(<span class="string">&quot;Error monitoring node status: %v&quot;</span>, err)</span><br><span class="line">      <span class="keyword">return</span></span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">for</span> i := <span class="keyword">range</span> nodes.Items &#123;</span><br><span class="line">      cnc.updateNodeAddress(&amp;nodes.Items[i], instances)</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>MonitorNode 函数也是周期性执行，当调用 cloud provider 发现节点不存在的时候也会从 k8s 中移除节点。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// Monitor node queries the cloudprovider for non-ready nodes and deletes them</span></span><br><span class="line"><span class="comment">// if they cannot be found in the cloud provider</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(cnc *CloudNodeController)</span></span> MonitorNode() &#123;</span><br><span class="line">...</span><br><span class="line">	nodes, err := cnc.kubeClient.CoreV1().Nodes().List(metav1.ListOptions&#123;ResourceVersion: <span class="string">&quot;0&quot;</span>&#125;)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		glog.Errorf(<span class="string">&quot;Error monitoring node status: %v&quot;</span>, err)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="keyword">range</span> nodes.Items &#123;</span><br><span class="line">		<span class="keyword">var</span> currentReadyCondition *v1.NodeCondition</span><br><span class="line">		node := &amp;nodes.Items[i]</span><br><span class="line">		<span class="comment">// Try to get the current node status</span></span><br><span class="line">		<span class="comment">// If node status is empty, then kubelet has not posted ready status yet. In this case, process next node</span></span><br><span class="line">		<span class="keyword">for</span> rep := <span class="number">0</span>; rep &lt; nodeStatusUpdateRetry; rep++ &#123;</span><br><span class="line">			_, currentReadyCondition = nodeutilv1.GetNodeCondition(&amp;node.Status, v1.NodeReady)</span><br><span class="line">			<span class="keyword">if</span> currentReadyCondition != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">break</span></span><br><span class="line">			&#125;</span><br><span class="line">			name := node.Name</span><br><span class="line">			node, err = cnc.kubeClient.CoreV1().Nodes().Get(name, metav1.GetOptions&#123;&#125;)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				glog.Errorf(<span class="string">&quot;Failed while getting a Node to retry updating NodeStatus. Probably Node %s was deleted.&quot;</span>, name)</span><br><span class="line">				<span class="keyword">break</span></span><br><span class="line">			&#125;</span><br><span class="line">			time.Sleep(retrySleepTime)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> currentReadyCondition == <span class="literal">nil</span> &#123;</span><br><span class="line">			glog.Errorf(<span class="string">&quot;Update status of Node %v from CloudNodeController exceeds retry count or the Node was deleted.&quot;</span>, node.Name)</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// If the known node status says that Node is NotReady, then check if the node has been removed</span></span><br><span class="line">		<span class="comment">// from the cloud provider. If node cannot be found in cloudprovider, then delete the node immediately</span></span><br><span class="line">		<span class="keyword">if</span> currentReadyCondition != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">if</span> currentReadyCondition.Status != v1.ConditionTrue &#123;</span><br><span class="line">				<span class="comment">// we need to check this first to get taint working in similar in all cloudproviders</span></span><br><span class="line">				<span class="comment">// current problem is that shutdown nodes are not working in similar way ie. all cloudproviders</span></span><br><span class="line">				<span class="comment">// does not delete node from kubernetes cluster when instance it is shutdown see issue #46442</span></span><br><span class="line">				shutdown, err := nodectrlutil.ShutdownInCloudProvider(context.TODO(), cnc.cloud, node)</span><br><span class="line">				<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">					glog.Errorf(<span class="string">&quot;Error checking if node %s is shutdown: %v&quot;</span>, node.Name, err)</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				<span class="keyword">if</span> shutdown &amp;&amp; err == <span class="literal">nil</span> &#123;</span><br><span class="line">					<span class="comment">// if node is shutdown add shutdown taint</span></span><br><span class="line">					err = controller.AddOrUpdateTaintOnNode(cnc.kubeClient, node.Name, controller.ShutdownTaint)</span><br><span class="line">					<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">						glog.Errorf(<span class="string">&quot;Error patching node taints: %v&quot;</span>, err)</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="comment">// Continue checking the remaining nodes since the current one is shutdown.</span></span><br><span class="line">					<span class="keyword">continue</span></span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				<span class="comment">// Check with the cloud provider to see if the node still exists. If it</span></span><br><span class="line">				<span class="comment">// doesn&#x27;t, delete the node immediately.</span></span><br><span class="line">				exists, err := ensureNodeExistsByProviderID(instances, node)</span><br><span class="line">				<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">					glog.Errorf(<span class="string">&quot;Error checking if node %s exists: %v&quot;</span>, node.Name, err)</span><br><span class="line">					<span class="keyword">continue</span></span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				<span class="keyword">if</span> exists &#123;</span><br><span class="line">					<span class="comment">// Continue checking the remaining nodes since the current one is fine.</span></span><br><span class="line">					<span class="keyword">continue</span></span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				glog.V(<span class="number">2</span>).Infof(<span class="string">&quot;Deleting node since it is no longer present in cloud provider: %s&quot;</span>, node.Name)</span><br><span class="line"></span><br><span class="line">				ref := &amp;v1.ObjectReference&#123;</span><br><span class="line">					Kind:      <span class="string">&quot;Node&quot;</span>,</span><br><span class="line">					Name:      node.Name,</span><br><span class="line">					UID:       types.UID(node.UID),</span><br><span class="line">					Namespace: <span class="string">&quot;&quot;</span>,</span><br><span class="line">				&#125;</span><br><span class="line">				glog.V(<span class="number">2</span>).Infof(<span class="string">&quot;Recording %s event message for node %s&quot;</span>, <span class="string">&quot;DeletingNode&quot;</span>, node.Name)</span><br><span class="line"></span><br><span class="line">				cnc.recorder.Eventf(ref, v1.EventTypeNormal, fmt.Sprintf(<span class="string">&quot;Deleting Node %v because it&#x27;s not present according to cloud provider&quot;</span>, node.Name), <span class="string">&quot;Node %s event: %s&quot;</span>, node.Name, <span class="string">&quot;DeletingNode&quot;</span>)</span><br><span class="line"></span><br><span class="line">				<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(nodeName <span class="type">string</span>)</span></span> &#123;</span><br><span class="line">					<span class="keyword">defer</span> utilruntime.HandleCrash()</span><br><span class="line">					<span class="keyword">if</span> err := cnc.kubeClient.CoreV1().Nodes().Delete(nodeName, <span class="literal">nil</span>); err != <span class="literal">nil</span> &#123;</span><br><span class="line">						glog.Errorf(<span class="string">&quot;unable to delete node %q: %v&quot;</span>, nodeName, err)</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;(node.Name)</span><br><span class="line"></span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				<span class="comment">// if taint exist remove taint</span></span><br><span class="line">				err = controller.RemoveTaintOffNode(cnc.kubeClient, node.Name, node, controller.ShutdownTaint)</span><br><span class="line">				<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">					glog.Errorf(<span class="string">&quot;Error patching node taints: %v&quot;</span>, err)</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2019/04/02/cloud-provider-route-controller/">cloud provider route controller</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2019/04/01/cloud-provider-svc-controller/">cloud provider Service Controller</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

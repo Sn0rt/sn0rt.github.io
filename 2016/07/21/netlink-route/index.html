@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>netlink route - sn0rt's blog</title>
+
+  
+    <meta name="description" content="0x00 NETLINK_ROUTErtnetlink基于netlink, 它允许 kernel 的路由表被读或者修改，它常被 kernel 用来和其他的子系统的用户态程序通讯。 0x01 introduction虽然被称为”Linux IPv4 routing socket”, 不过目前这个protocol已经支持了ipv6, 这个类型protocol主要提供了网络相关的信息。对于这个协议，Li">
+<meta property="og:type" content="article">
+<meta property="og:title" content="netlink route">
+<meta property="og:url" content="http://sn0rt.github.io/2016/07/21/netlink-route/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="0x00 NETLINK_ROUTErtnetlink基于netlink, 它允许 kernel 的路由表被读或者修改，它常被 kernel 用来和其他的子系统的用户态程序通讯。 0x01 introduction虽然被称为”Linux IPv4 routing socket”, 不过目前这个protocol已经支持了ipv6, 这个类型protocol主要提供了网络相关的信息。对于这个协议，Li">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2016-07-20T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.763Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary">
+  
+  
+  
+  <meta name="keywords" content="linux">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">netlink route</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x01-introduction"><span class="toc-text">0x01 introduction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x02-Network-Route-Service-Module-rfc"><span class="toc-text">0x02 Network Route Service Module^rfc</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x03-Neighbor-Setup-Service-Module"><span class="toc-text">0x03 Neighbor Setup Service Module</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x03-Traffic-Control-Service"><span class="toc-text">0x03 Traffic Control Service</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x21-emulateing-wide-network"><span class="toc-text">0x21 emulateing wide network</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x21-monitor-routing-table"><span class="toc-text">0x21 monitor routing table</span></a></li></ol></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2016-07-20T16:00:00.000Z">2016-07-21</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>netlink route</span></h1>
+<h1 id="0x00-NETLINK-ROUTE"><a href="#0x00-NETLINK-ROUTE" class="headerlink" title="0x00 NETLINK_ROUTE"></a>0x00 NETLINK_ROUTE</h1><p><code>rtnetlink</code>基于<code>netlink</code>, 它允许 kernel 的路由表被读或者修改，它常被 kernel 用来和其他的子系统的用户态程序通讯。</p>
+<h2 id="0x01-introduction"><a href="#0x01-introduction" class="headerlink" title="0x01 introduction"></a>0x01 introduction</h2><p>虽然被称为”Linux IPv4 routing socket”, 不过目前这个<code>protocol</code>已经支持了<code>ipv6</code>, 这个类型<code>protocol</code>主要提供了网络相关的信息。对于这个协议，Linux 声明了大量的子消息，更多的信息可以参考 manual[^tcwiki]:</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>消息类型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>链路层</td>
+<td>RTM_NEWLINK, RTM_DELLINK, RTM_GETLINK, RTM_SETLINK</td>
+</tr>
+<tr>
+<td>地址设定</td>
+<td>RTM_NEWADDR, RTM_DELADDR, RTM_GETADDR</td>
+</tr>
+<tr>
+<td>路由表</td>
+<td>RTM_NEWROUTE, RTM_DELROUTE, RTM_GETROUTE</td>
+</tr>
+<tr>
+<td>邻居缓存</td>
+<td>TM_NEWNEIGH, RTM_DELNEIGH, RTM_GETNEIGH</td>
+</tr>
+<tr>
+<td>路由规则</td>
+<td>RTM_NEWRULE, RTM_DELRULE, RTM_GETRULE</td>
+</tr>
+<tr>
+<td>Queuing Discipline Settings</td>
+<td>RTM_NEWQDISC, RTM_DELQDISC, RTM_GETQDISC</td>
+</tr>
+<tr>
+<td>Traffic Classes used with Queues</td>
+<td>RTM_NEWTCLASS, RTM_DELTCLASS, RTM_GETTCLASS</td>
+</tr>
+<tr>
+<td>流量过滤</td>
+<td>RTM_NEWTFILTER, RTM_DELTFILTER, RTM_GETTFILTER</td>
+</tr>
+<tr>
+<td>其它</td>
+<td>RTM_NEWACTION, RTM_DELACTION, RTM_GETACTION, RTM_NEWPREFIX, RTM_GETPREFIX, RTM_GETMULTICAST, RTM_GETANYCAST, RTM_NEWNEIGHTBL,RTM_GETNEIGHTBL, RTM_SETNEIGHTBL</td>
+</tr>
+</tbody></table>
+<h2 id="0x02-Network-Route-Service-Module-rfc"><a href="#0x02-Network-Route-Service-Module-rfc" class="headerlink" title="0x02 Network Route Service Module^rfc"></a>0x02 Network Route Service Module<a href="%5Brfc3549%5D(http://www.faqs.org/rfcs/rfc3549.html)">^rfc</a></h2><p>这个服务提供了网络路由的创建，移除与接收网络路由，这个服务的<code>messages</code>模板如下，字段的更多信息参考<code>RFC3549</code>的 3.1.1.</p>
+<pre><code>0                   1                   2                   3
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-+
+|   Family    |  Src length   |  Dest length  |     TOS       |
++-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-+
+|  Table ID   |   Protocol    |     Scope     |     Type      |
++-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-+
+|                          Flags                              |
++-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-+
+</code></pre>
+<h2 id="0x03-Neighbor-Setup-Service-Module"><a href="#0x03-Neighbor-Setup-Service-Module" class="headerlink" title="0x03 Neighbor Setup Service Module"></a>0x03 Neighbor Setup Service Module</h2><p>这个服务提供增加，移除和接受邻居信息的能力，这个服务<code>messages</code>模板如下，字段的更多信息参考<code>RFC3549</code>的 3.1.2.</p>
+<pre><code>0                   1                   2                   3
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-+
+|   Family    |    Reserved1  |           Reserved2           |
++-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-+
+|                     Interface Index                         |
++-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-+
+|           State             |     Flags     |     Type      |
++-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-+
+</code></pre>
+<h2 id="0x03-Traffic-Control-Service"><a href="#0x03-Traffic-Control-Service" class="headerlink" title="0x03 Traffic Control Service"></a>0x03 Traffic Control Service</h2><p>这个服务提供了供给，查询与侦听支持流量控制事件的能力，linux 下面流量控制是非常具有弹性 (复杂), 字段的更多信息参考<code>RFC3549</code>的 3.1.3.</p>
+<pre><code>0                   1                   2                   3
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-+
+|   Family    |  Reserved1    |         Reserved2             |
++-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-+
+|                     Interface Index                         |
++-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-+
+|                      Qdisc handle                           |
++-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-+
+|                     Parent Qdisc                            |
++-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-+
+|                        TCM Info                             |
++-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-+
+    
+</code></pre>
+<h1 id="0x20-demo"><a href="#0x20-demo" class="headerlink" title="0x20 demo"></a>0x20 demo</h1><blockquote>
+<p>API to the configuration interfaces of the NETLINK_ROUTE family including network interfaces, routes, addresses, neighbours, and traffic control.</p>
+</blockquote>
+<p>引用在<code>libnl-route</code>介绍，对照 RFC 定义的<code>ip service</code>部分还是都支持的，着也是主流的<code>NETLINK_ROUTE</code>的使用途径。</p>
+<h2 id="0x21-emulateing-wide-network"><a href="#0x21-emulateing-wide-network" class="headerlink" title="0x21 emulateing wide network"></a>0x21 emulateing wide network</h2><p><code>vishvananda</code>封装了<code>golang</code>的<code>netlink</code>的库，可以做<code>ip service</code>中<code>traffic control</code>的事情，比如去模拟广域网。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">&quot;fmt&quot;</span></span><br><span class="line">    <span class="string">&quot;github.com/vishvananda/netlink&quot;</span></span><br><span class="line">    <span class="string">&quot;os/exec&quot;</span></span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 毁坏测试</span></span><br><span class="line">    fmt.Println(<span class="string">&quot;\n 包毁坏测试&quot;</span>)</span><br><span class="line">    NetCorruption(<span class="number">20</span>)</span><br><span class="line">    check_interface_status()</span><br><span class="line">    StopNetCorruption()</span><br><span class="line">    check_interface_status()</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 检查状态</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">check_interface_status</span><span class="params">()</span></span> &#123;</span><br><span class="line">    output, err := exec.Command(<span class="string">&quot;/sbin/tc&quot;</span>, <span class="string">&quot;qdisc&quot;</span>).Output()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        fmt.Println(<span class="string">&quot;error in cmd.start()&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    fmt.Printf(<span class="string">&quot;%v&quot;</span>, <span class="type">string</span>(output))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 获得网卡的 Index</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">get_interface_list</span><span class="params">()</span></span> []<span class="type">int</span> &#123;</span><br><span class="line">    interfaces, _ := netlink.LinkList()</span><br><span class="line">    <span class="keyword">var</span> interface_index []<span class="type">int</span></span><br><span class="line">    <span class="keyword">for</span> _, name := <span class="keyword">range</span> interfaces[<span class="number">1</span>:] &#123;</span><br><span class="line">        interface_index = <span class="built_in">append</span>(interface_index, name.Attrs().Index)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> interface_index</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 构造出每网卡 qdisc 属性，类似 dev inferface_name root netem</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">constructor_qdiscattrs</span><span class="params">()</span></span> []netlink.QdiscAttrs &#123;</span><br><span class="line">    linkindexs := get_interface_list()</span><br><span class="line">    <span class="keyword">var</span> netems []netlink.QdiscAttrs</span><br><span class="line">    <span class="keyword">for</span> _, indexs := <span class="keyword">range</span> linkindexs &#123;</span><br><span class="line">        <span class="keyword">var</span> qdisc_attrs = netlink.QdiscAttrs&#123;</span><br><span class="line">            Parent:    netlink.HANDLE_ROOT,</span><br><span class="line">            LinkIndex: indexs,</span><br><span class="line">        &#125;</span><br><span class="line">        netems = <span class="built_in">append</span>(netems, qdisc_attrs)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> netems</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 具体的 do 执行</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">traffic_control</span><span class="params">(nattrs netlink.NetemQdiscAttrs)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="keyword">var</span> netems = constructor_qdiscattrs()</span><br><span class="line">    <span class="keyword">for</span> _, netem := <span class="keyword">range</span> netems &#123;</span><br><span class="line">        err := netlink.QdiscAdd(netlink.NewNetem(netem, nattrs))</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            fmt.Printf(<span class="string">&quot;traffic_control %v \n&quot;</span>, err)</span><br><span class="line">            <span class="keyword">return</span> err</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 具体的 undo 执行</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">undo_traffic_control</span><span class="params">()</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    fmt.Println(<span class="string">&quot;undo operation&quot;</span>)</span><br><span class="line">    links, _ := netlink.LinkList()</span><br><span class="line">    <span class="keyword">for</span> _, link := <span class="keyword">range</span> links &#123;</span><br><span class="line">        netems, _ := netlink.QdiscList(link)</span><br><span class="line">        <span class="keyword">for</span> _, netem := <span class="keyword">range</span> netems &#123;</span><br><span class="line">            err := netlink.QdiscDel(netem)</span><br><span class="line">            <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                fmt.Printf(<span class="string">&quot;undo_traffic_control %v \n&quot;</span>, err)</span><br><span class="line">                <span class="keyword">return</span> err</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 实参单位是 %, 例如实参是 80, 表示损坏率 80%</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NetCorruption</span><span class="params">(precents <span class="type">float32</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> nattrs netlink.NetemQdiscAttrs</span><br><span class="line">    nattrs.CorruptProb = precents</span><br><span class="line">    traffic_control(nattrs)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">StopNetCorruption</span><span class="params">()</span></span> &#123;</span><br><span class="line">    undo_traffic_control()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="0x21-monitor-routing-table"><a href="#0x21-monitor-routing-table" class="headerlink" title="0x21 monitor routing table"></a>0x21 monitor routing table</h2><p>当然可以直接使用系统自带的<code>rtnetlink.h</code>来监控路由表。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/netlink.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/rtnetlink.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;arpa/inet.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> ERR_RET(x) do &#123; perror(x); return EXIT_FAILURE; &#125; while (0);</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BUFFER_SIZE 4095</span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span>  <span class="title function_">loop</span> <span class="params">(<span class="type">int</span> sock, <span class="keyword">struct</span> sockaddr_nl *addr)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span>     received_bytes = <span class="number">0</span>;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span>  <span class="title">nlmsghdr</span> *<span class="title">nlh</span>;</span></span><br><span class="line">    <span class="type">char</span>    destination_address[<span class="number">32</span>];</span><br><span class="line">    <span class="type">char</span>    gateway_address[<span class="number">32</span>];</span><br><span class="line">    <span class="class"><span class="keyword">struct</span>  <span class="title">rtmsg</span> *<span class="title">route_entry</span>;</span>  <span class="comment">/* This struct represent a route entry in the routing table */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span>  <span class="title">rtattr</span> *<span class="title">route_attribute</span>;</span> <span class="comment">/* This struct contain route attributes (route type) */</span></span><br><span class="line">    <span class="type">int</span>     route_attribute_len = <span class="number">0</span>;</span><br><span class="line">    <span class="type">char</span>    buffer[BUFFER_SIZE];</span><br><span class="line">    </span><br><span class="line">    bzero(destination_address, <span class="keyword">sizeof</span>(destination_address));</span><br><span class="line">    bzero(gateway_address, <span class="keyword">sizeof</span>(gateway_address));</span><br><span class="line">    bzero(buffer, <span class="keyword">sizeof</span>(buffer));</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Receiving netlink socket data */</span></span><br><span class="line">    <span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">        received_bytes = recv(sock, buffer, <span class="keyword">sizeof</span>(buffer), <span class="number">0</span>);</span><br><span class="line">        <span class="keyword">if</span> (received_bytes &lt; <span class="number">0</span>)</span><br><span class="line">            ERR_RET(<span class="string">&quot;recv&quot;</span>);</span><br><span class="line">        <span class="comment">/* cast the received buffer */</span></span><br><span class="line">            nlh = (<span class="keyword">struct</span> nlmsghdr *) buffer;</span><br><span class="line">        <span class="comment">/* If we received all data ---&gt; break */</span></span><br><span class="line">        <span class="keyword">if</span> (nlh-&gt;nlmsg_type == NLMSG_DONE)</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="comment">/* We are just intrested in Routing information */</span></span><br><span class="line">        <span class="keyword">if</span> (addr-&gt;nl_groups == RTMGRP_IPV4_ROUTE)</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Reading netlink socket data */</span></span><br><span class="line"><span class="comment">/* Loop through all entries */</span></span><br><span class="line"><span class="comment">/* For more informations on some functions :</span></span><br><span class="line"><span class="comment"> * http://www.kernel.org/doc/man-pages/online/pages/man3/netlink.3.html</span></span><br><span class="line"><span class="comment"> * http://www.kernel.org/doc/man-pages/online/pages/man7/rtnetlink.7.html</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> ( ; NLMSG_OK(nlh, received_bytes); nlh = NLMSG_NEXT(nlh, received_bytes))</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/* Get the route data */</span></span><br><span class="line">    route_entry = (<span class="keyword">struct</span> rtmsg *) NLMSG_DATA(nlh);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* We are just intrested in main routing table */</span></span><br><span class="line">    <span class="keyword">if</span> (route_entry-&gt;rtm_table != RT_TABLE_MAIN)</span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Get attributes of route_entry */</span></span><br><span class="line">    route_attribute = (<span class="keyword">struct</span> rtattr *) RTM_RTA(route_entry);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Get the route atttibutes len */</span></span><br><span class="line">    route_attribute_len = RTM_PAYLOAD(nlh);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">/* Loop through all attributes */</span></span><br><span class="line">    <span class="keyword">for</span> ( ; RTA_OK(route_attribute, route_attribute_len); route_attribute = RTA_NEXT(route_attribute, route_attribute_len))</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">/* Get the destination address */</span></span><br><span class="line">        <span class="keyword">if</span> (route_attribute-&gt;rta_type == RTA_DST)</span><br><span class="line">        &#123;</span><br><span class="line">            inet_ntop(AF_INET, RTA_DATA(route_attribute), destination_address, <span class="keyword">sizeof</span>(destination_address));</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">/* Get the gateway (Next hop) */</span></span><br><span class="line">        <span class="keyword">if</span> (route_attribute-&gt;rta_type == RTA_GATEWAY)</span><br><span class="line">        &#123;</span><br><span class="line">            inet_ntop(AF_INET, RTA_DATA(route_attribute), gateway_address, <span class="keyword">sizeof</span>(gateway_address));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Now we can dump the routing attributes */</span></span><br><span class="line">    <span class="keyword">if</span> (nlh-&gt;nlmsg_type == RTM_DELROUTE)</span><br><span class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stdout</span>, <span class="string">&quot;Deleting route to destination --&gt; %s and gateway %s\n&quot;</span>, destination_address, gateway_address);</span><br><span class="line">    <span class="keyword">if</span> (nlh-&gt;nlmsg_type == RTM_NEWROUTE)</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;Adding route to destination --&gt; %s and gateway %s\n&quot;</span>, destination_address, gateway_address);</span><br><span class="line">&#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> **argv)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> sock = <span class="number">-1</span>;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_nl</span> <span class="title">addr</span>;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Zeroing addr */</span></span><br><span class="line">    bzero (&amp;addr, <span class="keyword">sizeof</span>(addr));</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> ((sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE)) &lt; <span class="number">0</span>)</span><br><span class="line">        ERR_RET(<span class="string">&quot;socket&quot;</span>);</span><br><span class="line"></span><br><span class="line">    addr.nl_family = AF_NETLINK;</span><br><span class="line">    addr.nl_groups = RTMGRP_IPV4_ROUTE;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (bind(sock,(<span class="keyword">struct</span> sockaddr *)&amp;addr,<span class="keyword">sizeof</span>(addr)) &lt; <span class="number">0</span>)</span><br><span class="line">        ERR_RET(<span class="string">&quot;bind&quot;</span>);</span><br><span class="line">        </span><br><span class="line">    <span class="keyword">while</span> (<span class="number">1</span>)</span><br><span class="line">        loop (sock, &amp;addr);</span><br><span class="line">        </span><br><span class="line">    <span class="comment">/* Close socket */</span></span><br><span class="line">    close(sock);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以通过下面参数看见：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">route add -host 10.113.0.0 gw localhost</span></span><br><span class="line">Adding route to destination --&gt; 10.113.0.0 and gateway 127.0.0.1</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">route del -host 10.113.0.0 gw localhost</span></span><br><span class="line">Deleting route to destination --&gt; 10.113.0.0 and gateway 127.0.0.1</span><br></pre></td></tr></table></figure>
+
+<p>[^tcwiki]: <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Tc_(Linux)">wikipedia TC</a></p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2016/07/21/netlink-i/">netlink protocol I</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2016/06/30/intern-in-beijing/">internship in Beijing</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>cgroups I - usage - sn0rt's blog</title>
+
+  
+    <meta name="description" content="0x00 what is cgroup?cgroups 是 Linux 内核的一个功能，用来限制，控制与分离一个进程组群的资源（如 CPU, 内存，网络，磁盘输入输出等). 0x01 The begin of cgroups这个项目最早是由 Google 的工程师在 2006 年发起 (主要是 Paul Menage 和 Rohit Seth), 最早的名称为进程容器 (process conta">
+<meta property="og:type" content="article">
+<meta property="og:title" content="cgroups I - usage">
+<meta property="og:url" content="http://sn0rt.github.io/2016/07/25/cgroup-i/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="0x00 what is cgroup?cgroups 是 Linux 内核的一个功能，用来限制，控制与分离一个进程组群的资源（如 CPU, 内存，网络，磁盘输入输出等). 0x01 The begin of cgroups这个项目最早是由 Google 的工程师在 2006 年发起 (主要是 Paul Menage 和 Rohit Seth), 最早的名称为进程容器 (process conta">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://upload.wikimedia.org/wikipedia/commons/4/44/Linux_kernel_and_daemons_with_exclusive_access.svg">
+<meta property="og:image" content="https://i1.wp.com/duffy.fedorapeople.org/blog/designs/cgroups/diagram2.png">
+<meta property="og:image" content="http://www.tldp.org/HOWTO/Traffic-Control-HOWTO/images/pfifo_fast-qdisc.png">
+<meta property="og:image" content="http://www.tldp.org/HOWTO/Traffic-Control-HOWTO/images/sfq-qdisc.png">
+<meta property="og:image" content="http://www.tldp.org/HOWTO/Traffic-Control-HOWTO/images/tbf-qdisc.png">
+<meta property="og:image" content="http://www.tldp.org/HOWTO/Traffic-Control-HOWTO/images/htb-borrow.png">
+<meta property="article:published_time" content="2016-07-24T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.782Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://upload.wikimedia.org/wikipedia/commons/4/44/Linux_kernel_and_daemons_with_exclusive_access.svg">
+  
+  
+  
+  <meta name="keywords" content="linux">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">cgroups I - usage</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#0x01-The-begin-of-cgroups"><span class="toc-text">0x01 The begin of cgroups</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x02-feature"><span class="toc-text">0x02 feature</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x03-the-position-of-cgroups-in-kernel"><span class="toc-text">0x03 the position of cgroups in kernel</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x11-term"><span class="toc-text">0x11 term</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x12-resource-mangement"><span class="toc-text">0x12 resource mangement</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x13-subsystem"><span class="toc-text">0x13 subsystem</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x21-%E7%A1%AE%E8%AE%A4%E7%B3%BB%E7%BB%9F"><span class="toc-text">0x21 确认系统</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x22-%E4%BD%BF%E7%94%A8%E6%A1%88%E4%BE%8B-1"><span class="toc-text">0x22 使用案例 1</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0x23-%E4%BD%BF%E7%94%A8%E6%A1%88%E4%BE%8B-2"><span class="toc-text">0x23 使用案例 2</span></a></li></ol></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2016-07-24T16:00:00.000Z">2016-07-25</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>cgroups I - usage</span></h1>
+<h1 id="0x00-what-is-cgroup"><a href="#0x00-what-is-cgroup" class="headerlink" title="0x00 what is cgroup?"></a>0x00 what is cgroup?</h1><p>cgroups 是 Linux 内核的一个功能，用来限制，控制与分离一个进程组群的资源（如 CPU, 内存，网络，磁盘输入输出等).</p>
+<h2 id="0x01-The-begin-of-cgroups"><a href="#0x01-The-begin-of-cgroups" class="headerlink" title="0x01 The begin of cgroups"></a>0x01 The begin of cgroups</h2><p>这个项目最早是由 Google 的工程师在 2006 年发起 (主要是 Paul Menage 和 Rohit Seth), 最早的名称为进程容器 (process containers). 在 2007 年时，因为在 Linux 内核中，容器 (container) 这个名词有许多不同的意义，为避免混乱，被重命名为 cgroup, 并且被合并到 2.6.24 版的内核中去 [^wiki].</p>
+<h2 id="0x02-feature"><a href="#0x02-feature" class="headerlink" title="0x02 feature"></a>0x02 feature</h2><p>cgroup 的一个设计目标是为不同的应用情况提供统一的接口，从控制单一进程 (像 nice) 到操作系统层虚拟化 (像 opeNVZ,Linux-VServer,LXC).<br>cgroups 提供 [^access]：</p>
+<ul>
+<li>资源限制：组可以被设置不超过设定的内存限制；这也包括虚拟内存。</li>
+<li>优先化：一些组可能会得到大量的 CPU[5] 或磁盘输入输出通量。</li>
+<li>报告：用来衡量系统确实把多少资源用到适合的目的上。</li>
+<li>分离：为组分离命名空间，这样一个组不会看到另一个组的进程、网络连接和文件。</li>
+<li>控制：冻结组或检查点和重启动。</li>
+</ul>
+<h2 id="0x03-the-position-of-cgroups-in-kernel"><a href="#0x03-the-position-of-cgroups-in-kernel" class="headerlink" title="0x03 the position of cgroups in kernel"></a>0x03 the position of cgroups in kernel</h2><p>可以在下图看到其所在：</p>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="https://upload.wikimedia.org/wikipedia/commons/4/44/Linux_kernel_and_daemons_with_exclusive_access.svg" alt="architectures"></div><div class="image-meta"><span class="image-caption center">architectures</span></div></div>
+
+<h1 id="0x10-The-struct-of-cgroups"><a href="#0x10-The-struct-of-cgroups" class="headerlink" title="0x10 The struct of cgroups"></a>0x10 The struct of cgroups</h1><h2 id="0x11-term"><a href="#0x11-term" class="headerlink" title="0x11 term"></a>0x11 term</h2><ul>
+<li>*任务 (Tasks)*：就是系统的一个进程。</li>
+<li>*控制组 (Control Group)*：一组按照某种标准划分的进程，比如官方文档中的 Professor 和 Student, 或是 WWW 和 System 之类的，其表示了某进程组.Cgroups 中的资源控制都是以控制组为单位实现。一个进程可以加入到某个控制组。而资源的限制是定义在这个组上。简单点说，cgroup 的呈现就是一个目录带一系列的可配置文件。</li>
+<li>*层级 (Hierarchy)*：控制组可以组织成 hierarchical 的形式，既一颗控制组的树 (目录结构). 控制组树上的子节点继承父结点的属性。简单点说，hierarchy 就是在一个或多个子系统上的 cgroups 目录树。</li>
+<li>*子系统 (Subsystem)*：一个子系统就是一个资源控制器，比如 CPU 子系统就是控制 CPU 时间分配的一个控制器。子系统必须附加到一个层级上才能起作用，一个子系统附加到某个层级以后，这个层级上的所有控制族群都受到这个子系统的控制.Cgroup 的子系统可以有很多，也在不断增加中。</li>
+</ul>
+<h2 id="0x12-resource-mangement"><a href="#0x12-resource-mangement" class="headerlink" title="0x12 resource mangement"></a>0x12 resource mangement</h2><p>引用这个图片，尝试解释一下 cgroup 的资源划分的结构。不同颜色代表不同<code>group</code>对资源的划分，不过这个设计存在一些缺陷已经遭到<code>Tejun Heo</code>的 <a target="_blank" rel="noopener" href="https://lwn.net/Articles/484254/">吐槽</a>, 某个任务归类方式的多样性导致了多个<code>Hierarchy</code>的正交，导致了进程管理的复杂。多个子系统的之间的交叉使用导致了管理的复杂，不过在一些 cgroup 套件里面使用配置文件转移一部这个问题的复杂度。</p>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="https://i1.wp.com/duffy.fedorapeople.org/blog/designs/cgroups/diagram2.png" alt="cgroups2"></div><div class="image-meta"><span class="image-caption center">cgroups2</span></div></div>
+
+<h2 id="0x13-subsystem"><a href="#0x13-subsystem" class="headerlink" title="0x13 subsystem"></a>0x13 subsystem</h2><ul>
+<li>blkio — 这个子系统为块设备设定输入 &#x2F; 输出限制，比如物理设备（磁盘，固态硬盘，USB 等等）.</li>
+<li>cpu — 这个子系统使用调度程序提供对 CPU 的 cgroup 任务访问。</li>
+<li>cpuacct — 这个子系统自动生成 cgroup 中任务所使用的 CPU 报告。</li>
+<li>cpuset — 这个子系统为 cgroup 中的任务分配独立 CPU（在多核系统）和内存节点。</li>
+<li>devices — 这个子系统可允许或者拒绝 cgroup 中的任务访问设备。</li>
+<li>freezer — 这个子系统挂起或者恢复 cgroup 中的任务。</li>
+<li>memory — 这个子系统设定 cgroup 中任务使用的内存限制，并自动生成​​内存资源使用报告。</li>
+<li>net_cls — 这个子系统使用等级识别符（classid）标记网络数据包，可允许 Linux 流量控制程序（tc）识别从具体 cgroup 中生成的数据包。</li>
+<li>net_prio — 这个子系统用来设计网络流量的优先级</li>
+<li>hugetlb — 这个子系统主要针对于 HugeTLB 系统进行限制，这是一个大页文件系统。</li>
+</ul>
+<h1 id="0x20-Base-usage-in-CLI"><a href="#0x20-Base-usage-in-CLI" class="headerlink" title="0x20 Base usage in CLI"></a>0x20 Base usage in CLI</h1><h2 id="0x21-确认系统"><a href="#0x21-确认系统" class="headerlink" title="0x21 确认系统"></a>0x21 确认系统</h2><p>在使用<code>systemd</code>的系统里面<code>hierarchy</code>由其启动时自动创建，在<code>rhel6</code>系列中需要<code>yum install libcgroup</code>, 如果是<code>Ubuntu</code>系列的话较新的版本是自带了。<br>查看 cgroup 文件系统的挂载：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">mount -t cgroup</span></span><br><span class="line">cgroup on /sys/fs/cgroup/systemd type cgroup (rw,nosuid,nodev,noexec,relatime,xattr,release_agent=/usr/lib/systemd/systemd-cgroups-agent,name=systemd)</span><br><span class="line">cgroup on /sys/fs/cgroup/hugetlb type cgroup (rw,nosuid,nodev,noexec,relatime,hugetlb)</span><br><span class="line">cgroup on /sys/fs/cgroup/memory type cgroup (rw,nosuid,nodev,noexec,relatime,memory)</span><br><span class="line">cgroup on /sys/fs/cgroup/cpuset type cgroup (rw,nosuid,nodev,noexec,relatime,cpuset)</span><br><span class="line">cgroup on /sys/fs/cgroup/freezer type cgroup (rw,nosuid,nodev,noexec,relatime,freezer)</span><br><span class="line">cgroup on /sys/fs/cgroup/perf_event type cgroup (rw,nosuid,nodev,noexec,relatime,perf_event)</span><br><span class="line">cgroup on /sys/fs/cgroup/cpu,cpuacct type cgroup (rw,nosuid,nodev,noexec,relatime,cpuacct,cpu)</span><br><span class="line">cgroup on /sys/fs/cgroup/blkio type cgroup (rw,nosuid,nodev,noexec,relatime,blkio)</span><br><span class="line">cgroup on /sys/fs/cgroup/devices type cgroup (rw,nosuid,nodev,noexec,relatime,devices)</span><br><span class="line">cgroup on /sys/fs/cgroup/net_cls type cgroup (rw,nosuid,nodev,noexec,relatime,net_cls)</span><br></pre></td></tr></table></figure>
+<p>查看子系统：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">lssubsys</span></span><br><span class="line">cpuset</span><br><span class="line">cpu,cpuacct</span><br><span class="line">memory</span><br><span class="line">devices</span><br><span class="line">freezer</span><br><span class="line">net_cls</span><br><span class="line">blkio</span><br><span class="line">perf_event</span><br><span class="line">hugetlb</span><br></pre></td></tr></table></figure>
+
+<h2 id="0x22-使用案例-1"><a href="#0x22-使用案例-1" class="headerlink" title="0x22 使用案例 1"></a>0x22 使用案例 1</h2><p>Linux 中把<code>cgroups</code>实现成了文件系统，所以对文件系统里面的特定文件进行操作就可以完成对<code>cgroup</code>的配置。</p>
+<p>demo[^coolshell]:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> i = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span>(;;) i++;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>配置：首先在某个子系统下面建立一个目录，其目录里面会自动创建与其相关的文件 (文件名表示其意义); 其次置具体参数到文件名; 然后把要限制的进程 PID 放入<code>task</code>的文件。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="built_in">mkdir</span> /sys/fs/cgroup/cpu/eleme</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">ps uax | grep deadloop</span></span><br><span class="line">    root       4260 59.0  0.0   4164   352 pts/0    RN   23:12   3:03 ./deadloop</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="built_in">echo</span> <span class="string">&quot;2000&quot;</span> &gt;&gt; /sys/fs/cgroup/cpu/eleme/cpu.cfs_quota_us</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="built_in">echo</span> <span class="string">&quot;4260&quot;</span> &gt;&gt; /sys/fs/cgroup/cpu/eleme/tasks</span></span><br></pre></td></tr></table></figure>
+
+
+<p>配置前：</p>
+<pre><code>PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+4434 root      25   5    4164    356    280 R  92.0  0.0   0:04.18 deadloop
+</code></pre>
+<p>配置后：</p>
+<pre><code>PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+4434 root      25   5    4164    356    280 R   2.0  0.0   1:14.91 deadloop
+</code></pre>
+<h2 id="0x23-使用案例-2"><a href="#0x23-使用案例-2" class="headerlink" title="0x23 使用案例 2"></a>0x23 使用案例 2</h2><p>之所以单独记录了 netcls 的使用，是因为<code>netcls</code>相当于<code>cgroup</code>中其他的控制组使用起来不是很方便 (需要外部工具配合).</p>
+<p>在 cgroup 中，通过 netcls 子系统使用识别符 (classid) 标记网络数据包，标记完成过后一般是以下两个操作。</p>
+<ul>
+<li>可用流量控制器 (tc) 从不同的<code>cgroup</code>中关联不同的优先级到数据包，这个场景多数是用于<code>QOS</code>相关。</li>
+<li>也可以用<code>iptables</code>来对这些具有这些特征 (-m cgroup) 流量做一些具体的操作，这个操作幅度比<code>QOS</code>的要大，根据<code>iptables</code>的不同<code>table</code>提供的<code>-J</code>有很多动作可以做。</li>
+</ul>
+<blockquote>
+<ul>
+<li>Basic Queuing technology</li>
+</ul>
+<p>在描述<code>Linux QOS</code>之前需要想象最基本的队列技术 - 普通队列 (FIFO), 而后对其有了点改进诞生了由 3 个队列一起工作 (pfifo), 由多个队列一起工作的 (Stochastic Fair Queuing) 和拿着令牌才能走包的 (token bucket filter)[^qdisc].<br>需要补充说明的是虽然 linux 也支持基于字节的队列技术<code>bfifo</code>, 但是<code>bfifo</code>在特性支持上要远逊色于<code>pfifo</code>.</p>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="http://www.tldp.org/HOWTO/Traffic-Control-HOWTO/images/pfifo_fast-qdisc.png" alt="pfifo"></div><div class="image-meta"><span class="image-caption center">pfifo</span></div></div>
+<center>接口默认队列技术的 pfifo_fast</center>
+pfifo(基于 packet 的 fifo) 默认是使用三个队列，能提供基本的优先级功能。
+
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="http://www.tldp.org/HOWTO/Traffic-Control-HOWTO/images/sfq-qdisc.png" alt="SFQ"></div><div class="image-meta"><span class="image-caption center">SFQ</span></div></div>
+<center>看上去公平的 sfq</center>
+sfq 的公平是由 hash 与轮序算法保证的。更多信息 [这里](http://wiki.mikrotik.com/wiki/Manual:Queue#SFQ)
+
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="http://www.tldp.org/HOWTO/Traffic-Control-HOWTO/images/tbf-qdisc.png" alt="tbf"></div><div class="image-meta"><span class="image-caption center">tbf</span></div></div>
+<center>拿着令牌才放行的 tbf</center>
+</blockquote>
+<p><strong>即使这样多数情况依然不够！</strong></p>
+<p>比如”A,B,C,D 四个服务，其中 A 是延迟敏感的视频会议，B 是吞吐量大的 bt 下载，C,D 普通的 web 流量”, 上面提供的这些功能或多或少只能满足一部分服务。这个时候一个层次化的划分队列被开发出来了，虽然 linux 也实现了其它的有类队列规则，但是他们远不如其中的 HTB(Hierarchical Token Bucket) 使用更加广泛 [^packet_flow].</p>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="http://www.tldp.org/HOWTO/Traffic-Control-HOWTO/images/htb-borrow.png" alt="HTB"></div><div class="image-meta"><span class="image-caption center">HTB</span></div></div>
+<p>htb 允许创建层次的队列结构与决定队列之间的关系 (父 - 子，子 - 子).</p>
+<p>一般的使用步骤如下：</p>
+<ul>
+<li><p>1: 匹配和标记流量：将流量分类待使用，利用包含一个或者多个匹配参数来选择数据包构成一个 class</p>
+</li>
+<li><p>2: 创建策略到标记的流量上：把具体的 class 放到特定的队列中并定义每个 class 携带的动作。</p>
+</li>
+<li><p>3: 附加策略到到特定接口：附加策略到全局接口 (全局进，全局出，全局进出), 特定接口或者父队列。</p>
+</li>
+<li><p>htb demo[^htb]:</p>
+</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">This line sets a HTB qdisc on the root of eth0, and it specifies that</span> </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">the class 1:30 is used by default. It sets the name of the root as 1:, <span class="keyword">for</span> future references.</span></span><br><span class="line">tc qdisc add dev eth0 root handle 1: htb default 30</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">This creates a class called 1:1, <span class="built_in">which</span> is direct descendant of root (the parent is 1:),</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">this class gets assigned also an HTB qdisc, and <span class="keyword">then</span> it sets a max rate of 6mbits, with a burst of 15k</span></span><br><span class="line">tc class add dev eth0 parent 1: classid 1:1 htb rate 6mbit burst 15k</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">The previous class has this branches:</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Class 1:10, <span class="built_in">which</span> has a rate of 5mbit</span></span><br><span class="line">tc class add dev eth0 parent 1:1 classid 1:10 htb rate 5mbit burst 15k</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Class 1:20, <span class="built_in">which</span> has a rate of 3mbit</span></span><br><span class="line">tc class add dev eth0 parent 1:1 classid 1:20 htb rate 3mbit ceil 6mbit burst 15k</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Class 1:30, <span class="built_in">which</span> has a rate of 1kbit. This one is the default class.</span></span><br><span class="line">tc class add dev eth0 parent 1:1 classid 1:30 htb rate 1kbit ceil 6mbit burst 15k</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Martin Devera, author of HTB, <span class="keyword">then</span> recommends SFQ <span class="keyword">for</span> beneath these classes:</span></span><br><span class="line">tc qdisc add dev eth0 parent 1:10 handle 10: sfq perturb 10</span><br><span class="line">tc qdisc add dev eth0 parent 1:20 handle 20: sfq perturb 10</span><br><span class="line">tc qdisc add dev eth0 parent 1:30 handle 30: sfq perturb 10</span><br></pre></td></tr></table></figure>
+
+<p>HTB 使用信息 <a target="_blank" rel="noopener" href="http://luxik.cdi.cz/~devik/qos/htb/manual/userg.htm">这里</a>, 理论<a target="_blank" rel="noopener" href="http://luxik.cdi.cz/~devik/qos/htb/manual/theory.htm">基础</a>, <a target="_blank" rel="noopener" href="http://lxr.free-electrons.com/source/net/sched/sch_htb.c">实现细节</a>.</p>
+<p>对前面的<code>QOS</code>有了了解，加上在 <a target="_blank" rel="noopener" href="https://git.netfilter.org/libnftnl/commit/?id=1d4a4808bb967532a30230f1957236586ab6f2b6">2014</a> 年<code>netfilter</code>支持了<code>cgroup</code>特性，用户态需要安装新的 iptables, 而后可以<code>match</code>出<code>cgroup</code>相关的流量，这个时候<code>net_cls</code>才算能和<code>netfilter</code>一起工作 [^net_cls_doc].</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/sh</span></span><br><span class="line"></span><br><span class="line">INTERFACE=eno16777736</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">configuring tc:</span></span><br><span class="line">tc qdisc add dev $INTERFACE root handle 10: htb</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">creating traffic class 10:1 and configure the rate with 40mbit</span></span><br><span class="line">tc class add dev $INTERFACE parent 10: classid 10:1 htb rate 40mbit</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">filter special traffic</span></span><br><span class="line">tc filter add dev $INTERFACE parent 10: protocol ip prio 10 handle 1: cgroup</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">create new Hierarchy</span></span><br><span class="line">if [ ! -d /sys/fs/cgroup/net_cls/0 ]; then</span><br><span class="line">    mkdir /sys/fs/cgroup/net_cls/0</span><br><span class="line">fi</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">send 0010:0001 to net_cls.classid</span></span><br><span class="line">echo 0x00100001 &gt;  /sys/fs/cgroup/net_cls/0/net_cls.classid</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">use iptables to match cgroup traffic and drop it.</span></span><br><span class="line">iptables -A OUTPUT -m cgroup --cgroup 0x00100001 -j DROP</span><br></pre></td></tr></table></figure>
+
+<p>[^access]: <a target="_blank" rel="noopener" href="https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/7/html/Resource_Management_Guide/chap-Introduction_to_Control_Groups.html">redhat access</a><br>[^wiki]: <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Cgroups">wikipedia</a><br>[^coolshell]: <a target="_blank" rel="noopener" href="http://coolshell.cn/articles/17049.html">coolshell</a><br>[^net_cls_doc]: <a target="_blank" rel="noopener" href="https://www.kernel.org/doc/Documentation/cgroup-v1/net_cls.txt">cgroup net_cls doc</a><br>[^linux_tc]: <a target="_blank" rel="noopener" href="http://www.tldp.org/HOWTO/Traffic-Control-HOWTO/">Linux taffic control</a><br>[^linux_fw]: <a target="_blank" rel="noopener" href="https://www.nostarch.com/firewalls.htm">linux firewalls</a><br>[^packet_flow]: <a target="_blank" rel="noopener" href="http://wiki.mikrotik.com/wiki/Manual:Packet_Flow">MikroTik RouterOS packet flow</a><br>[^qdisc]: <a target="_blank" rel="noopener" href="https://wiki.archlinux.org/index.php/Advanced_traffic_control#Classful_Qdiscs">classful qdiscs</a><br>[^htb]: <a target="_blank" rel="noopener" href="http://wiki.mikrotik.com/wiki/Manual:HTB#Theory">HTB</a><br>[^example]: <a target="_blank" rel="noopener" href="http://www.cnblogs.com/blueswu/p/3567399.html">cgroup 使用范例</a></p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2016/07/29/cgroup-ii-implementation-overview/">cgroups II - cgroup implementation overview</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2016/07/24/iptables/">iptables usage</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

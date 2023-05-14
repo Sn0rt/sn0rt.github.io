@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>cluster api v1alpha2 之 cluster - sn0rt's blog</title>
+
+  
+    <meta name="description" content="因为最近工作需要，调研了 cluster api provider aws.整理调研过程中的知识如下： manager cluster 是一个注册了多个 crd 并运行三个 controller 的普通 k8s 集群。 三个 controller 分别是：cabpk-controller-manager 核心功能是用来生产集群证书统一签发，核心进程的参数下发。capa-controller-man">
+<meta property="og:type" content="article">
+<meta property="og:title" content="cluster api v1alpha2 之 cluster">
+<meta property="og:url" content="http://sn0rt.github.io/2019/10/20/cluster-api-v1alpha2-cluster/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="因为最近工作需要，调研了 cluster api provider aws.整理调研过程中的知识如下： manager cluster 是一个注册了多个 crd 并运行三个 controller 的普通 k8s 集群。 三个 controller 分别是：cabpk-controller-manager 核心功能是用来生产集群证书统一签发，核心进程的参数下发。capa-controller-man">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/images/cluster-spec-crds/figure1.png?raw=true">
+<meta property="article:published_time" content="2019-10-19T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.753Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="k8s">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/images/cluster-spec-crds/figure1.png?raw=true">
+  
+  
+  
+  <meta name="keywords" content="k8s">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">cluster api v1alpha2 之 cluster</span></div><div class="widget-body fs14"><div class="doc-tree active"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%94%A8%E6%88%B7%E9%80%9A%E8%BF%87-CAPA-%E8%84%9A%E6%9C%AC%E6%B8%B2%E6%9F%93-spec"><span class="toc-text">用户通过 CAPA 脚本渲染 spec</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#cluster-controller-%E5%A6%82%E4%BD%95%E5%B7%A5%E4%BD%9C%E7%9A%84"><span class="toc-text">cluster controller 如何工作的</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#cluster-controller-%E5%AE%9E%E7%8E%B0"><span class="toc-text">cluster controller 实现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#awscluster-controller-%E5%A6%82%E4%BD%95%E5%B7%A5%E4%BD%9C%E7%9A%84"><span class="toc-text">awscluster controller 如何工作的</span></a></li></ol></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2019-10-19T16:00:00.000Z">2019-10-20</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>cluster api v1alpha2 之 cluster</span></h1>
+<p>因为最近工作需要，调研了 cluster api provider aws.<br>整理调研过程中的知识如下：</p>
+<p>manager cluster 是一个注册了多个 crd 并运行三个 controller 的普通 k8s 集群。</p>
+<p>三个 controller 分别是：<br>cabpk-controller-manager 核心功能是用来生产集群证书统一签发，核心进程的参数下发。<br>capa-controller-manager 核心功能是和 aws 沟通，负责 CRUD 云上资源。<br>capi-controller-manager 核心功能是确定 cluster api group 和集群公用资源。</p>
+<h2 id="用户通过-CAPA-脚本渲染-spec"><a href="#用户通过-CAPA-脚本渲染-spec" class="headerlink" title="用户通过 CAPA 脚本渲染 spec"></a>用户通过 CAPA 脚本渲染 spec</h2><p>目前 cluster api 使用过 shell 脚本渲染出基本的集群模版文件，并由用户主动发送的到 manager cluster 中。<br>渲染出的 cluster 资源如下，看到 api version 是 v1alpha2 , 下面支持 amazon cni 是自己适配开发的。<br>cluster crd 由 capi-controller-manager 中的 cluster 负责调协工作。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">cluster.x-k8s.io/v1alpha2</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Cluster</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="attr">cluster.k8s.io/network-cni:</span> <span class="string">AmazonVPC</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">testnetwork3</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">clusterNetwork:</span></span><br><span class="line">    <span class="attr">pods:</span></span><br><span class="line">      <span class="attr">cidrBlocks:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="number">10.66</span><span class="number">.0</span><span class="number">.0</span><span class="string">/24</span></span><br><span class="line">    <span class="attr">services:</span></span><br><span class="line">      <span class="attr">cidrBlocks:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="number">192.168</span><span class="number">.0</span><span class="number">.0</span><span class="string">/16</span></span><br><span class="line">  <span class="attr">infrastructureRef:</span></span><br><span class="line">    <span class="attr">apiVersion:</span> <span class="string">infrastructure.cluster.x-k8s.io/v1alpha2</span></span><br><span class="line">    <span class="attr">kind:</span> <span class="string">AWSCluster</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">testnetwork3</span></span><br><span class="line">    <span class="attr">namespace:</span> <span class="string">default</span></span><br></pre></td></tr></table></figure>
+
+<p>渲染出的 awscluster 资源如下，声明式的告诉进行 capa-controller-manager 中的  awscluster controller 进行调协 时要按照 yaml 里面描述创建子网信息。</p>
+<p>之所以要创建 6 个子网是计划通过 aws 来投放 HA 的 kubernetes 集群，每个区域放一个 master apiserver.</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">infrastructure.cluster.x-k8s.io/v1alpha2</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">AWSCluster</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">testnetwork3</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">default</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">networkSpec:</span></span><br><span class="line">    <span class="attr">subnets:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">availabilityZone:</span> <span class="string">us-east-2a</span></span><br><span class="line">      <span class="attr">cidrBlock:</span> <span class="number">10.66</span><span class="number">.0</span><span class="number">.0</span><span class="string">/27</span></span><br><span class="line">      <span class="attr">isPublic:</span> <span class="literal">true</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">availabilityZone:</span> <span class="string">us-east-2a</span></span><br><span class="line">      <span class="attr">cidrBlock:</span> <span class="number">10.66</span><span class="number">.0</span><span class="number">.32</span><span class="string">/27</span></span><br><span class="line">      <span class="attr">isPublic:</span> <span class="literal">false</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">availabilityZone:</span> <span class="string">us-east-2b</span></span><br><span class="line">      <span class="attr">cidrBlock:</span> <span class="number">10.66</span><span class="number">.0</span><span class="number">.64</span><span class="string">/27</span></span><br><span class="line">      <span class="attr">isPublic:</span> <span class="literal">true</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">availabilityZone:</span> <span class="string">us-east-2b</span></span><br><span class="line">      <span class="attr">cidrBlock:</span> <span class="number">10.66</span><span class="number">.0</span><span class="number">.96</span><span class="string">/27</span></span><br><span class="line">      <span class="attr">isPublic:</span> <span class="literal">false</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">availabilityZone:</span> <span class="string">us-east-2c</span></span><br><span class="line">      <span class="attr">cidrBlock:</span> <span class="number">10.66</span><span class="number">.0</span><span class="number">.128</span><span class="string">/27</span></span><br><span class="line">      <span class="attr">isPublic:</span> <span class="literal">true</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">availabilityZone:</span> <span class="string">us-east-2c</span></span><br><span class="line">      <span class="attr">cidrBlock:</span> <span class="number">10.66</span><span class="number">.0</span><span class="number">.160</span><span class="string">/27</span></span><br><span class="line">      <span class="attr">isPublic:</span> <span class="literal">false</span></span><br><span class="line">    <span class="attr">vpc:</span></span><br><span class="line">      <span class="attr">cidrBlock:</span> <span class="number">10.66</span><span class="number">.0</span><span class="number">.0</span><span class="string">/24</span></span><br><span class="line">  <span class="attr">region:</span> <span class="string">us-east-2</span></span><br><span class="line">  <span class="attr">sshKeyName:</span> <span class="string">guohao</span></span><br></pre></td></tr></table></figure>
+
+<p>上面两个文件和在一起就是 CAPA 官方的渲染脚本输出的 cluster.yaml 文件的全部内容了，虽然是一个文件 2 个 yaml, 但是确涉及到了 2 个 controller manager 中的 awscluster controller 和 cluster controller.</p>
+<h2 id="cluster-controller-如何工作的"><a href="#cluster-controller-如何工作的" class="headerlink" title="cluster controller 如何工作的"></a>cluster controller 如何工作的</h2><p>在 capa 中 cluster controller 不能独立与 awscluster controller 工作，两个组建之间的协作流程如下图。</p>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/images/cluster-spec-crds/figure1.png?raw=true" alt="cluster-controller-and-awscluster-controller"></div><div class="image-meta"><span class="image-caption center">cluster-controller-and-awscluster-controller</span></div></div>
+
+<blockquote>
+<p>Figure 1 presents the sequence of actions involved in provisioning a cluster, highlighting the coordination required between the CAPI cluster controller and the provider infrastructure controller.</p>
+<p>The creation of the Cluster and provider infrastructure objects are independent events. It is expected that the cluster infrastructure object to be created before the cluster object and the reference be set to in the cluster object at creation time.</p>
+<p>When a provider infrastructure object is created, the provider’s controller will do nothing unless its owner reference is set to a cluster object.</p>
+<p>When the cluster object is created, the cluster controller will retrieve the infrastructure object. If the object has not been seen before, it will start watching it. Also, if the object’s owner is not set, it will set to the Cluster object.</p>
+<p>When an infrastructure object is updated, the provider controller will check the owner reference. If it is set, it will retrieve the cluster object to obtain the required cluster specification and starts the provisioning process. When the process finishes, it sets the Infrastructure.Status.Ready to true.</p>
+<p>When the cluster controller detects the Infrastructure.Status.Ready is set to true, it updates Cluster.Status.APIEndpoints from Infrastructure.Status.APIEndpoints and sets Cluster.Status.InfrastructureReady to true.</p>
+</blockquote>
+<p>上述流程还是比较明了的。</p>
+<h2 id="cluster-controller-实现"><a href="#cluster-controller-实现" class="headerlink" title="cluster controller 实现"></a>cluster controller 实现</h2><p>目前 controller 的开发都是使用了 kubebuilder 那一套脚手架了，controller 开发模式直接大同小异了。核心就是一个函数 <code>reconcile</code> .</p>
+<p>核心函数的核心逻辑代码如下，三个子资源的 <code>reconcile</code>, cluster controller 整个流程并没有实际创建什么东西，仅仅是对账信息，组装流程。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// reconcile handles cluster reconciliation.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *ClusterReconciler)</span></span> reconcile(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, <span class="type">error</span>) &#123;</span><br><span class="line">...</span><br><span class="line">	<span class="comment">// Call the inner reconciliation methods.</span></span><br><span class="line">	reconciliationErrors := []<span class="type">error</span>&#123;</span><br><span class="line">		r.reconcileInfrastructure(ctx, cluster),</span><br><span class="line">		r.reconcileKubeconfig(ctx, cluster),</span><br><span class="line">		r.reconcileControlPlaneInitialized(ctx, cluster),</span><br><span class="line">	&#125;</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>reconcileInfrastructure</code>  的实现就像之前提议里面描述一样，因为并不涉及到实际的资源创建。<br>只是从 awscluster 的 yaml 中获取 infrastructure 和 apiserver endpoint 信息。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Cluster.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *ClusterReconciler)</span></span> reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster) <span class="type">error</span> &#123;</span><br><span class="line">	logger := r.Log.WithValues(<span class="string">&quot;cluster&quot;</span>, cluster.Name, <span class="string">&quot;namespace&quot;</span>, cluster.Namespace)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> cluster.Spec.InfrastructureRef == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Call generic external reconciler.</span></span><br><span class="line">	infraConfig, err := r.reconcileExternal(ctx, cluster, cluster.Spec.InfrastructureRef)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// There&#x27;s no need to go any further if the Cluster is marked for deletion.</span></span><br><span class="line">	<span class="keyword">if</span> !infraConfig.GetDeletionTimestamp().IsZero() &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Determine if the infrastructure provider is ready.</span></span><br><span class="line">	<span class="keyword">if</span> !cluster.Status.InfrastructureReady &#123;</span><br><span class="line">		ready, err := external.IsReady(infraConfig)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> !ready &#123;</span><br><span class="line">			logger.V(<span class="number">3</span>).Info(<span class="string">&quot;Infrastructure provider is not ready yet&quot;</span>)</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">		cluster.Status.InfrastructureReady = <span class="literal">true</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Get and parse Status.APIEndpoint field from the infrastructure provider.</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(cluster.Status.APIEndpoints) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err := util.UnstructuredUnmarshalField(infraConfig, &amp;cluster.Status.APIEndpoints, <span class="string">&quot;status&quot;</span>, <span class="string">&quot;apiEndpoints&quot;</span>); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> errors.Wrapf(err, <span class="string">&quot;failed to retrieve Status.APIEndpoints from infrastructure provider for Cluster %q in namespace %q&quot;</span>,</span><br><span class="line">				cluster.Name, cluster.Namespace)</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> <span class="built_in">len</span>(cluster.Status.APIEndpoints) == <span class="number">0</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> errors.Wrapf(err, <span class="string">&quot;retrieved empty Status.APIEndpoints from infrastructure provider for Cluster %q in namespace %q&quot;</span>,</span><br><span class="line">				cluster.Name, cluster.Namespace)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>kubeconfig 的信息对账，如果没有有现成的 kubeconfig 那就创建一个现成的，附上一个从 manager cluster 中获取 kubeconfig 的指令。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl --namespace=default get secret $CLUSTER_NAME-kubeconfig -o json | jq -r .data.value | base64 --decode  &gt; $CLUSTER_NAME-kubeconfig</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *ClusterReconciler)</span></span> reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster) <span class="type">error</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(cluster.Status.APIEndpoints) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	_, err := secret.Get(r.Client, cluster, secret.Kubeconfig)</span><br><span class="line">	<span class="keyword">switch</span> &#123;</span><br><span class="line">	<span class="keyword">case</span> apierrors.IsNotFound(err):</span><br><span class="line">		<span class="keyword">if</span> err := kubeconfig.CreateSecret(ctx, r.Client, cluster); err != <span class="literal">nil</span> &#123;</span><br><span class="line">...</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>如果有一个 master 节点是初始化完成，这个函数就不会发生任何错误。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *ClusterReconciler)</span></span> reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) <span class="type">error</span> &#123;</span><br><span class="line">	logger := r.Log.WithValues(<span class="string">&quot;cluster&quot;</span>, cluster.Name, <span class="string">&quot;namespace&quot;</span>, cluster.Namespace)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> cluster.Status.ControlPlaneInitialized &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	machines, err := getActiveMachinesInCluster(ctx, r.Client, cluster.Namespace, cluster.Name)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		logger.Error(err, <span class="string">&quot;Error getting machines in cluster&quot;</span>)</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> _, m := <span class="keyword">range</span> machines &#123;</span><br><span class="line">		<span class="keyword">if</span> util.IsControlPlaneMachine(m) &amp;&amp; m.Status.NodeRef != <span class="literal">nil</span> &#123;</span><br><span class="line">			cluster.Status.ControlPlaneInitialized = <span class="literal">true</span></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="awscluster-controller-如何工作的"><a href="#awscluster-controller-如何工作的" class="headerlink" title="awscluster controller 如何工作的"></a>awscluster controller 如何工作的</h2><p>下面就是 aws cluster controller 的核心逻辑</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// TODO(ncdc): should this be a function on ClusterScope?</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">reconcileNormal</span><span class="params">(clusterScope *scope.ClusterScope)</span></span> (reconcile.Result, <span class="type">error</span>) &#123;</span><br><span class="line">	clusterScope.Info(<span class="string">&quot;Reconciling AWSCluster&quot;</span>)</span><br><span class="line"></span><br><span class="line">	awsCluster := clusterScope.AWSCluster</span><br><span class="line"></span><br><span class="line">	<span class="comment">// If the AWSCluster doesn&#x27;t have our finalizer, add it.</span></span><br><span class="line">	<span class="keyword">if</span> !util.Contains(awsCluster.Finalizers, infrav1.ClusterFinalizer) &#123;</span><br><span class="line">		awsCluster.Finalizers = <span class="built_in">append</span>(awsCluster.Finalizers, infrav1.ClusterFinalizer)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	ec2Service := ec2.NewService(clusterScope)</span><br><span class="line">	elbService := elb.NewService(clusterScope)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := ec2Service.ReconcileNetwork(); err != <span class="literal">nil</span> &#123; <span class="comment">// 基础网络组网</span></span><br><span class="line">		<span class="keyword">return</span> reconcile.Result&#123;&#125;, errors.Wrapf(err, <span class="string">&quot;failed to reconcile network for AWSCluster %s/%s&quot;</span>, awsCluster.Namespace, awsCluster.Name)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := ec2Service.ReconcileBastion(); err != <span class="literal">nil</span> &#123; <span class="comment">// vpc 跳板机的创建</span></span><br><span class="line">		<span class="keyword">return</span> reconcile.Result&#123;&#125;, errors.Wrapf(err, <span class="string">&quot;failed to reconcile bastion host for AWSCluster %s/%s&quot;</span>, awsCluster.Namespace, awsCluster.Name)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := elbService.ReconcileLoadbalancers(); err != <span class="literal">nil</span> &#123; <span class="comment">// apiserver 的 lb 创建</span></span><br><span class="line">		<span class="keyword">return</span> reconcile.Result&#123;&#125;, errors.Wrapf(err, <span class="string">&quot;failed to reconcile load balancers for AWSCluster %s/%s&quot;</span>, awsCluster.Namespace, awsCluster.Name)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> awsCluster.Status.Network.APIServerELB.DNSName == <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">		clusterScope.Info(<span class="string">&quot;Waiting on API server ELB DNS name&quot;</span>)</span><br><span class="line">		<span class="keyword">return</span> reconcile.Result&#123;RequeueAfter: <span class="number">15</span> * time.Second&#125;, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Set APIEndpoints so the Cluster API Cluster Controller can pull them</span></span><br><span class="line">	<span class="comment">// <span class="doctag">TODO:</span> should we get the Port from the first listener on the ELB?</span></span><br><span class="line">	awsCluster.Status.APIEndpoints = []infrav1.APIEndpoint&#123;</span><br><span class="line">		&#123;</span><br><span class="line">			Host: awsCluster.Status.Network.APIServerELB.DNSName,</span><br><span class="line">			Port: <span class="type">int</span>(clusterScope.APIServerPort()),</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// No errors, so mark us ready so the Cluster API Cluster Controller can pull it</span></span><br><span class="line">	awsCluster.Status.Ready = <span class="literal">true</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> reconcile.Result&#123;&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>ReconcileNetwork</code> 就是基础组网的逻辑，这个逻辑会按照你传入的 network 信息进行最基本的 vpc 创建，定制化的 subnet 创建。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Service)</span></span> ReconcileNetwork() (err <span class="type">error</span>) &#123;</span><br><span class="line">	s.scope.V(<span class="number">2</span>).Info(<span class="string">&quot;Reconciling network for cluster&quot;</span>, <span class="string">&quot;cluster-name&quot;</span>, s.scope.Cluster.Name, <span class="string">&quot;cluster-namespace&quot;</span>, s.scope.Cluster.Namespace)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// VPC.</span></span><br><span class="line">	<span class="keyword">if</span> err := s.reconcileVPC(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Subnets.</span></span><br><span class="line">	<span class="keyword">if</span> err := s.reconcileSubnets(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Internet Gateways.</span></span><br><span class="line">	<span class="keyword">if</span> err := s.reconcileInternetGateways(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// NAT Gateways.</span></span><br><span class="line">	<span class="keyword">if</span> err := s.reconcileNatGateways(); err != <span class="literal">nil</span> &#123; <span class="comment">// 这里有点问题，按照我之前 spec 描述就会创建出三个 NATGW, 有点浪费了。</span></span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Routing tables.</span></span><br><span class="line">	<span class="keyword">if</span> err := s.reconcileRouteTables(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Security groups.</span></span><br><span class="line">	<span class="keyword">if</span> err := s.reconcileSecurityGroups(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	s.scope.V(<span class="number">2</span>).Info(<span class="string">&quot;Reconcile network completed successfully&quot;</span>)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其余两个流程过于简单就不单独概述了，自行浏览代码即可。</p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2019/11/20/amazon-vpc-cni/">amzon aws cni 踩坑</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2019/04/02/cloud-provider-route-controller/">cloud provider route controller</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

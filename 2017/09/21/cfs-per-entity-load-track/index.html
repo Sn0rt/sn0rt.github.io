@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>cfs per entity load track - sn0rt's blog</title>
+
+  
+    <meta name="description" content="0x00 what and why之前公司遇到了一个系统 load avg 异常，一路追杀的过程中学习了 CFS 并发现了 cfs per entity load track 特性，凑巧的是 lwn [^lwn]的文章被阿里内核日报围绕着原来系统有什么问题，如何解决的，达到了什么成果的方法阐述了一遍：   文章首先回顾了一下任务调度器和为什么有了 CPU 利用率还需要衡量“load”。后面的内容更">
+<meta property="og:type" content="article">
+<meta property="og:title" content="cfs per entity load track">
+<meta property="og:url" content="http://sn0rt.github.io/2017/09/21/cfs-per-entity-load-track/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="0x00 what and why之前公司遇到了一个系统 load avg 异常，一路追杀的过程中学习了 CFS 并发现了 cfs per entity load track 特性，凑巧的是 lwn [^lwn]的文章被阿里内核日报围绕着原来系统有什么问题，如何解决的，达到了什么成果的方法阐述了一遍：   文章首先回顾了一下任务调度器和为什么有了 CPU 利用率还需要衡量“load”。后面的内容更">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2017-09-20T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.779Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary">
+  
+  
+  
+  <meta name="keywords" content="linux">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">cfs per entity load track</span></div><div class="widget-body fs14"><div class="doc-tree active"></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2017-09-20T16:00:00.000Z">2017-09-21</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>cfs per entity load track</span></h1>
+<h1 id="0x00-what-and-why"><a href="#0x00-what-and-why" class="headerlink" title="0x00 what and why"></a>0x00 what and why</h1><p>之前公司遇到了一个系统 load avg 异常，一路追杀的过程中学习了 CFS 并发现了 cfs per entity load track 特性，凑巧的是 lwn [^lwn]的文章被阿里内核日报围绕着原来系统有什么问题，如何解决的，达到了什么成果的方法阐述了一遍：</p>
+<blockquote>
+<p> 文章首先回顾了一下任务调度器和为什么有了 CPU 利用率还需要衡量“load”。后面的内容更有意思一些：Paul Turner 的 per-entity load tracking 已经合并到 3.8 内核里。</p>
+<p> 之前的 CFS 以每个 CPU 上的运行队列 (per cpu runqueue) 为单位计算 load，但使用了 group scheduler 之后，每个 cgroup 都有一个自己的 per CPU 运行队列，而如果内核需要了解每个 cgroup 对系统整体 load 的贡献情况，原来的方案就不能满足需要了，而且基于 per CPU runqueue 的方法也有结果波动过大的缺点。</p>
+<p> per-entity load 的方法则是把 cgroup 内的所有任务都串接到一个队列上。计算 load 时，时间以一个毫秒（准确地说是 1024µs）为单位向前滚动。一个 entity 在周期 $$p_{i}$$ 对系统 load 的贡献就是该周期内可运行部分时间（任务正在运行，或者处于就绪状态）。周期越旧，对当前 load 影响越小，具体地，令 Li 为周期$$p_{i}$$对当前负载的贡献，则当前 load 为：</p>
+<p>$$L &#x3D; L0 + L1<em>y + L2</em>y^2 + L3*y^3$$</p>
+<p> 这个公式的优点是计算当前 load 不需要保存完整的历史数据，只需要累加就行了。其中，y 是小于 1 的衰减因子。目前取值为使 y32&#x3D;0.5 的值（当然计算进程是以定点方式进行的），即 32ms 之前的 load 对当前 load 有 50% 的贡献。3.8 内核里，会对阻塞掉的任务，也使用相同的计算方法，然后将”阻塞 load”与以上”CPU load”相加得到完整的 per-entity load。当然如果一个阻塞任务之后进入就绪状态，就会算入上面的 CPU load 公式里。此外，load 计算还跳过了在 CPU bandwidth controller 控制下的 throttled processes。对这些 per-entity load 求和就可以得到整个系统的 load 了。</p>
+</blockquote>
+<p>这里补充一下特性的实现细节 (v4.14-rc2)：</p>
+<h1 id="0x01-cfs-overview"><a href="#0x01-cfs-overview" class="headerlink" title="0x01 cfs overview"></a>0x01 cfs overview</h1><p>总所周知 Linux 的设计是非常优秀，非常核心的调度子系统也在代码层面做了模块化封装，简要关注一下 cfs 调度类的实现 (其它调度类也是要实现结构体中的大多数方法的)。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * All the scheduling class methods:</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">sched_class</span> <span class="title">fair_sched_class</span> =</span> &#123;</span><br><span class="line">	.next			= &amp;idle_sched_class,</span><br><span class="line">	.enqueue_task		= enqueue_task_fair, <span class="comment">// here</span></span><br><span class="line">    ...</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p> 上面代码摘录自 cfs 调度类，关注入队操作 enqueue_task_fair 流程中 load 的计算细节，不关注 dequeu_task_fair 的是因为它们非常类似。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * The enqueue_task method is called before nr_running is</span></span><br><span class="line"><span class="comment"> * increased. Here we update the fair scheduling stats and</span></span><br><span class="line"><span class="comment"> * then put the task into the rbtree:</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> <span class="type">void</span></span><br><span class="line"><span class="title function_">enqueue_task_fair</span><span class="params">(<span class="keyword">struct</span> rq *rq, <span class="keyword">struct</span> task_struct *p, <span class="type">int</span> flags)</span></span><br><span class="line">&#123;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">cfs_rq</span> *<span class="title">cfs_rq</span>;</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">sched_entity</span> *<span class="title">se</span> =</span> &amp;p-&gt;se;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * If in_iowait is set, the code below may not trigger any cpufreq</span></span><br><span class="line"><span class="comment">         * utilization updates, so do it here explicitly with the IOWAIT flag</span></span><br><span class="line"><span class="comment">         * passed.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">if</span> (p-&gt;in_iowait)</span><br><span class="line">                cpufreq_update_util(rq, SCHED_CPUFREQ_IOWAIT);</span><br><span class="line">        ...</span><br><span class="line"></span><br><span class="line">        for_each_sched_entity(se) &#123;</span><br><span class="line">                cfs_rq = cfs_rq_of(se);</span><br><span class="line">                cfs_rq-&gt;h_nr_running++;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (cfs_rq_throttled(cfs_rq))</span><br><span class="line">                        <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">                update_load_avg(se, UPDATE_TG); <span class="comment">// here</span></span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>以上是入队操作的实现的部分，cfs 是的操作的时间复杂度是利用 rbtree 的数据结构的优势，cfs 以 vruntime 为 value 组织 rbtree，每次选择调度实体 (se) 从最左取，更多细节参考[^LKDe3]。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Update task and its cfs_rq load average */</span></span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">void</span> <span class="title function_">update_load_avg</span><span class="params">(<span class="keyword">struct</span> sched_entity *se, <span class="type">int</span> flags)</span></span><br><span class="line">&#123;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">cfs_rq</span> *<span class="title">cfs_rq</span> =</span> cfs_rq_of(se);</span><br><span class="line">        u64 now = cfs_rq_clock_task(cfs_rq);</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">rq</span> *<span class="title">rq</span> =</span> rq_of(cfs_rq);</span><br><span class="line">        <span class="type">int</span> cpu = cpu_of(rq);</span><br><span class="line">        <span class="type">int</span> decayed;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * Track task load average for carrying it to new CPU after migrated, and</span></span><br><span class="line"><span class="comment">         * track group sched_entity load average for task_h_load calc in migration</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">if</span> (se-&gt;avg.last_update_time &amp;&amp; !(flags &amp; SKIP_AGE_LOAD))</span><br><span class="line">                __update_load_avg_se(now, cpu, cfs_rq, se); <span class="comment">// here</span></span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述函数准备一些参数来计算 se 的 load 值，实现还是非常好理解的。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line">__update_load_avg_se(u64 now, <span class="type">int</span> cpu, <span class="keyword">struct</span> cfs_rq *cfs_rq, <span class="keyword">struct</span> sched_entity *se)</span><br><span class="line">&#123;</span><br><span class="line">        <span class="keyword">return</span> ___update_load_avg(now, cpu, &amp;se-&gt;avg,</span><br><span class="line">                                  se-&gt;on_rq * scale_load_down(se-&gt;load.weight),</span><br><span class="line">                                  cfs_rq-&gt;curr == se, <span class="literal">NULL</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>一个 wrapper, 传入第三个参数 se-&gt;avg 是如下见的不多的结构体：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sched_avg</span> &#123;</span></span><br><span class="line">        u64                             last_update_time;  <span class="comment">// Last load update time</span></span><br><span class="line">        u64                             load_sum; </span><br><span class="line">        u32                             util_sum;</span><br><span class="line">        u32                             period_contrib; <span class="comment">// </span></span><br><span class="line">        <span class="type">unsigned</span> <span class="type">long</span>                   load_avg; <span class="comment">// runnable% * scale_load_down(load) * freq%</span></span><br><span class="line">        <span class="type">unsigned</span> <span class="type">long</span>                   util_avg; <span class="comment">// running% * SCHED_CAPACITY_SCALE * freq% * capacity%</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>下面有如何初始化一个 se-&gt;avg 的函数对上面结构体解释非常到位。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Give new sched_entity start runnable values to heavy its load in infant time */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">init_entity_runnable_average</span><span class="params">(<span class="keyword">struct</span> sched_entity *se)</span></span><br><span class="line">&#123;</span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">sched_avg</span> *<span class="title">sa</span> =</span> &amp;se-&gt;avg;</span><br><span class="line"></span><br><span class="line">        sa-&gt;last_update_time = <span class="number">0</span>;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * sched_avg&#x27;s period_contrib should be strictly less then 1024, so</span></span><br><span class="line"><span class="comment">         * we give it 1023 to make sure it is almost a period (1024us), and</span></span><br><span class="line"><span class="comment">         * will definitely be update (after enqueue).</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        sa-&gt;period_contrib = <span class="number">1023</span>;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * Tasks are intialized with full load to be seen as heavy tasks until</span></span><br><span class="line"><span class="comment">         * they get a chance to stabilize to their real load level.</span></span><br><span class="line"><span class="comment">         * Group entities are intialized with zero load to reflect the fact that</span></span><br><span class="line"><span class="comment">         * nothing has been attached to the task group yet.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">if</span> (entity_is_task(se))</span><br><span class="line">                sa-&gt;load_avg = scale_load_down(se-&gt;load.weight);</span><br><span class="line">        sa-&gt;load_sum = sa-&gt;load_avg * LOAD_AVG_MAX;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * At this point, util_avg won&#x27;t be used in select_task_rq_fair anyway</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        sa-&gt;util_avg = <span class="number">0</span>;</span><br><span class="line">        sa-&gt;util_sum = <span class="number">0</span>;</span><br><span class="line">        <span class="comment">/* when this task enqueue&#x27;ed, it will contribute to its cfs_rq&#x27;s load_avg */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="0x02-core-path-update-load-avg"><a href="#0x02-core-path-update-load-avg" class="headerlink" title="0x02 core path: ___update_load_avg"></a>0x02 core path: ___update_load_avg</h1><p>这是 per entity load track 重要的入口函数，在 4.12 之前实现与之前不一样，优化方法是在 patch[^Optimize]中引入的，但是思路一致。开发者用几何级数来表示历史上 se 贡献的 runnable average，这样做首先需要把 runable 的全部时间切分成近似 1024 us (约 1ms) 的时间片，并标记时间片为 N-ms 之前为 $$p_N$$, 比如 $$p_0$$ 就表示当前的时间片，示意图如下：</p>
+<blockquote>
+<p>|&lt;- 1024us -&gt;|&lt;- 1024us -&gt;|&lt;- 1024us -&gt;|<br>|    p0      |      p1    |       p2   |<br>|  (now)     | (<del>1ms ago) |  (</del>2ms ago)|</p>
+</blockquote>
+<p> 让 $$u_i$$ 表示 $$p_i$$ 中调度实体可以运行的的一部分。</p>
+<p> 然后我们指定$$u_i$$为系数，则产生如下计算之前负载的等式：</p>
+<p>  $$u_0 + u_1<em>y + u_2</em>y^2 + u_3*y^3 + …$$</p>
+<p> 基于合理的调度周期选择 y，修正公式如下：</p>
+<p>   $$y^{32} &#x3D; 0.5$$</p>
+<p> 这意味大约 32ms $$u_{32}$$ 之前的负载贡献经过加权后计算大约是当前一毫秒 $$u_0$$ 的一半。</p>
+<p> 如果发生了时间片的 rolls over 现象，会产生了新$${u_0}’$$,这时用新的$${u_0}’$$加上 y 乘以之前的和就可以解决这个问题。</p>
+<p> $$<br> \begin{align*}<br> load_avg &amp;&#x3D; {u_0}’ + y*(u_0 + u_1<em>y + u_2</em>y^2 + … ) \<br> &amp;&#x3D; u_0 + u_1<em>y + u_2</em>y^2 + … [re-labeling u_i -&gt; u_{i+1}]<br> \end{align*}<br> $$</p>
+<p> 而 __update_load_avg 函数本身除了做了一些异常检查，最最核心的部分就是调用 accumulate_sum 计算 load，然后更新 sched_avg。</p>
+ <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> __always_inline <span class="type">int</span></span><br><span class="line">___update_load_avg(u64 now, <span class="type">int</span> cpu, <span class="keyword">struct</span> sched_avg *sa,</span><br><span class="line">                  <span class="type">unsigned</span> <span class="type">long</span> weight, <span class="type">int</span> running, <span class="keyword">struct</span> cfs_rq *cfs_rq)</span><br><span class="line">&#123;</span><br><span class="line">        u64 delta;</span><br><span class="line"></span><br><span class="line">        delta = now - sa-&gt;last_update_time; <span class="comment">// 计算新采样周期的值</span></span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * This should only happen when time goes backwards, which it</span></span><br><span class="line"><span class="comment">         * unfortunately does during sched clock init when we swap over to TSC.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">if</span> ((s64)delta &lt; <span class="number">0</span>) &#123;</span><br><span class="line">                sa-&gt;last_update_time = now;</span><br><span class="line">                <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * Use 1024ns as the unit of measurement since it&#x27;s a reasonable</span></span><br><span class="line"><span class="comment">         * approximation of 1us and fast to compute.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        delta &gt;&gt;= <span class="number">10</span>; <span class="comment">// 把周期值由 ns 转化为 us</span></span><br><span class="line">        <span class="keyword">if</span> (!delta)</span><br><span class="line">                <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">        sa-&gt;last_update_time += delta &lt;&lt; <span class="number">10</span>; <span class="comment">// 上一步的逆操作并更新 sa-&gt;last_update_time</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * running is a subset of runnable (weight) so running can&#x27;t be set if</span></span><br><span class="line"><span class="comment">         * runnable is clear. But there are some corner cases where the current</span></span><br><span class="line"><span class="comment">         * se has been already dequeued but cfs_rq-&gt;curr still points to it.</span></span><br><span class="line"><span class="comment">         * This means that weight will be 0 but not running for a sched_entity</span></span><br><span class="line"><span class="comment">         * but also for a cfs_rq if the latter becomes idle. As an example,</span></span><br><span class="line"><span class="comment">         * this happens during idle_balance() which calls</span></span><br><span class="line"><span class="comment">         * update_blocked_averages()</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">if</span> (!weight)</span><br><span class="line">                running = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * Now we know we crossed measurement unit boundaries. The *_avg</span></span><br><span class="line"><span class="comment">         * accrues by two steps:</span></span><br><span class="line"><span class="comment">         *</span></span><br><span class="line"><span class="comment">         * Step 1: accumulate *_sum since last_update_time. If we haven&#x27;t</span></span><br><span class="line"><span class="comment">         * crossed period boundaries, finish.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">if</span> (!accumulate_sum(delta, cpu, sa, weight, running, cfs_rq)) <span class="comment">// look here !!! 计算累计出来的 load</span></span><br><span class="line">                <span class="keyword">return</span> <span class="number">0</span>;                </span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * Step 2: update *_avg.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        sa-&gt;load_avg = div_u64(sa-&gt;load_sum, LOAD_AVG_MAX - <span class="number">1024</span> + sa-&gt;period_contrib);</span><br><span class="line">        <span class="keyword">if</span> (cfs_rq) &#123;</span><br><span class="line">                cfs_rq-&gt;runnable_load_avg =</span><br><span class="line">                        div_u64(cfs_rq-&gt;runnable_load_sum, LOAD_AVG_MAX - <span class="number">1024</span> + sa-&gt;period_contrib);</span><br><span class="line">        &#125;</span><br><span class="line">        sa-&gt;util_avg = sa-&gt;util_sum / (LOAD_AVG_MAX - <span class="number">1024</span> + sa-&gt;period_contrib);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>下面这个函数 accumulate_sum  非常核心，它通过累加三个部分的总和来计算 se 的负载影响；d1 是离当前时间最远（不完整的）period 的剩余部分，d2 是完整 period 的而 d3 是（不完整的）当前 period 的剩余部分。d1，d2，d3 的示意图如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">          d1          d2           d3</span><br><span class="line">          ^           ^            ^</span><br><span class="line">          |           |            |</span><br><span class="line">        |&lt;-&gt;|&lt;-----------------&gt;|&lt;---&gt;|</span><br><span class="line">... |---x---|------| ... |------|-----x (now)</span><br></pre></td></tr></table></figure>
+
+<p>计算公式如下：</p>
+<p>$$<br>\begin{align*}<br>{u}’ &amp;&#x3D; (u + d1) y^{p} + 1024 \sum_{n&#x3D;1}^{p-1}y^{n} + d3\times y^0 \<br>&amp; &#x3D; u\times y^{p} + d1\times y^{p} + 1024 \sum_{n&#x3D;1}^{p-1} y^{n} + d3\times y^{0}<br>\end{align*}<br>$$</p>
+<p>拆分上述公式为$$u\times y^{p}$$ 为 step 1， $$d1\times y^{p} + 1024 \sum_{n&#x3D;1}^{p-1} y^{n} + d3\times y^{0}$$为 step 2 如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> __always_inline u32</span><br><span class="line"><span class="title function_">accumulate_sum</span><span class="params">(u64 delta, <span class="type">int</span> cpu, <span class="keyword">struct</span> sched_avg *sa,</span></span><br><span class="line"><span class="params">               <span class="type">unsigned</span> <span class="type">long</span> weight, <span class="type">int</span> running, <span class="keyword">struct</span> cfs_rq *cfs_rq)</span></span><br><span class="line">&#123;</span><br><span class="line">        <span class="type">unsigned</span> <span class="type">long</span> scale_freq, scale_cpu;</span><br><span class="line">        u32 contrib = (u32)delta; <span class="comment">/* p == 0 -&gt; delta &lt; 1024 */</span></span><br><span class="line">        u64 periods;</span><br><span class="line"></span><br><span class="line">        scale_freq = arch_scale_freq_capacity(<span class="literal">NULL</span>, cpu);</span><br><span class="line">        scale_cpu = arch_scale_cpu_capacity(<span class="literal">NULL</span>, cpu);</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 参考前面的 sched_avg 的第一次介绍，上述两个是计算需要的参数。</span></span><br><span class="line"></span><br><span class="line">        delta += sa-&gt;period_contrib;</span><br><span class="line">        periods = delta / <span class="number">1024</span>; <span class="comment">/* A period is 1024us (~1ms), 这边求出的就是上述图的 d2 的大小 */</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * Step 1: decay old *_sum if we crossed period boundaries.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">if</span> (periods) &#123;</span><br><span class="line">                sa-&gt;load_sum = decay_load(sa-&gt;load_sum, periods); <span class="comment">// 衰减 se-&gt;sa-&gt;load_sum， 现在要根据指数衰减老的值。</span></span><br><span class="line">                <span class="keyword">if</span> (cfs_rq) &#123;</span><br><span class="line">                        cfs_rq-&gt;runnable_load_sum =</span><br><span class="line">                                decay_load(cfs_rq-&gt;runnable_load_sum, periods); <span class="comment">// 如果 se 在 cfs_rq 上，衰减 cfs_rq 的 load。</span></span><br><span class="line">                &#125;</span><br><span class="line">                sa-&gt;util_sum = decay_load((u64)(sa-&gt;util_sum), periods); <span class="comment">// 衰减 se-&gt;sa-&gt;util_sum</span></span><br><span class="line"></span><br><span class="line">                <span class="comment">/*</span></span><br><span class="line"><span class="comment">                 * Step 2</span></span><br><span class="line"><span class="comment">                 * commit: 05296e7535d67ba4926b543a09cf5d430a815cb6 </span></span><br><span class="line"><span class="comment">                 */</span></span><br><span class="line">                delta %= <span class="number">1024</span>; <span class="comment">// delta 表示 d3 的时间长度。</span></span><br><span class="line">                contrib = __accumulate_pelt_segments(periods,</span><br><span class="line">                                <span class="number">1024</span> - sa-&gt;period_contrib, delta); <span class="comment">// 这个函数是核心计算方法，参数：d2，d1，d3</span></span><br><span class="line">        &#125;</span><br><span class="line">        sa-&gt;period_contrib = delta;</span><br><span class="line">        </span><br><span class="line">        contrib = cap_scale(contrib, scale_freq); <span class="comment">// #define cap_scale(v, s) ((v)*(s) &gt;&gt; SCHED_CAPACITY_SHIFT)</span></span><br><span class="line">        <span class="keyword">if</span> (weight) &#123;</span><br><span class="line">                sa-&gt;load_sum += weight * contrib;</span><br><span class="line">                <span class="keyword">if</span> (cfs_rq) <span class="comment">// se 在 cfs_rq 上也要更新 rq-&gt;runnable_load_sum</span></span><br><span class="line">                        cfs_rq-&gt;runnable_load_sum += weight * contrib;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (running)</span><br><span class="line">                sa-&gt;util_sum += contrib * scale_cpu;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> periods;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>下面几个函数是计算细节 $$c1 &#x3D; d1 \times y^{p}$$, $$c2 &#x3D; 1024 (\sum_{n&#x3D;0}^{inf} y^{n} - \sum_{n-p}^{inf} y^{n} - y^{0})$$, $$c3 &#x3D; d3$$：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> u32 __accumulate_pelt_segments(u64 periods, u32 d1, u32 d3)</span><br><span class="line">&#123;</span><br><span class="line">        u32 c1, c2, c3 = d3; <span class="comment">/* y^0 == 1 */</span></span><br><span class="line">        c1 = decay_load((u64)d1, periods);</span><br><span class="line">        c2 = LOAD_AVG_MAX - decay_load(LOAD_AVG_MAX, periods) - <span class="number">1024</span>;</span><br><span class="line">        <span class="keyword">return</span> c1 + c2 + c3;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * Approximate:</span></span><br><span class="line"><span class="comment"> *   val * y^n,    where y^32 ~= 0.5 (~1 scheduling period)</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">static</span> u64 <span class="title function_">decay_load</span><span class="params">(u64 val, u64 n)</span></span><br><span class="line">&#123;</span><br><span class="line">        <span class="type">unsigned</span> <span class="type">int</span> local_n;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (unlikely(n &gt; LOAD_AVG_PERIOD * <span class="number">63</span>))</span><br><span class="line">                <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* after bounds checking we can collapse to 32-bit */</span></span><br><span class="line">        local_n = n;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * As y^PERIOD = 1/2, we can combine</span></span><br><span class="line"><span class="comment">         *    y^n = 1/2^(n/PERIOD) * y^(n%PERIOD)</span></span><br><span class="line"><span class="comment">         * With a look-up table which covers y^n (n&lt;PERIOD)</span></span><br><span class="line"><span class="comment">         *</span></span><br><span class="line"><span class="comment">         * To achieve constant time decay_load.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="keyword">if</span> (unlikely(local_n &gt;= LOAD_AVG_PERIOD)) &#123;</span><br><span class="line">                val &gt;&gt;= local_n / LOAD_AVG_PERIOD;</span><br><span class="line">                local_n %= LOAD_AVG_PERIOD;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        val = mul_u64_u32_shr(val, runnable_avg_yN_inv[local_n], <span class="number">32</span>);</span><br><span class="line">        <span class="keyword">return</span> val;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用常量 runnable_avg_yN_inv 数组使得计算 load 衰减加速，数组生成代码位于 Documentation&#x2F;scheduler&#x2F;sched-pelt.c，计算公式如下</p>
+<p>$$runnable_avg_yN_inv[k] &#x3D; y^{k}\times 2^{32}, 1\leq k \leq 32$$</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Generated by Documentation/scheduler/sched-pelt; do not modify. */</span></span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">const</span> u32 runnable_avg_yN_inv[] = &#123;</span><br><span class="line">	<span class="number">0xffffffff</span>, <span class="number">0xfa83b2da</span>, <span class="number">0xf5257d14</span>, <span class="number">0xefe4b99a</span>, <span class="number">0xeac0c6e6</span>, <span class="number">0xe5b906e6</span>,</span><br><span class="line">	<span class="number">0xe0ccdeeb</span>, <span class="number">0xdbfbb796</span>, <span class="number">0xd744fcc9</span>, <span class="number">0xd2a81d91</span>, <span class="number">0xce248c14</span>, <span class="number">0xc9b9bd85</span>,</span><br><span class="line">	<span class="number">0xc5672a10</span>, <span class="number">0xc12c4cc9</span>, <span class="number">0xbd08a39e</span>, <span class="number">0xb8fbaf46</span>, <span class="number">0xb504f333</span>, <span class="number">0xb123f581</span>,</span><br><span class="line">	<span class="number">0xad583ee9</span>, <span class="number">0xa9a15ab4</span>, <span class="number">0xa5fed6a9</span>, <span class="number">0xa2704302</span>, <span class="number">0x9ef5325f</span>, <span class="number">0x9b8d39b9</span>,</span><br><span class="line">	<span class="number">0x9837f050</span>, <span class="number">0x94f4efa8</span>, <span class="number">0x91c3d373</span>, <span class="number">0x8ea4398a</span>, <span class="number">0x8b95c1e3</span>, <span class="number">0x88980e80</span>,</span><br><span class="line">	<span class="number">0x85aac367</span>, <span class="number">0x82cd8698</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>[^lwn]: <a target="_blank" rel="noopener" href="https://lwn.net/Articles/531853/">Per-entity load tracking</a><br>[^LKDe3]: <a target="_blank" rel="noopener" href="https://book.douban.com/subject/3291901/">Linux Kernel Development</a><br>[^Optimize]: <a target="_blank" rel="noopener" href="https://patchwork.kernel.org/patch/9655969/">sched&#x2F;fair: Optimize __update_sched_avg()</a></p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2017/09/26/cfs-bandwidth-control/">cfs bandwidth control</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2017/09/02/a-panice-of-watchdog/">a panic of watchdog hard lockup</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>

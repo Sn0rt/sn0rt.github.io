@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta name="generator" content="Hexo 6.3.0">
+  <meta name="hexo-theme" content="https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0">
+  <meta charset="utf-8">
+  
+
+  <meta http-equiv='x-dns-prefetch-control' content='on' />
+  <link rel='dns-prefetch' href='https://gcore.jsdelivr.net'>
+  <link rel="preconnect" href="https://gcore.jsdelivr.net" crossorigin>
+  <link rel='dns-prefetch' href='//unpkg.com'>
+
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  <meta name="HandheldFriendly" content="True" >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#f8f8f8">
+  
+  <title>cfs bandwidth control - sn0rt's blog</title>
+
+  
+    <meta name="description" content="之前线上 229 kernel 在使用 cgroup cpu 子系统导致 crash，后又有在 3.10.0-514.26.2.el7 kernel 又出现 crash，让我对这个特性额外的关注了一下。 在分析 cfs bandwidth control 特性之前需要先知道 fair group scheduling 是什么，引用 zhihu[^zhihu]的一个回答。   普通进程的组调度支持">
+<meta property="og:type" content="article">
+<meta property="og:title" content="cfs bandwidth control">
+<meta property="og:url" content="http://sn0rt.github.io/2017/09/26/cfs-bandwidth-control/index.html">
+<meta property="og:site_name" content="sn0rt&#39;s blog">
+<meta property="og:description" content="之前线上 229 kernel 在使用 cgroup cpu 子系统导致 crash，后又有在 3.10.0-514.26.2.el7 kernel 又出现 crash，让我对这个特性额外的关注了一下。 在分析 cfs bandwidth control 特性之前需要先知道 fair group scheduling 是什么，引用 zhihu[^zhihu]的一个回答。   普通进程的组调度支持">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://sn0rt.github.io/media/pic/cfs-bandwidth-control/progress-of-a-task-in-bandwidth-controoled-group-with-global-quota.png">
+<meta property="article:published_time" content="2017-09-25T16:00:00.000Z">
+<meta property="article:modified_time" content="2023-05-14T05:02:02.764Z">
+<meta property="article:author" content="Sn0rt">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://sn0rt.github.io/media/pic/cfs-bandwidth-control/progress-of-a-task-in-bandwidth-controoled-group-with-global-quota.png">
+  
+  
+  
+  <meta name="keywords" content="linux">
+
+  <!-- feed -->
+  
+
+  
+    
+<link rel="stylesheet" href="/css/main.css">
+
+  
+
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+
+  
+
+  
+
+
+  
+</head>
+
+<body>
+  
+
+
+
+
+  <div class='l_body' id='start'>
+    <aside class='l_left' layout='post'>
+    
+
+  
+
+<header class="header"><div class="logo-wrap"><a class="avatar" href="/about/"><div class="bg" style="opacity:0;background-image:url(https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/avatar/round/rainbow64@3x.webp);"></div><img no-lazy class="avatar" src="/favicon.ico" onerror="javascript:this.classList.add('error');this.src='https://gcore.jsdelivr.net/gh/cdn-x/placeholder@1.0.4/image/2659360.svg';"></a><a class="title" href="/"><div class="main" ff="title">sn0rt's blog</div><div class="sub cap">4Fun</div></a></div>
+
+<nav class="menu dis-select"><a class="nav-item active" href="/">Blog</a><a class="nav-item" href="/wiki/">Wiki</a><a class="nav-item" href="/friends/">links</a><a class="nav-item" href="/about/">about</a></nav>
+</header>
+
+
+<div class="widgets">
+<widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" data-filter="/blog/" placeholder="文章搜索"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
+
+
+<widget class="widget-wrapper toc single" id="data-toc"><div class="widget-header cap dis-select"><span class="name">cfs bandwidth control</span></div><div class="widget-body fs14"><div class="doc-tree active"></div></div></widget>
+
+
+
+
+</div>
+
+
+    </aside>
+    <div class='l_main'>
+      
+
+      
+
+
+
+<div class="bread-nav fs12"><div id="breadcrumb"><a class="cap breadcrumb" href="/">Home</a><span class="sep"></span><a class="cap breadcrumb" href="/">Blog</a></div><div id="post-meta">Posted on&nbsp;<time datetime="2017-09-25T16:00:00.000Z">2017-09-26</time></div></div>
+
+<article class='md-text content post'>
+<h1 class="article-title"><span>cfs bandwidth control</span></h1>
+<p>之前线上 229 kernel 在使用 cgroup cpu 子系统导致 crash，后又有在 3.10.0-514.26.2.el7 kernel 又出现 crash，让我对这个特性额外的关注了一下。</p>
+<p>在分析 cfs bandwidth control 特性之前需要先知道 fair group scheduling 是什么，引用 zhihu[^zhihu]的一个回答。</p>
+<blockquote>
+<p> 普通进程的组调度支持 (Fair Group Scheduling), 2.6.24(2008 年 1 月发布)</p>
+<p> 2.6.23 引入的 CFS 调度器对所有进程完全公平对待。但这有个问题，设想当前机器有 2 个用户，有一个用户跑着 9 个进程，还都是 CPU 密集型进程；另一个用户只跑着一个 X 进程，这是交互性进程。从 CFS 的角度看，它将平等对待这 10 个进程，结果导致的是跑 X 进程的用户受到不公平对待，他只能得到约 10% 的 CPU 时间，让他的体验相当差。基于此，组调度的概念被引入[6]。CFS 处理的不再是一个进程的概念，而是调度实体 (sched entity), 一个调度实体可以只包含一个进程，也可以包含多个进程。因此，上述例子的困境可以这么解决：分别为每个用户建立一个组，组里放该用户所有进程，从而保证用户间的公平性。该功能是基于控制组 (control group, cgroup) 的概念，需要内核开启 CGROUP 的支持才可使用。</p>
+</blockquote>
+<p>巧的是知乎的这个回答里面也提到了 cfs bandwidth control 是什么</p>
+<blockquote>
+<p> 组调度带宽控制 (CFS bandwidth control) ,  3.2(2012 年 1 月发布)</p>
+<p>组调度的支持，对实现多租户系统的管理是十分方便的，在一台机器上，可以方便对多用户进行 CPU 均分．然后，这还不足够，组调度只能保证用户间的公平，但若管理员想控制一个用户使用的最大 CPU 资源，则需要带宽控制．<br>针对 CFS 组调度，引入了此功能，该功能可以让管理员控制在一段时间内一个组可以使用 CPU 的最长时间．</p>
+</blockquote>
+<h1 id="0x00-CFS-bandwidth-control-design"><a href="#0x00-CFS-bandwidth-control-design" class="headerlink" title="0x00 CFS bandwidth control design"></a>0x00 CFS bandwidth control design</h1><p>先看看大佬是如何设计[^roadmap]这个系统的 (关注企业应用)，分为 bandwidth control 和 CFS bandwidth control 看设计。</p>
+<p>首先是 bandwidth control 设计要先考虑两个主要面：</p>
+<blockquote>
+<ul>
+<li>The actual amount of CPU time available to a group is highly variable as it is dependent on the presence and execution patterns of other groups, a machine can the not be predictably partitioned without intimately understanding the behaviors of all co-scheduled applications.</li>
+<li>The maximum amount of CPU time available to a group is not predictable. While this is closely related to the first point, the distinction is worth noting as this directly affects capacity planning.</li>
+</ul>
+</blockquote>
+<p>因为 SCHED_RT 也实现了 bandwidth control，这里区分出我关注的 CFS bandwidth control。</p>
+<blockquote>
+<p>we have now opted for global specifcation of both enforcement interval (cpu.cfs_ period_us) and allowable bandwidth (cpu.cfs_ quota_us). By specifying this, the group as a whole will be limited to cpu.cfs_quota_us units of CPU time within the period of cpu.cfs_period_us.</p>
+<p>Of note is that these limits are hierarchical, unlike SCHED_RT we do not currently perform feasibility evaluaion regarding the defined limits. If a child has a more permissive bandwidth allowance than its parent, it will be indirectly throttled when the parent’s quota is exhausted.</p>
+<p>Additionally, there is the global control: <code>/proc/sys/ kernel/sched_cfs_bandwidth_slice_us</code></p>
+</blockquote>
+<p>大佬们在论文里讨论了两个方案，在 cfs bandwidth v4 版本后引入了 Hybrid global pool 实现。</p>
+<p>如果仅实现 local pool 设计下，在大型的 SMP 系统中，计算剩余时间和存储剩余时间是一个多对多的关系，而锁的竞争导致开销大，而如果仅 tracking quota globally 依然是不能解决前面所述的问题，唯一的好处就是当 quota 没有用完，消耗的时间计算比较有效率，是因为本地 cpu 变量修改的是无锁。因此大佬们选择了一个混合方案以此来改善性能。</p>
+<blockquote>
+<p>To each task_group a new cfs_bandwidth structure has been added. This tracks (globally) the allocated and consumed quota within a period. </p>
+<p>However, consumption does not occur against this pool directly; as in the local pool approach above there is a local, per cfs_rq, store of granted and consumed quota. This quota is acquired from the global pool in a (user configurable) batch size. When there is no quota available to re-provision a running cfs_rq, it is locally throttled until the next quota refresh. </p>
+<p>Bandwidth refresh is a periodic operation that occurs once per quota period within which all throttled run-queues are unthrottled and the global bandwidth pool is replenished.</p>
+</blockquote>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/media/pic/cfs-bandwidth-control/progress-of-a-task-in-bandwidth-controoled-group-with-global-quota.png"></div></div>
+<h1 id="0x01-实现分析"><a href="#0x01-实现分析" class="headerlink" title="0x01 实现分析"></a>0x01 实现分析</h1><p>1: 核心数据结构：</p>
+<p>根据大佬们论文里面的设计讨论，global cpu runtime pool 的实现就是 cfs_bandwidth 结构体，其作为 task_group 的最后一个字段。quota 是限于的每 period 中的，根据我的理解，正常 task group 被调度的情况下$$period &gt;&#x3D; quota &gt;&#x3D; runtime$$，但是时间的消耗不上立刻直接反应在 global pool 中，而是在每 cfs_rq 中 local pool 中记录已经获取和消化的配额，这个配额从  global pool 中以预配置的大小获取。当没有配额来填充 cfs 中的 local pool 时候，这个 task_group 会被限制到下一次 quota 的重新分配。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cfs_bandwidth</span> &#123;</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_CFS_BANDWIDTH</span></span><br><span class="line">        <span class="type">raw_spinlock_t</span> lock;</span><br><span class="line">        <span class="comment">// /sys/fs/cgroup/cpu/cpu.cfs_period_us defulat: 100ms</span></span><br><span class="line">        <span class="type">ktime_t</span> period;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// quota 为时间配额，runtime 是实际消耗的时间</span></span><br><span class="line">        u64 quota, runtime;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 是 tg 中控制配额的常数比</span></span><br><span class="line">        s64 hierarchical_quota;</span><br><span class="line">        <span class="comment">// 时间片的到期时间</span></span><br><span class="line">        u64 runtime_expires;</span><br><span class="line"></span><br><span class="line">        <span class="type">int</span> idle, period_active;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// period_timer 每隔 cfs_period_us 来刷新 quota。</span></span><br><span class="line">        <span class="comment">// slack_timer 应该是论文 6.3 的第一个问题。</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">hrtimer</span> <span class="title">period_timer</span>, <span class="title">slack_timer</span>;</span> </span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">throttled_cfs_rq</span>;</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">/* statistics 注释说明是统计相关的，不关注 */</span></span><br><span class="line">        <span class="type">int</span> nr_periods, nr_throttled;</span><br><span class="line">        u64 throttled_time;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>而 local pool，就是嵌入在 cfs_rq 中的这些字段了。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cfs_rq</span> &#123;</span></span><br><span class="line">...</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_SMP</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_FAIR_GROUP_SCHED</span></span><br><span class="line">...</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_CFS_BANDWIDTH</span></span><br><span class="line">        <span class="type">int</span> runtime_enabled; <span class="comment">// 这个字段在 account_cfs_rq_runtime 入口做判断使用</span></span><br><span class="line">        u64 runtime_expires; <span class="comment">// 时间片的到期时间</span></span><br><span class="line">        s64 runtime_remaining; <span class="comment">// 进程组的剩余时间片</span></span><br><span class="line"></span><br><span class="line">        u64 throttled_clock, throttled_clock_task; <span class="comment">// tg 被节流过后的信息</span></span><br><span class="line">        u64 throttled_clock_task_time; <span class="comment">//</span></span><br><span class="line">        <span class="type">int</span> throttled, throttle_count; <span class="comment">//</span></span><br><span class="line">        <span class="class"><span class="keyword">struct</span> <span class="title">list_head</span> <span class="title">throttled_list</span>;</span> <span class="comment">// </span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">/* CONFIG_CFS_BANDWIDTH */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">/* CONFIG_FAIR_GROUP_SCHED */</span></span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>2: 核心函数：</p>
+<p>根据我的理解这就是论文[^roadmap]里面的 account_cfs_rq_quota() 的函数就是 account_cfs_rq_runtime() 函数，在 update_curr() 中被调，参数 delta_exec &#x3D; now - curr-&gt;exec_start。account_cfs_rq_runtime() 函数本身逻辑非常少，直接从__account_cfs_rq_runtime() 关注。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span> __account_cfs_rq_runtime(<span class="keyword">struct</span> cfs_rq *cfs_rq,</span><br><span class="line">                                     <span class="type">unsigned</span> <span class="type">long</span> delta_exec)</span><br><span class="line">&#123;</span><br><span class="line">        <span class="comment">/* dock delta_exec before expiring quota (as it could span periods) */</span></span><br><span class="line">        cfs_rq-&gt;runtime_remaining -= delta_exec; <span class="comment">// 剩余时间减去进程已经运行的时间。</span></span><br><span class="line">        expire_cfs_rq_runtime(cfs_rq); <span class="comment">// 检查 local pool 的时间片到期时间，如果没有到期就把到期时间再往后续一口</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (likely(cfs_rq-&gt;runtime_remaining &gt; <span class="number">0</span>)) <span class="comment">// 分支预测，也就是说代码暗示我们 local pool 剩余时间还有。</span></span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * if we&#x27;re unable to extend our runtime we resched so that the active</span></span><br><span class="line"><span class="comment">         * hierarchy can be throttled</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">         <span class="comment">// 如果 local pool 没有剩余时间，就从 global pool 不能借时间。借不到的话就设置 curr 重新调度。</span></span><br><span class="line">        <span class="keyword">if</span> (!assign_cfs_rq_runtime(cfs_rq) &amp;&amp; likely(cfs_rq-&gt;curr)) </span><br><span class="line">                resched_task(rq_of(cfs_rq)-&gt;curr);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>assign_cfs_rq_runtime() 可以看到<code>expires = cfs_b-&gt;runtime_expires;</code>后<code>cfs_rq-&gt;runtime_expires = expires;</code> 和 <code>cfs_rq-&gt;runtime_remaining += amount;</code>这两波操作就能理解 local pool 重 global pool 借时间的细节了。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">/* returns 0 on failure to allocate runtime */</span><br><span class="line">static int assign_cfs_rq_runtime(struct cfs_rq *cfs_rq)</span><br><span class="line">&#123;</span><br><span class="line">        struct task_group *tg = cfs_rq-&gt;tg;</span><br><span class="line">        struct cfs_bandwidth *cfs_b = tg_cfs_bandwidth(tg);</span><br><span class="line">        u64 amount = 0, min_amount, expires;</span><br><span class="line"></span><br><span class="line">        /* note: this is a positive sum as runtime_remaining &lt;= 0 */</span><br><span class="line">        min_amount = sched_cfs_bandwidth_slice() - cfs_rq-&gt;runtime_remaining;</span><br><span class="line"></span><br><span class="line">        raw_spin_lock(&amp;cfs_b-&gt;lock);</span><br><span class="line">        if (cfs_b-&gt;quota == RUNTIME_INF)</span><br><span class="line">                amount = min_amount;</span><br><span class="line">        else &#123;</span><br><span class="line">                /*</span><br><span class="line">                 * If the bandwidth pool has become inactive, then at least one</span><br><span class="line">                 * period must have elapsed since the last consumption.</span><br><span class="line">                 * Refresh the global state and ensure bandwidth timer becomes</span><br><span class="line">                 * active.</span><br><span class="line">                 */</span><br><span class="line">                if (!cfs_b-&gt;timer_active) &#123;</span><br><span class="line">                        __refill_cfs_bandwidth_runtime(cfs_b); // 重新填满时间</span><br><span class="line">                        __start_cfs_bandwidth(cfs_b);</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                if (cfs_b-&gt;runtime &gt; 0) &#123;</span><br><span class="line">                        amount = min(cfs_b-&gt;runtime, min_amount);</span><br><span class="line">                        cfs_b-&gt;runtime -= amount;</span><br><span class="line">                        cfs_b-&gt;idle = 0;</span><br><span class="line">                &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        expires = cfs_b-&gt;runtime_expires;</span><br><span class="line">        raw_spin_unlock(&amp;cfs_b-&gt;lock);</span><br><span class="line"></span><br><span class="line">        cfs_rq-&gt;runtime_remaining += amount;</span><br><span class="line">        /*</span><br><span class="line">         * we may have advanced our local expiration to account for allowed</span><br><span class="line">         * spread between our sched_clock and the one on which runtime was</span><br><span class="line">         * issued.</span><br><span class="line">         */</span><br><span class="line">        if ((s64)(expires - cfs_rq-&gt;runtime_expires) &gt; 0)</span><br><span class="line">                cfs_rq-&gt;runtime_expires = expires;</span><br><span class="line"></span><br><span class="line">        return cfs_rq-&gt;runtime_remaining &gt; 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>3: enqueue 调用流程</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">const struct sched_class fair_sched_class = &#123;</span><br><span class="line">        .next                   = &amp;idle_sched_class,</span><br><span class="line">         // kernel 面向对象设计,在 core.c 中被调用。</span><br><span class="line">        .enqueue_task           = enqueue_task_fair,</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">/*</span><br><span class="line"> * The enqueue_task method is called before nr_running is</span><br><span class="line"> * increased. Here we update the fair scheduling stats and</span><br><span class="line"> * then put the task into the rbtree:</span><br><span class="line"> */</span><br><span class="line">static void</span><br><span class="line">enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)</span><br><span class="line">&#123;</span><br><span class="line">        struct cfs_rq *cfs_rq;</span><br><span class="line">        struct sched_entity *se = &amp;p-&gt;se;</span><br><span class="line">        </span><br><span class="line">        // 因为需要支持组调度，而组调度下面 se 是有层次结构的，所以遍历所有调度实体。</span><br><span class="line">        // 如果没有组调度是没有必要获取层次信息。</span><br><span class="line">        for_each_sched_entity(se) &#123; </span><br><span class="line">                if (se-&gt;on_rq) // 如果 se 已经在就绪队列上</span><br><span class="line">                        break;</span><br><span class="line">                cfs_rq = cfs_rq_of(se); // 获取当前 se 所在的 cfs_rq</span><br><span class="line">                enqueue_entity(cfs_rq, se, flags); // enqueue_entity 完成 se 的真正插入操作</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">static void</span><br><span class="line">enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)</span><br><span class="line">&#123;</span><br><span class="line">        /*</span><br><span class="line">         * Update the normalized vruntime before updating min_vruntime</span><br><span class="line">         * through callig update_curr().</span><br><span class="line">         */</span><br><span class="line">         // 如果当前 se 不是被唤醒，或者 se 已经是在运行的了，则更新 se 的 vruntime。</span><br><span class="line">        if (!(flags &amp; ENQUEUE_WAKEUP) || (flags &amp; ENQUEUE_WAKING))</span><br><span class="line">                se-&gt;vruntime += cfs_rq-&gt;min_vruntime;</span><br><span class="line"></span><br><span class="line">        /*</span><br><span class="line">         * Update run-time statistics of the &#x27;current&#x27;.</span><br><span class="line">         */</span><br><span class="line">        update_curr(cfs_rq); // 这里通向 local pool 的更新流程, 参考核心函数分析部分。</span><br><span class="line">        enqueue_entity_load_avg(cfs_rq, se, flags &amp; ENQUEUE_WAKEUP);</span><br><span class="line">        account_entity_enqueue(cfs_rq, se); // 记账，更新 cfs-&gt;nr_running 和 load 等</span><br><span class="line">        update_cfs_shares(cfs_rq); // 更新 se 的权重</span><br><span class="line">        </span><br><span class="line">        // 如果当前 se 是被唤醒的</span><br><span class="line">        if (flags &amp; ENQUEUE_WAKEUP) &#123;</span><br><span class="line">                place_entity(cfs_rq, se, 0);</span><br><span class="line">                enqueue_sleeper(cfs_rq, se);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        update_stats_enqueue(cfs_rq, se);</span><br><span class="line">        check_spread(cfs_rq, se);</span><br><span class="line">        if (se != cfs_rq-&gt;curr)</span><br><span class="line">                __enqueue_entity(cfs_rq, se);</span><br><span class="line">        se-&gt;on_rq = 1;</span><br><span class="line"></span><br><span class="line">        if (cfs_rq-&gt;nr_running == 1) &#123;</span><br><span class="line">                list_add_leaf_cfs_rq(cfs_rq);</span><br><span class="line">                check_enqueue_throttle(cfs_rq); // cfs_rq 限流检查</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">/*</span><br><span class="line"> * When a group wakes up we want to make sure that its quota is not already</span><br><span class="line"> * expired/exceeded, otherwise it may be allowed to steal additional ticks of</span><br><span class="line"> * runtime as update_curr() throttling can not not trigger until it&#x27;s on-rq.</span><br><span class="line"> */</span><br><span class="line">static void check_enqueue_throttle(struct cfs_rq *cfs_rq)</span><br><span class="line">&#123;</span><br><span class="line">        if (!cfs_bandwidth_used()) // 如果限流没有开</span><br><span class="line">                return;</span><br><span class="line"></span><br><span class="line">        /* an active group must be handled by the update_curr()-&gt;put() path */</span><br><span class="line">        if (!cfs_rq-&gt;runtime_enabled || cfs_rq-&gt;curr) // 如果 runtime 没有启用</span><br><span class="line">                return;</span><br><span class="line"></span><br><span class="line">        /* ensure the group is not already throttled */</span><br><span class="line">        if (cfs_rq_throttled(cfs_rq)) // 已经限流操作了</span><br><span class="line">                return;</span><br><span class="line"></span><br><span class="line">        /* update runtime allocation */</span><br><span class="line">        account_cfs_rq_runtime(cfs_rq, 0); // 再抢救一下试试</span><br><span class="line">        if (cfs_rq-&gt;runtime_remaining &lt;= 0)</span><br><span class="line">        // 抢救无效，限流开始。</span><br><span class="line">        // 具体实现：就是 task group 限流的尾插到 cfs_rq 维护的已经限流的列表里面。</span><br><span class="line">                throttle_cfs_rq(cfs_rq); </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>[^zhihu]: <a target="_blank" rel="noopener" href="https://www.zhihu.com/question/35484429">现在的 Linux 内核和 Linux 2.6 的内核有多大区别？</a><br>[^roadmap]: <a target="_blank" rel="noopener" href="https://landley.net/kdocs/ols/2010/ols2010-pages-245-254.pdf">CPU bandwidth control for CFS Roadmap</a></p>
+
+
+
+<div class="article-footer reveal fs14"><section id="license"><div class="header"><span>License</span></div><div class="body"><p>本文采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">署名-非商业性使用-相同方式共享 4.0 国际</a> 许可协议，转载请注明出处。</p>
+</div></section></div>
+
+</article>
+
+<div class="related-wrap reveal" id="read-next"><section class="body"><div class="item" id="prev"><div class="note">Newer</div><a href="/2017/10/09/deep-explore-c-va-arg/">to explore c va arg</a></div><div class="item" id="next"><div class="note">Older</div><a href="/2017/09/21/cfs-per-entity-load-track/">cfs per entity load track</a></div></section></div>
+
+
+
+
+
+
+  <div class='related-wrap md-text reveal' id="comments">
+    <section class='header cmt-title cap theme'>
+      Join the discussion
+    </section>
+    <section class='body cmt-body giscus'>
+      
+
+<svg class="loading" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2709"><path d="M832 512c0-176-144-320-320-320V128c211.2 0 384 172.8 384 384h-64zM192 512c0 176 144 320 320 320v64C300.8 896 128 723.2 128 512h64z" p-id="2710"></path></svg>
+
+<div id="giscus" data-repo="sn0rt/sn0rt.github.io" data-repo-id="R_kgDOJhu0tg" data-category="General" data-category-id="DIC_kwDOJhu0ts4CWai7" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="top" data-theme="preferred_color_scheme" data-lang="zh-CN" data-loading="lazy" crossorigin="anonymous"></div>
+
+    </section>
+  </div>
+
+
+
+      
+<footer class="page-footer reveal fs12"><hr><div class="sitemap"><div class="sitemap-group"><span class="fs14">博客</span><a href="/">近期</a><a href="/tags">标签</a><a href="/archives">归档</a></div><div class="sitemap-group"><span class="fs14">项目</span><a href="/wiki">开源库</a></div><div class="sitemap-group"><span class="fs14">社交</span><a href="/friends">友链</a><a href="/about">留言板</a></div><div class="sitemap-group"><span class="fs14">更多</span><a href="/about">关于本站</a><a target="_blank" rel="noopener" href="https://github.com/Sn0rt">GitHub</a></div></div><div class="text"><p>本站由 <a href="/">@sn0rt</a> 使用 <a target="_blank" rel="noopener" href="https://github.com/xaoxuu/hexo-theme-stellar">Stellar</a> 主题创建。<br>本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处。</p>
+</div></footer>
+
+      <div class='float-panel mobile-only blur' style='display:none'>
+  <button type='button' class='sidebar-toggle mobile' onclick='sidebar.toggle()'>
+    <svg class="icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15301"><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 2.3 26.8 24.6 47.5 51.6 47.6h416.5v4z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15302"></path><path d="M566.407 808.3c26.9-0.1 49.3-20.8 51.6-47.6-1.9-27.7-23.9-49.7-51.6-51.6h-412.6c-28.2-1.4-52.6 19.5-55.5 47.6 1.9 27.7 23.9 49.7 51.6 51.6h416.5z m309.3-249.9c26.9-0.1 49.3-20.8 51.6-47.6-2.2-26.8-24.6-47.5-51.6-47.6h-721.9c-27.7-2.8-52.5 17.4-55.3 45.1-0.1 0.8-0.1 1.7-0.2 2.5 0.9 27.2 23.6 48.5 50.7 47.6H875.707z m-103.1-245.9c26.9-0.1 49.3-20.8 51.6-47.6-0.4-28.3-23.2-51.1-51.5-51.6h-618.9c-29.5-1.1-54.3 21.9-55.5 51.4v0.2c1.4 27.8 25.2 49.2 53 47.8 0.8 0 1.7-0.1 2.5-0.2h618.8z" p-id="15303"></path></svg>
+  </button>
+</div>
+
+    </div>
+  </div>
+  <div class='scripts'>
+    <script type="text/javascript">
+  const stellar = {
+    // 懒加载 css https://github.com/filamentgroup/loadCSS
+    loadCSS: (href, before, media, attributes) => {
+      var doc = window.document;
+      var ss = doc.createElement("link");
+      var ref;
+      if (before) {
+        ref = before;
+      } else {
+        var refs = (doc.body || doc.getElementsByTagName("head")[0]).childNodes;
+        ref = refs[refs.length - 1];
+      }
+      var sheets = doc.styleSheets;
+      if (attributes) {
+        for (var attributeName in attributes) {
+          if (attributes.hasOwnProperty(attributeName)) {
+            ss.setAttribute(attributeName, attributes[attributeName]);
+          }
+        }
+      }
+      ss.rel = "stylesheet";
+      ss.href = href;
+      ss.media = "only x";
+      function ready(cb) {
+        if (doc.body) {
+          return cb();
+        }
+        setTimeout(function () {
+          ready(cb);
+        });
+      }
+      ready(function () {
+        ref.parentNode.insertBefore(ss, before ? ref : ref.nextSibling);
+      });
+      var onloadcssdefined = function (cb) {
+        var resolvedHref = ss.href;
+        var i = sheets.length;
+        while (i--) {
+          if (sheets[i].href === resolvedHref) {
+            return cb();
+          }
+        }
+        setTimeout(function () {
+          onloadcssdefined(cb);
+        });
+      };
+      function loadCB() {
+        if (ss.addEventListener) {
+          ss.removeEventListener("load", loadCB);
+        }
+        ss.media = media || "all";
+      }
+      if (ss.addEventListener) {
+        ss.addEventListener("load", loadCB);
+      }
+      ss.onloadcssdefined = onloadcssdefined;
+      onloadcssdefined(loadCB);
+      return ss;
+    },
+
+    // 从 butterfly 和 volantis 获得灵感
+    loadScript: (src, opt) => new Promise((resolve, reject) => {
+      var script = document.createElement('script');
+      if (src.startsWith('/')){
+        src = stellar.config.root + src.substring(1);
+      }
+      script.src = src;
+      if (opt) {
+        for (let key of Object.keys(opt)) {
+          script[key] = opt[key]
+        }
+      } else {
+        // 默认异步，如果需要同步，第二个参数传入 {} 即可
+        script.async = true
+      }
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    }),
+
+    // https://github.com/jerryc127/hexo-theme-butterfly
+    jQuery: (fn) => {
+      if (typeof jQuery === 'undefined') {
+        stellar.loadScript(stellar.plugins.jQuery).then(fn)
+      } else {
+        fn()
+      }
+    }
+  };
+  stellar.version = '1.19.0';
+  stellar.github = 'https://github.com/xaoxuu/hexo-theme-stellar/tree/1.19.0';
+  stellar.config = {
+    date_suffix: {
+      just: 'Just',
+      min: 'minutes ago',
+      hour: 'hours ago',
+      day: 'days ago',
+      month: 'months ago',
+    },
+    root : '/',
+  };
+
+  // required plugins (only load if needs)
+  stellar.plugins = {
+    jQuery: 'https://gcore.jsdelivr.net/npm/jquery@3.6.2/dist/jquery.min.js'
+  };
+
+  if ('local_search') {
+    stellar.search = {};
+    stellar.search.service = 'local_search';
+    if (stellar.search.service == 'local_search') {
+      let service_obj = Object.assign({}, {"field":"all","path":"/search.json","content":true,"sort":"-date"});
+      stellar.search[stellar.search.service] = service_obj;
+    }
+  }
+
+  // stellar js
+  stellar.plugins.stellar = Object.assign({"sites":"/js/plugins/sites.js","friends":"/js/plugins/friends.js","ghinfo":"/js/plugins/ghinfo.js","timeline":"/js/plugins/timeline.js","linkcard":"/js/plugins/linkcard.js","fcircle":"/js/plugins/fcircle.js","weibo":"/js/plugins/weibo.js"});
+
+  stellar.plugins.marked = Object.assign("https://cdn.bootcdn.net/ajax/libs/marked/4.0.18/marked.min.js");
+  // optional plugins
+  if ('true' == 'true') {
+    stellar.plugins.lazyload = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/vanilla-lazyload@17.8.3/dist/lazyload.min.js","transition":"blur"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.swiper = Object.assign({"enable":true,"css":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.css","js":"https://unpkg.com/swiper@8.4.5/swiper-bundle.min.js"});
+  }
+  if ('' == 'true') {
+    stellar.plugins.scrollreveal = Object.assign({"enable":null,"js":"https://gcore.jsdelivr.net/npm/scrollreveal@4.0.9/dist/scrollreveal.min.js","distance":"8px","duration":500,"interval":100,"scale":1});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.preload = Object.assign({"enable":true,"service":"flying_pages","instant_page":"https://gcore.jsdelivr.net/gh/volantis-x/cdn-volantis@4.1.2/js/instant_page.js","flying_pages":"https://gcore.jsdelivr.net/gh/gijo-varghese/flying-pages@2.1.2/flying-pages.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.fancybox = Object.assign({"enable":true,"js":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js","css":"https://gcore.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css","selector":".swiper-slide img"});
+  }
+  if ('false' == 'true') {
+    stellar.plugins.heti = Object.assign({"enable":false,"css":"https://unpkg.com/heti@0.9.2/umd/heti.min.css","js":"https://unpkg.com/heti@0.9.2/umd/heti-addon.min.js"});
+  }
+  if ('true' == 'true') {
+    stellar.plugins.copycode = Object.assign({"enable":true,"js":"/js/plugins/copycode.js","default_text":"Copy","success_text":"Copied"});
+  }
+</script>
+
+<!-- required -->
+
+  
+<script src="/js/main.js" async></script>
+
+
+
+<!-- optional -->
+
+  <script>
+  function loadJS() {
+    const els = document.querySelectorAll("#comments #giscus");
+    if (els.length === 0) return;
+    els.forEach((el, i) => {
+      try {
+        el.innerHTML = '';
+      } catch (error) {
+        console.log(error);
+      }
+      var script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.async = true;
+      for (let key of Object.keys(el.attributes)) {
+        let attr = el.attributes[key];
+        if (['class', 'id'].includes(attr.name) === false) {
+          script.setAttribute(attr.name, attr.value);
+        }
+      }
+      el.appendChild(script);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', (event) => {
+    loadJS();
+  });
+</script>
+
+
+
+
+<!-- inject -->
+
+
+  </div>
+</body>
+</html>
