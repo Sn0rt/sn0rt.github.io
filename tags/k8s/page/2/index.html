@@ -108,12 +108,12 @@
 <article class="md-text"><h2 class="post-title">cluster api v1alpha2 之 cluster</h2><div class="excerpt"><p>因为最近工作需要，调研了 cluster api provider aws.整理调研过程中的知识如下：
 manager cluster 是一个注册了多个 crd 并运行三个 controller 的普通 k8s 集群。
 三个 controller 分别是：cabpk-controller-manager 核心功能是用来生产集群证书统一签发，核心进程的参数下发。capa-controller-...</p></div><div class="meta cap"><span class="cap" id="post-meta">Posted on&nbsp;<time datetime="2019-10-19T16:00:00.000Z">2019-10-20</time></span></div></article>
-</a><a class="post-card post " href="/2019/04/02/cloud-provider-route-controller/">
-<article class="md-text"><h2 class="post-title">cloud provider route controller</h2><div class="excerpt"><p>​	当 pod 的 CIDR 和所属的 node 不属于同一个 cidr 上时候，在部分云上就会有 pod 和 node 网络互通的问题，而 route controller 就是被设计用来创建路由解决这个问题的方案。
-​	如果计划让 k8s 启动的 pod 从指定的 cidr 中分配 ip 常见的方式是通过指定 KCM 的启动参数cluster-cidr来指定 POD CIDR，servi...</p></div><div class="meta cap"><span class="cap" id="post-meta">Posted on&nbsp;<time datetime="2019-04-01T16:00:00.000Z">2019-04-02</time></span></div></article>
 </a><a class="post-card post " href="/2019/04/02/cloud-provider-node-controller/">
 <article class="md-text"><h2 class="post-title">cloud provider node controller</h2><div class="excerpt"><p>node controller 是负责初始化&#x2F;维护一个k8s node 在云上标识的信息，主要信息如下：
 1: 初始化node的云相关的zone&#x2F;region信息labels。2: 初始化 node 的云上的实例信息，比如说 type 和 szie。3: 获取 node 的网络地址信息和主机名称。4: 当客户通过云的虚拟机管理面板删除主机的时候需要从 k8s 中同步的删除...</p></div><div class="meta cap"><span class="cap" id="post-meta">Posted on&nbsp;<time datetime="2019-04-01T16:00:00.000Z">2019-04-02</time></span></div></article>
+</a><a class="post-card post " href="/2019/04/02/cloud-provider-route-controller/">
+<article class="md-text"><h2 class="post-title">cloud provider route controller</h2><div class="excerpt"><p>​	当 pod 的 CIDR 和所属的 node 不属于同一个 cidr 上时候，在部分云上就会有 pod 和 node 网络互通的问题，而 route controller 就是被设计用来创建路由解决这个问题的方案。
+​	如果计划让 k8s 启动的 pod 从指定的 cidr 中分配 ip 常见的方式是通过指定 KCM 的启动参数cluster-cidr来指定 POD CIDR，servi...</p></div><div class="meta cap"><span class="cap" id="post-meta">Posted on&nbsp;<time datetime="2019-04-01T16:00:00.000Z">2019-04-02</time></span></div></article>
 </a><a class="post-card post " href="/2019/04/01/cloud-provider-svc-controller/">
 <article class="md-text"><h2 class="post-title">cloud provider Service Controller</h2><div class="excerpt"><p>​	service controller 负责观察 k8s 中 service 资源的创建，更新和删除事件。并基于当前 k8s 中的 service 状态去云上配置负载均衡，保证云上的负载均与 serivce 资源描述相一致。
 ​	service controller 在 cloud contorller 中的一个模块随 cloud controller 启动，可以通过启动 new serv...</p></div><div class="meta cap"><span class="cap" id="post-meta">Posted on&nbsp;<time datetime="2019-03-31T16:00:00.000Z">2019-04-01</time></span></div></article>
@@ -309,6 +309,15 @@ manager cluster 是一个注册了多个 crd 并运行三个 controller 的普�
 <!-- inject -->
 
 
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-0XNCHBGG81"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-0XNCHBGG81');
+</script>
   </div>
 </body>
 </html>

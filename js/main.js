@@ -1,4 +1,5 @@
 console.log('\n' + '%c Stellar v' + stellar.version + ' %c\n' + stellar.github + '\n', 'color:#e8fafe;background:#03c7fa;padding:8px;border-radius:4px', 'margin-top:8px');
+
 // utils
 const util = {
 
@@ -367,12 +368,12 @@ if (stellar.plugins.heti) {
   stellar.loadCSS(stellar.plugins.heti.css);
   stellar.loadScript(stellar.plugins.heti.js, { defer: true }).then(function () {
     const heti = new Heti('.heti');
-    
+
     // Copied from heti.autoSpacing() without DOMContentLoaded.
     // https://github.com/sivan/heti/blob/eadee6a3b748b3b7924a9e7d5b395d4bce479c9a/js/heti-addon.js
     //
     // We managed to minimize the code modification to ensure .autoSpacing()
-    // is synced with upstream; therefore, we use `.bind()` to emulate the 
+    // is synced with upstream; therefore, we use `.bind()` to emulate the
     // behavior of .autoSpacing() so we can even modify almost no code.
     void (function () {
       const $$rootList = document.querySelectorAll(this.rootSelector)
@@ -389,3 +390,4 @@ if (stellar.plugins.heti) {
 if (stellar.plugins.copycode) {
   stellar.loadScript(stellar.plugins.copycode.js, { defer: true })
 }
+
