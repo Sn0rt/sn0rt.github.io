@@ -76,7 +76,7 @@
 <div class="widgets">
 <widget class="widget-wrapper search"><div class="widget-body"><div class="search-wrapper" id="search"><form class="search-form"><input type="text" class="search-input" id="search-input" placeholder="Search"><svg t="1670596976048" class="icon search-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2676" width="200" height="200"><path d="M938.2 832.6L723.8 618.1c-2.5-2.5-5.3-4.4-7.9-6.4 36.2-55.6 57.3-121.8 57.3-193.1C773.3 222.8 614.6 64 418.7 64S64 222.8 64 418.6c0 195.9 158.8 354.6 354.6 354.6 71.3 0 137.5-21.2 193.2-57.4 2 2.7 3.9 5.4 6.3 7.8L832.5 938c14.6 14.6 33.7 21.9 52.8 21.9 19.1 0 38.2-7.3 52.8-21.8 29.2-29.1 29.2-76.4 0.1-105.5M418.7 661.3C284.9 661.3 176 552.4 176 418.6 176 284.9 284.9 176 418.7 176c133.8 0 242.6 108.9 242.6 242.7 0 133.7-108.9 242.6-242.6 242.6" p-id="2677"></path></svg></form><div id="search-result"></div><div class="search-no-result">No Results!</div></div></div></widget>
 
-<widget class="widget-wrapper recent"><div class="widget-header cap theme dis-select"><span class="name">Recent Update</span></div><div class="widget-body related-posts fs14"><a class="item title" href="/2021/05/11/blk-io-2/"><span class="title">blkio 源码分析</span></a><a class="item title" href="/2022/09/03/update-bios-by-redfish/"><span class="title">update BIOS attr by redfish</span></a><a class="item title" href="/2016/06/14/ptmalloc2/"><span class="title">ptmalloc2</span></a><a class="item title" href="/2016/07/25/cgroup-i/"><span class="title">cgroups I - usage</span></a><a class="item title" href="/2017/09/02/a-panice-of-watchdog/"><span class="title">a panic of watchdog hard lockup</span></a></div></widget>
+<widget class="widget-wrapper recent"><div class="widget-header cap theme dis-select"><span class="name">Recent Update</span></div><div class="widget-body related-posts fs14"><a class="item title" href="/2023/07/10/reproduce-apisix-bug-9661/"><span class="title">limit-conn report error attribute does not exist</span></a><a class="item title" href="/2023/05/11/syslog-data-format%20copy/"><span class="title">syslog data format</span></a><a class="item title" href="/2021/05/11/blk-io-2/"><span class="title">blkio 源码分析</span></a><a class="item title" href="/2022/09/03/update-bios-by-redfish/"><span class="title">update BIOS attr by redfish</span></a><a class="item title" href="/2016/06/14/ptmalloc2/"><span class="title">ptmalloc2</span></a></div></widget>
 
 
 </div>
@@ -98,7 +98,11 @@
 
 <div class="nav-wrap"><nav class="sub post cap"><a class="active" href="/">Recent</a><a href="/tags">Tags</a><a href="/archives">Archives</a></nav></div>
 
-  <div class="post-list post"><a class="post-card post " href="/2016/11/01/git/">
+  <div class="post-list post"><a class="post-card post " href="/2016/11/15/the-organization-of-kernel-physical-memory/">
+<article class="md-text"><h2 class="post-title">the organization of linux physical memory</h2><div class="excerpt"><p>梳理一下 Linux 物理内存的组织，有了这个铺垫可以快速什么页框回收，KSM(kernel samepage merging)，cgroup mm 是在内存那个层面玩的，能玩出什么花样，还能玩出什么花样。
+现代的 Linux 都是支持 NUMA，它和普通的 SMP 机器区别在于同一个 cpu 访问不同的地址的时间开销可能不一样，所以叫不一致。
+12345678910111213141516...</p></div><div class="meta cap"><span class="cap" id="post-meta">Posted on&nbsp;<time datetime="2016-11-14T16:00:00.000Z">2016-11-15</time></span></div></article>
+</a><a class="post-card post " href="/2016/11/01/git/">
 <article class="md-text"><h2 class="post-title">git usage</h2><div class="excerpt"><p>0x00 workflowgit 的工作流程，已 k8s devel 的开发者文档里面图来说明：
 workflow
 
@@ -106,11 +110,11 @@ workflow
 0x01 tips
 Merge another branch of the same git-repo
 1git...</p></div><div class="meta cap"><span class="cap" id="post-meta">Posted on&nbsp;<time datetime="2016-10-31T16:00:00.000Z">2016-11-01</time></span></div></article>
-</a><a class="post-card post " href="/2016/09/13/k8s-ii/">
-<article class="md-text"><h2 class="post-title">kubernetes II - network policy</h2><div class="excerpt"><p>0x00 design在 kubernetes 项目中一般的提案会在 repo 的docs/proposals下面，这次我主要关注networkPolicy相关提案，关于 networkpolicy 早期的会议讨论可以见 [^meeting], 提供一个 case[^draft2] 可以看到典型的应用方式，社区讨论定稿为 [^manuscript], 第一次提交的代码在 patch #256...</p></div><div class="meta cap"><span class="cap" id="post-meta">Posted on&nbsp;<time datetime="2016-09-12T16:00:00.000Z">2016-09-13</time></span></div></article>
 </a><a class="post-card post " href="/2016/09/13/k8s-i/">
 <article class="md-text"><h2 class="post-title">kubernetes I - learn & install</h2><div class="excerpt"><p>0x00 background因新项目与 kubernetes 本身相关，而我对 kubernetes 的复杂一无所知，所以需要探索它。这个 post 主要记录学习 k8s 梳理出来的 XCx 基本概念以及如何参与开发，部分图片来源于 [^slideshare], 大量资料来自 [^officialdoc], 有点补充”官网的文档不如 repo 里面来的全面”!
 0x01 what’s ku...</p></div><div class="meta cap"><span class="cap" id="post-meta">Posted on&nbsp;<time datetime="2016-09-12T16:00:00.000Z">2016-09-13</time></span></div></article>
+</a><a class="post-card post " href="/2016/09/13/k8s-ii/">
+<article class="md-text"><h2 class="post-title">kubernetes II - network policy</h2><div class="excerpt"><p>0x00 design在 kubernetes 项目中一般的提案会在 repo 的docs/proposals下面，这次我主要关注networkPolicy相关提案，关于 networkpolicy 早期的会议讨论可以见 [^meeting], 提供一个 case[^draft2] 可以看到典型的应用方式，社区讨论定稿为 [^manuscript], 第一次提交的代码在 patch #256...</p></div><div class="meta cap"><span class="cap" id="post-meta">Posted on&nbsp;<time datetime="2016-09-12T16:00:00.000Z">2016-09-13</time></span></div></article>
 </a><a class="post-card post " href="/2016/09/09/docker-usage/">
 <article class="md-text"><h2 class="post-title">docker usage</h2><div class="excerpt"><p>0x00 starting公司准备开容器项目且我被分到了项目组，但对容器技术一无所知，所以这个 post 来记录目前工业界主流容器技术 –docker 的实践过程。
 0x01 what’s docker?
@@ -147,9 +151,6 @@ Netfilter, 在 Linux 内核中的一个软件框架，用于管理网络数据�
 以上内容引自 Wikipedia,netfilter 做为一个内核框架，它可以在不同阶段将函数hook进网络栈，框架本身并不处理数据包 [^linux_fw].
 
 ipta...</p></div><div class="meta cap"><span class="cap" id="post-meta">Posted on&nbsp;<time datetime="2016-07-23T16:00:00.000Z">2016-07-24</time></span></div></article>
-</a><a class="post-card post " href="/2016/07/21/netlink-i/">
-<article class="md-text"><h2 class="post-title">netlink protocol I</h2><div class="excerpt"><p>0x00 Introduction0x01 what is netlink?netlink 是一种用户进程和内核，或者进程之间的沟通机制，不能用于跨主机的沟通 ^manual.
-0x02 the advantage of netlink?多数的 Linux 内核态程序都需要和用户空间的进程交换数据，但是传统的 Unix 的 IPC (各类管道、消息队列、内存共享、信号量) 机制不能为进程与内...</p></div><div class="meta cap"><span class="cap" id="post-meta">Posted on&nbsp;<time datetime="2016-07-20T16:00:00.000Z">2016-07-21</time></span></div></article>
 </a></div>
   
   <div class='paginator-wrap dis-select'>
