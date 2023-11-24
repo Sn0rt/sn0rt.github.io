@@ -30,14 +30,14 @@
 <meta property="og:site_name" content="sn0rt&#39;s blog">
 <meta property="og:description" content="0x00 provision一个 Linux 系统，摩托罗拉 c118,T 型 minusb 数据线，Motorola c118&#x2F;c123 数据连接线，FT232 USB 转串口 TTL,Motorola C118&#x2F;c123 滤波器套件 (这个需要焊接技能，换滤波器可以捕获 uplink 信号), 感谢曾哥赞助这些玩具，可以到淘宝店一次买全。 0x01 software1234">
 <meta property="og:locale" content="en_US">
-<meta property="og:image" content="http://sn0rt.github.io/pic/GSM/file_ready.png">
-<meta property="og:image" content="http://sn0rt.github.io/pic/GSM/gsm.png">
+<meta property="og:image" content="http://sn0rt.github.io/media/pic/GSM/file_ready.png">
+<meta property="og:image" content="http://sn0rt.github.io/media/pic/GSM/gsm.png">
 <meta property="article:published_time" content="2015-09-13T16:00:00.000Z">
-<meta property="article:modified_time" content="2023-05-14T05:02:02.772Z">
+<meta property="article:modified_time" content="2023-11-24T07:52:58.929Z">
 <meta property="article:author" content="Sn0rt">
 <meta property="article:tag" content="security">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://sn0rt.github.io/pic/GSM/file_ready.png">
+<meta name="twitter:image" content="http://sn0rt.github.io/media/pic/GSM/file_ready.png">
   
   
   
@@ -109,7 +109,7 @@
 <h1 id="0x00-provision"><a href="#0x00-provision" class="headerlink" title="0x00 provision"></a>0x00 provision</h1><p>一个 Linux 系统，摩托罗拉 c118,T 型 minusb 数据线，Motorola c118&#x2F;c123 数据连接线，FT232 USB 转串口 TTL,Motorola C118&#x2F;c123 滤波器套件 (这个需要焊接技能，换滤波器可以捕获 uplink 信号), 感谢曾哥赞助这些玩具，可以到淘宝店一次买全。</p>
 <h1 id="0x01-software"><a href="#0x01-software" class="headerlink" title="0x01 software"></a>0x01 software</h1><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">mkdir gprs_sniffer</span><br><span class="line">cd gprs_sniffer</span><br><span class="line">git clone git://git.osmocom.org/osmocom-bb.git</span><br><span class="line">git clone git://git.osmocom.org/libosmocore.git</span><br><span class="line">git clone git://git.srlabs.de/gprsdecode.git</span><br></pre></td></tr></table></figure>
 <p>下载交叉编译环境 <a target="_blank" rel="noopener" href="http://pan.baidu.com/share/link?shareid=739532605&uk=2955852660">here</a>, 某些 64 位的 linux 需要安装 32 的 glibc 的库。<br>实验环境准备好，目录是这个样子</p>
-<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/pic/GSM/file_ready.png" alt="dir"></div><div class="image-meta"><span class="image-caption center">dir</span></div></div>
+<div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/media/pic/GSM/file_ready.png" alt="dir"></div><div class="image-meta"><span class="image-caption center">dir</span></div></div>
 
 <h1 id="0x02-debug-environment"><a href="#0x02-debug-environment" class="headerlink" title="0x02 debug environment"></a>0x02 debug environment</h1><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">tar xf bu-2.15_gcc-3.4.3-c-c++-java_nl-1.12.0_gi-6.1.tar.bz2</span><br><span class="line">export PATH=$PATH:/root/gprs_sniffer/gnuarm-3.4.3/bin</span><br></pre></td></tr></table></figure>
 <p>解压交叉编译环境准备设置变量。</p>
@@ -128,7 +128,7 @@
 <p>然后使用 ccch_scan 进行抓包，-a 参数为指定 ARFCN 号</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo wireshark -k -i lo -f &#x27;port 4729&#x27;</span><br></pre></td></tr></table></figure>
 <p>注意 wireshark 的 filiter 的写成 GSM_SMS.</p>
-<h1 id="0x04-demo"><a href="#0x04-demo" class="headerlink" title="0x04 demo"></a>0x04 demo</h1><div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/pic/GSM/gsm.png" alt="sms"></div><div class="image-meta"><span class="image-caption center">sms</span></div></div>
+<h1 id="0x04-demo"><a href="#0x04-demo" class="headerlink" title="0x04 demo"></a>0x04 demo</h1><div class="tag-plugin image"><div class="image-bg"><img class="lazy" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAAaADAAQAAAABAAAAAQAAAADa6r/EAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=" data-src="/media/pic/GSM/gsm.png" alt="sms"></div><div class="image-meta"><span class="image-caption center">sms</span></div></div>
 
 
 
